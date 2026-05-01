@@ -12,4 +12,10 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
+  // Idempotent migrations: prefer drizzle-kit migrate over push for production
+  // For dev, db:push is still fine
+  migrations: {
+    table: "drizzle_migrations",
+    schema: "public",
+  },
 });

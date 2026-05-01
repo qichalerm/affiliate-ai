@@ -40,6 +40,7 @@ const SCHEDULES: JobSchedule[] = [
   { name: "pinterestPublish", cron: "0 11,17 * * *", description: "Publish pins to Pinterest (if enabled)" },
   { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
   { name: "sitemapAndIndex", cron: "0 22 * * *", description: "Rebuild sitemap + submit to Google/Bing" },
+  { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },

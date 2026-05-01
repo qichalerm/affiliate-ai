@@ -96,6 +96,28 @@ export async function buildDailyReport(): Promise<string> {
   lines.push(`Scraper: ${scrape.successful_runs}/${scrape.total_runs} runs (${scrape.total_succeeded} items)`);
   lines.push(`Content gen: ${content.pages_created} หน้า — ใช้ LLM $${content.llm_cost_usd.toFixed(2)}`);
   lines.push("");
+  // Winners/Losers (only on Mondays — once per week)
+  const isMonday = new Date().getDay() === 1;
+  if (isMonday) {
+    try {
+      const { getWinnersAndLosers, formatWinnersLosersTelegram } = await import(
+        "../analytics/winners-losers.ts"
+      );
+      const wl = await getWinnersAndLosers({ limit: 5 });
+      if (
+        wl.topGainers.length > 0 ||
+        wl.topLosers.length > 0 ||
+        wl.newWinners.length > 0 ||
+        wl.topRevenue.length > 0
+      ) {
+        lines.push(formatWinnersLosersTelegram(wl));
+        lines.push("");
+      }
+    } catch (err) {
+      log.warn({ err }, "winners/losers report failed; skipping");
+    }
+  }
+
   if (alerts.unresolved > 0) {
     lines.push("⚠️ *Alerts ค้าง*");
     lines.push(`Unresolved: ${alerts.unresolved}`);

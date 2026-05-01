@@ -21,6 +21,7 @@ import { buildSitemap } from "../seo/sitemap-builder.ts";
 import { submitToIndexNow } from "../seo/indexnow.ts";
 import { batchNotifyGoogle } from "../seo/google-indexing.ts";
 import { refreshAllInternalLinks } from "../seo/internal-linker.ts";
+import { runAnalyticsIngest } from "../analytics/runner.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -376,6 +377,15 @@ export async function jobRefreshInternalLinks(): Promise<void> {
 }
 
 /* ===================================================================
+ * 16. Analytics ingestion (Layer 10 — GSC + CF + Short.io)
+ * =================================================================== */
+
+export async function jobAnalyticsIngest(): Promise<void> {
+  const result = await runAnalyticsIngest();
+  log.info(result, "analytics ingestion done");
+}
+
+/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -395,6 +405,7 @@ export const JOBS = {
   crossPlatformMatch: jobCrossPlatformMatch,
   sitemapAndIndex: jobSitemapAndIndex,
   refreshInternalLinks: jobRefreshInternalLinks,
+  analyticsIngest: jobAnalyticsIngest,
 } as const;
 
 export type JobName = keyof typeof JOBS;

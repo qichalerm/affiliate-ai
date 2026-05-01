@@ -748,6 +748,82 @@ export const scrapeAccounts = pgTable(
 );
 
 /* ===================================================================
+ * KEYWORD PERFORMANCE (Layer 10 — Google Search Console daily ingestion)
+ * =================================================================== */
+
+export const keywordPerformance = pgTable(
+  "keyword_performance",
+  {
+    id: serial("id").primaryKey(),
+    contentPageId: integer("content_page_id").references(() => contentPages.id, {
+      onDelete: "cascade",
+    }),
+    keyword: varchar("keyword", { length: 256 }).notNull(),
+    impressions: integer("impressions").notNull().default(0),
+    clicks: integer("clicks").notNull().default(0),
+    avgPosition: real("avg_position"),
+    ctr: real("ctr"), // clicks/impressions
+    country: varchar("country", { length: 4 }),
+    device: varchar("device", { length: 16 }), // desktop | mobile | tablet
+    capturedDate: timestamp("captured_date", { mode: "date" }).notNull(), // day-level granularity
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pageDateIdx: index("keyword_perf_page_date_idx").on(t.contentPageId, t.capturedDate),
+    keywordIdx: index("keyword_perf_keyword_idx").on(t.keyword),
+    uniqueDayKey: uniqueIndex("keyword_perf_unique_idx").on(
+      t.contentPageId,
+      t.keyword,
+      t.capturedDate,
+      t.country,
+      t.device,
+    ),
+  }),
+);
+
+/* ===================================================================
+ * PAGE METRICS DAILY (Layer 10 — Cloudflare Analytics + aggregated rollup)
+ * =================================================================== */
+
+export const pageMetricsDaily = pgTable(
+  "page_metrics_daily",
+  {
+    id: serial("id").primaryKey(),
+    contentPageId: integer("content_page_id")
+      .references(() => contentPages.id, { onDelete: "cascade" })
+      .notNull(),
+    capturedDate: timestamp("captured_date", { mode: "date" }).notNull(),
+
+    // Traffic (from CF Analytics)
+    visits: integer("visits").notNull().default(0),
+    pageviews: integer("pageviews").notNull().default(0),
+    uniqueVisitors: integer("unique_visitors").notNull().default(0),
+
+    // From GSC
+    impressions: integer("impressions").notNull().default(0),
+    organicClicks: integer("organic_clicks").notNull().default(0),
+    avgPosition: real("avg_position"),
+
+    // Affiliate funnel (from clicks table)
+    affiliateClicks: integer("affiliate_clicks").notNull().default(0),
+
+    // Engagement (from CF Analytics)
+    avgTimeOnPageSec: real("avg_time_on_page_sec"),
+    bounceRate: real("bounce_rate"),
+
+    // Computed score 0..100
+    contentScore: real("content_score"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    pageDateIdx: uniqueIndex("page_metrics_page_date_idx").on(t.contentPageId, t.capturedDate),
+    dateIdx: index("page_metrics_date_idx").on(t.capturedDate),
+    scoreIdx: index("page_metrics_score_idx").on(t.contentScore),
+  }),
+);
+
+/* ===================================================================
  * RELATIONS
  * =================================================================== */
 
