@@ -28,6 +28,8 @@
     "backfill:faq": "bun run src/scripts/backfill-faq.ts",
     "analytics:sync": "bun run src/scripts/analytics-sync.ts",
     "winners:report": "bun run src/scripts/winners-report.ts",
+    "smoke": "bun run src/scripts/smoke-test.ts",
+    "verify:backup": "bash scripts/verify-backup.sh",
     "generate:once": "bun run src/scripts/generate-once.ts",
     "build:pages": "bun run src/scripts/build-pages.ts",
     "compliance:check": "bun run src/scripts/compliance-check.ts",
@@ -42,6 +44,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
+    "@sentry/node": "^8.50.0",
+    "resend": "^4.0.1",
     "@neondatabase/serverless": "^0.10.4",
     "croner": "^9.0.0",
     "dotenv": "^16.4.7",

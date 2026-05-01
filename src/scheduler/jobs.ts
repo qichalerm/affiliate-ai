@@ -22,6 +22,7 @@ import { submitToIndexNow } from "../seo/indexnow.ts";
 import { batchNotifyGoogle } from "../seo/google-indexing.ts";
 import { refreshAllInternalLinks } from "../seo/internal-linker.ts";
 import { runAnalyticsIngest } from "../analytics/runner.ts";
+import { runSourceHealth } from "../monitoring/source-health.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -386,6 +387,22 @@ export async function jobAnalyticsIngest(): Promise<void> {
 }
 
 /* ===================================================================
+ * 17. Per-source health (hourly)
+ * =================================================================== */
+
+export async function jobSourceHealth(): Promise<void> {
+  const signals = await runSourceHealth();
+  const summary = signals.reduce(
+    (acc, s) => {
+      acc[s.status] = (acc[s.status] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+  log.info(summary, "source health summary");
+}
+
+/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -406,6 +423,7 @@ export const JOBS = {
   sitemapAndIndex: jobSitemapAndIndex,
   refreshInternalLinks: jobRefreshInternalLinks,
   analyticsIngest: jobAnalyticsIngest,
+  sourceHealth: jobSourceHealth,
 } as const;
 
 export type JobName = keyof typeof JOBS;

@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { env, can } from "./env.ts";
 import { child } from "./logger.ts";
 import { retry, errMsg } from "./retry.ts";
+import { getBreaker } from "./circuit-breaker.ts";
 
 const log = child("claude");
 
@@ -97,7 +98,8 @@ export async function complete(prompt: string, opts: CompleteOptions = {}): Prom
   const useThinking = (opts.tier === "pro" && opts.extendedThinking) ?? false;
   const thinkingBudget = opts.thinkingBudget ?? env.ANTHROPIC_PRO_THINKING_BUDGET;
 
-  const response = await retry(
+  const breaker = getBreaker("anthropic");
+  const response = await breaker.execute(() => retry(
     () =>
       client().messages.create({
         model,
@@ -124,7 +126,7 @@ export async function complete(prompt: string, opts: CompleteOptions = {}): Prom
       onAttempt: (attempt, err) =>
         log.warn({ attempt, err: errMsg(err) }, "claude retry"),
     },
-  );
+  ));
 
   const block = response.content.find((c): c is Anthropic.TextBlock => c.type === "text");
   let text = block?.text ?? "";

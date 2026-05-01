@@ -5,6 +5,7 @@
 import { eq } from "drizzle-orm";
 import { db, schema } from "../lib/db.ts";
 import { sendOperator } from "../lib/telegram.ts";
+import { sendAlertEmail } from "../lib/email.ts";
 import { child } from "../lib/logger.ts";
 
 const log = child("alerts");
@@ -37,7 +38,8 @@ export async function createAlert(input: CreateAlertInput): Promise<number> {
 
   log.info({ id: row.id, code: input.code, severity: input.severity }, input.title);
 
-  // Notify operator (Telegram) for warn+ unless silenced
+  // Notify operator (Telegram primary) for warn+ unless silenced
+  let telegramOk = false;
   if (!input.silentTelegram && input.severity !== "info") {
     const icon = input.severity === "critical" ? "🚨" : input.severity === "error" ? "❌" : "⚠️";
     const lines = [`${icon} *${input.title}*`];
@@ -45,12 +47,30 @@ export async function createAlert(input: CreateAlertInput): Promise<number> {
     if (input.requiresUserAction) lines.push("", "_ต้องการการตัดสินใจของคุณ_");
     try {
       await sendOperator(lines.join("\n"));
+      telegramOk = true;
       await db
         .update(schema.alerts)
         .set({ deliveredAt: new Date() })
         .where(eq(schema.alerts.id, row.id));
     } catch (err) {
       log.warn({ err }, "failed to deliver alert via telegram");
+    }
+  }
+
+  // Email backup channel for severity ≥ error OR if Telegram failed
+  if (
+    !input.silentTelegram &&
+    (input.severity === "error" || input.severity === "critical" || (!telegramOk && input.severity !== "info"))
+  ) {
+    try {
+      await sendAlertEmail({
+        severity: input.severity === "critical" ? "critical" : input.severity === "error" ? "error" : "warn",
+        title: input.title,
+        body: input.body ?? "(no details)",
+        metadata: input.metadata,
+      });
+    } catch (err) {
+      log.warn({ err }, "failed to deliver alert via email");
     }
   }
 

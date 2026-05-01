@@ -19,6 +19,7 @@ import { env } from "../lib/env.ts";
 import { child, logger } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
 import { closeDb } from "../lib/db.ts";
+import { initSentry, wrapJob, flushSentry, captureError } from "../lib/sentry.ts";
 
 const log = child("scheduler");
 
@@ -41,6 +42,7 @@ const SCHEDULES: JobSchedule[] = [
   { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
   { name: "sitemapAndIndex", cron: "0 22 * * *", description: "Rebuild sitemap + submit to Google/Bing" },
   { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
+  { name: "sourceHealth", cron: "0 * * * *", description: "Per-source health check (hourly)" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
@@ -53,15 +55,18 @@ const activeJobs: Cron[] = [];
 async function runJob(name: JobName): Promise<void> {
   const start = Date.now();
   log.info({ job: name }, "▶ start");
+  const wrapped = wrapJob(name, JOBS[name]);
   try {
-    await JOBS[name]();
+    await wrapped();
     log.info({ job: name, durationMs: Date.now() - start }, "✓ done");
   } catch (err) {
     log.error({ job: name, err: errMsg(err), durationMs: Date.now() - start }, "✗ failed");
+    captureError(err, { tags: { job: name } });
   }
 }
 
 function startScheduler(): void {
+  initSentry();
   log.info({ tz: TZ, jobs: SCHEDULES.length }, "scheduler starting");
 
   for (const sched of SCHEDULES) {
@@ -86,6 +91,7 @@ function startScheduler(): void {
 async function shutdown(signal: string): Promise<void> {
   log.warn({ signal }, "shutdown signal received");
   for (const j of activeJobs) j.stop();
+  await flushSentry(2000);
   await closeDb();
   // Allow log flush
   await new Promise<void>((res) => setTimeout(res, 200));
