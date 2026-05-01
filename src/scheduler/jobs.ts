@@ -8,6 +8,7 @@ import { generateReviewPage } from "../content/generator.ts";
 import { broadcastDealsToChannel } from "../publisher/telegram-channel.ts";
 import { runHealthChecks } from "../monitoring/health.ts";
 import { sendDailyReport } from "../monitoring/daily-report.ts";
+import { runScoring } from "../intelligence/score-runner.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -108,10 +109,11 @@ export async function jobScrapeTrending(): Promise<void> {
 
 /* ===================================================================
  * 2. Generate pages for products that don't have one yet
+ *    Prioritized by Layer 8 final_score (demand × profitability × seasonality)
  * =================================================================== */
 
 export async function jobGeneratePages(maxPages = 50): Promise<void> {
-  // Find products without a content page, prioritize by sold count + rating
+  // Prefer scored products; fall back to sold_count if not yet scored
   const candidates = await db.execute<{ id: number }>(sql`
     SELECT p.id
       FROM products p
@@ -123,7 +125,10 @@ export async function jobGeneratePages(maxPages = 50): Promise<void> {
        AND NOT EXISTS (
          SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id
        )
-     ORDER BY p.sold_count DESC NULLS LAST, p.rating DESC NULLS LAST
+     ORDER BY
+       p.final_score DESC NULLS LAST,
+       p.sold_count DESC NULLS LAST,
+       p.rating DESC NULLS LAST
      LIMIT ${maxPages}
   `);
 
@@ -213,6 +218,15 @@ export async function jobCleanup(): Promise<void> {
 }
 
 /* ===================================================================
+ * 8. Re-score all products (Layer 8 product intelligence)
+ * =================================================================== */
+
+export async function jobRescoreProducts(): Promise<void> {
+  const result = await runScoring({ staleAfterMin: 180 });
+  log.info(result, "rescore products done");
+}
+
+/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -224,6 +238,7 @@ export const JOBS = {
   healthCheck: jobHealthCheck,
   dailyReport: jobDailyReport,
   cleanup: jobCleanup,
+  rescoreProducts: jobRescoreProducts,
 } as const;
 
 export type JobName = keyof typeof JOBS;

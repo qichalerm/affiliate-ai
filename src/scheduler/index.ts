@@ -30,7 +30,8 @@ interface JobSchedule {
 
 const SCHEDULES: JobSchedule[] = [
   { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 */6 * * *", description: "Scrape trending Shopee products" },
-  { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 7 * * *", description: "Generate review pages" },
+  { name: "rescoreProducts", cron: "30 */3 * * *", description: "Re-score products (Layer 8)" },
+  { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 7 * * *", description: "Generate review pages (sorted by final_score)" },
   { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },

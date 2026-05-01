@@ -17,7 +17,10 @@ import {
   getItemDetail,
   getShopDetail,
   getRatings,
+  startSession,
+  endSession,
 } from "./client.ts";
+import { browseSessionPause } from "../stealth/rate-limiter.ts";
 import {
   parseItemBasic,
   parseItemDetail,
@@ -68,6 +71,8 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
   const runId = run.id;
   const startedAt = Date.now();
 
+  // Start a fresh stealth session for this run (new UA fingerprint, sticky proxy)
+  startSession(`run_${runId}`);
   log.info({ runId, target, maxProducts }, "shopee scrape start");
 
   let attempted = 0;
@@ -85,6 +90,9 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
           limit: Math.min(maxProducts, 60),
           orderBy: opts.orderBy ?? 5,
         });
+
+    // "Human" pause after the first listing — like browsing before clicking products
+    await browseSessionPause();
 
     const items = (search.items ?? []).slice(0, maxProducts);
     log.info({ runId, total: items.length }, "fetched product list");
@@ -157,7 +165,7 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
           );
         }
 
-        await sleep(200 + Math.random() * 400);
+        // rate-limiter handles pacing now; no manual sleep needed here
       } catch (err) {
         failed++;
         log.error({ err: errMsg(err) }, "product processing failed");
@@ -196,6 +204,8 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
     { runId, attempted, succeeded, failed, durationMs },
     "shopee scrape done",
   );
+
+  endSession();
 
   return {
     scraperRunId: runId,

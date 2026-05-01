@@ -698,6 +698,56 @@ export const policyChanges = pgTable(
 );
 
 /* ===================================================================
+ * PRODUCT SCORE HISTORY (Layer 8 — track scoring over time)
+ * =================================================================== */
+
+export const productScoreHistory = pgTable(
+  "product_score_history",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id")
+      .references(() => products.id, { onDelete: "cascade" })
+      .notNull(),
+    demandScore: real("demand_score"),
+    profitabilityScore: real("profitability_score"),
+    seasonalityBoost: real("seasonality_boost"),
+    finalScore: real("final_score"),
+    estimatedNetPerVisit: real("estimated_net_per_visit"),
+    estimatedCvr: real("estimated_cvr"),
+    capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    productTimeIdx: index("score_history_product_time_idx").on(t.productId, t.capturedAt),
+  }),
+);
+
+/* ===================================================================
+ * SCRAPE ACCOUNT POOL (Layer 1 hardening — multi-account orchestration)
+ * Phase 2: scrape Shopee dashboard from rotating accounts
+ * =================================================================== */
+
+export const scrapeAccounts = pgTable(
+  "scrape_accounts",
+  {
+    id: serial("id").primaryKey(),
+    label: varchar("label", { length: 64 }).notNull(),
+    platform: platformEnum("platform").notNull(),
+    sessionCookie: text("session_cookie"),
+    sessionExpiresAt: timestamp("session_expires_at", { withTimezone: true }),
+    fingerprintJson: jsonb("fingerprint_json"), // UA + proxy preference
+    consecutiveFailures: integer("consecutive_failures").notNull().default(0),
+    cooldownUntil: timestamp("cooldown_until", { withTimezone: true }),
+    isActive: boolean("is_active").notNull().default(true),
+    notes: text("notes"),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    activeIdx: index("scrape_accounts_active_idx").on(t.isActive, t.cooldownUntil),
+  }),
+);
+
+/* ===================================================================
  * RELATIONS
  * =================================================================== */
 

@@ -18,12 +18,18 @@ import {
   type VerdictOutput,
 } from "./prompts/verdict.ts";
 import {
+  pickStyleForSlug,
+  applyStyleToVerdictPrompt,
+  variationHint,
+} from "./prompts/verdict-styles.ts";
+import {
   SEO_META_SYSTEM,
   buildSeoMetaPrompt,
   parseSeoMetaJson,
   type SeoMetaOutput,
 } from "./prompts/seo-meta.ts";
 import { checkContent } from "../compliance/checker.ts";
+import { checkQualityGate } from "../compliance/quality-gate.ts";
 
 const log = child("content.generator");
 
@@ -87,29 +93,36 @@ export async function generateReviewPage(
     };
   }
 
-  // === LLM call 1: verdict ===
+  // === LLM call 1: verdict (with style variance to avoid AI fingerprint) ===
   const verdictPromptStart = Date.now();
+  const style = pickStyleForSlug(slug);
+  const basePrompt = buildVerdictPrompt({
+    productName: product.name,
+    brand: product.brand,
+    priceBaht: bahtFromSatang(product.currentPrice ?? 0),
+    rating: product.rating,
+    ratingCount: product.ratingCount,
+    soldCount: product.soldCount,
+    shopName: product.shop?.name,
+    isMall: product.shop?.isMall ?? false,
+    specs: (product.specifications ?? null) as Record<string, string> | null,
+    reviewSnippets: product.reviews.map((r) => r.body),
+  });
+  const styled = applyStyleToVerdictPrompt(basePrompt, VERDICT_SYSTEM_PROMPT, style);
+  const variation = variationHint({ productName: product.name });
+
   const verdictResp = await complete(
-    buildVerdictPrompt({
-      productName: product.name,
-      brand: product.brand,
-      priceBaht: bahtFromSatang(product.currentPrice ?? 0),
-      rating: product.rating,
-      ratingCount: product.ratingCount,
-      soldCount: product.soldCount,
-      shopName: product.shop?.name,
-      isMall: product.shop?.isMall ?? false,
-      specs: (product.specifications ?? null) as Record<string, string> | null,
-      reviewSnippets: product.reviews.map((r) => r.body),
-    }),
+    `${styled.prompt}\n\n[VARIATION]: ${variation}`,
     {
-      system: VERDICT_SYSTEM_PROMPT,
-      cacheSystem: true,
+      system: styled.system,
+      cacheSystem: true, // base system still cached; suffix is small enough to be re-encoded
       tier: opts.smart ? "smart" : "fast",
       maxTokens: 1024,
-      temperature: 0.4,
+      temperature: 0.55, // higher temp for variance
     },
   );
+
+  log.debug({ productId: product.id, style: style.id }, "verdict style picked");
 
   let verdict: VerdictOutput;
   try {
@@ -153,7 +166,7 @@ export async function generateReviewPage(
   }
   await logRun("seo_meta", null, seoResp, "success", null, Date.now() - seoStart);
 
-  // === Compliance check ===
+  // === Compliance check (forbidden words, disclosure) ===
   const compliance = await checkContent({
     text: [verdict.verdict, ...verdict.pros, ...verdict.cons, seo.title, seo.meta_description].join("\n"),
     isAiGenerated: true,
@@ -163,6 +176,21 @@ export async function generateReviewPage(
   let contentText = verdict.verdict;
   if (compliance.autoFixed) {
     contentText = compliance.fixedText ?? contentText;
+  }
+
+  // === Quality gate (AI fingerprint, repetition, off-topic) ===
+  const quality = checkQualityGate({
+    text: contentText,
+    productName: product.name,
+    brand: product.brand,
+    reviewSnippets: product.reviews.map((r) => r.body),
+    styleWindow: { min: style.targetWords.min, max: style.targetWords.max },
+  });
+  if (!quality.passed) {
+    log.warn(
+      { productId: product.id, score: quality.score, issues: quality.issues.map((i) => i.code) },
+      "quality gate failed",
+    );
   }
 
   // === Build content JSON for the page renderer ===
@@ -204,7 +232,17 @@ export async function generateReviewPage(
   // === Persist ===
   const totalCost = verdictResp.costUsd + seoResp.costUsd;
 
-  const status = compliance.passed ? "published" : "pending_review";
+  // Block on either compliance OR quality gate failure
+  const status = compliance.passed && quality.passed ? "published" : "pending_review";
+
+  const combinedFlags = {
+    ...compliance.flags,
+    quality: {
+      score: quality.score,
+      issues: quality.issues,
+      style: style.id,
+    },
+  };
 
   if (existingPage) {
     await db
@@ -219,7 +257,7 @@ export async function generateReviewPage(
         status,
         aiContentPercent: 0.1, // mostly real data, ~10% AI text
         complianceCheckedAt: new Date(),
-        complianceFlags: compliance.flags as Record<string, unknown>,
+        complianceFlags: combinedFlags as Record<string, unknown>,
         updatedAt: new Date(),
       })
       .where(eq(schema.contentPages.id, existingPage.id));
@@ -248,7 +286,7 @@ export async function generateReviewPage(
       status,
       aiContentPercent: 0.1,
       complianceCheckedAt: new Date(),
-      complianceFlags: compliance.flags as Record<string, unknown>,
+      complianceFlags: combinedFlags as Record<string, unknown>,
       publishedAt: status === "published" ? new Date() : null,
     })
     .returning({ id: schema.contentPages.id });

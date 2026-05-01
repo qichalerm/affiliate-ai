@@ -13,25 +13,55 @@
 import { env } from "../../lib/env.ts";
 import { child } from "../../lib/logger.ts";
 import { retry, sleep, errMsg } from "../../lib/retry.ts";
+import {
+  pickFingerprint,
+  fingerprintToHeaders,
+  type SessionFingerprint,
+} from "../stealth/user-agents.ts";
+import { proxyPool } from "../stealth/proxy-pool.ts";
+import { rateLimit } from "../stealth/rate-limiter.ts";
 
 const log = child("shopee.client");
 
 const SHOPEE_BASE = "https://shopee.co.th";
 
 /**
- * Default headers to look like a browser visit.
- * Shopee's API checks these, missing them = 403.
+ * Per-session fingerprint — pinned for the lifetime of the scrape run.
+ * Avoids the obvious "single client switching browsers mid-session" tell.
  */
-function defaultHeaders(referer = `${SHOPEE_BASE}/`): HeadersInit {
+let currentFingerprint: SessionFingerprint | null = null;
+let currentSessionId: string | null = null;
+
+export function startSession(sessionId?: string): void {
+  currentSessionId = sessionId ?? `s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  currentFingerprint = pickFingerprint({ preferDesktop: true });
+  log.debug(
+    { sessionId: currentSessionId, platform: currentFingerprint.platform },
+    "scrape session started",
+  );
+}
+
+export function endSession(): void {
+  currentSessionId = null;
+  currentFingerprint = null;
+}
+
+function ensureSession(): SessionFingerprint {
+  if (!currentFingerprint) startSession();
+  return currentFingerprint!;
+}
+
+/**
+ * Build headers for a Shopee request — mixes real browser fingerprint + Shopee-specific headers.
+ */
+function shopeeHeaders(referer = `${SHOPEE_BASE}/`): HeadersInit {
+  const fp = ensureSession();
   return {
-    "User-Agent":
-      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    ...fingerprintToHeaders(fp, referer),
     Accept: "application/json",
-    "Accept-Language": "th-TH,th;q=0.9,en;q=0.8",
     "x-api-source": "pc",
     "x-shopee-language": "th",
     "x-requested-with": "XMLHttpRequest",
-    Referer: referer,
     Origin: SHOPEE_BASE,
   };
 }
@@ -43,9 +73,17 @@ interface FetchOptions {
 }
 
 /**
- * Low-level fetch wrapper with retry, timeout, jitter.
+ * Low-level fetch wrapper.
+ * - Token-bucket rate limit (per host)
+ * - Stealth headers (UA fingerprint + Sec-CH-UA + sticky session)
+ * - Optional proxy rotation (Webshare residential, if configured)
+ * - Retry/backoff on transient errors
+ * - Honors Retry-After on 429
  */
 async function shopeeFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
+  // Apply rate limit (with human pauses)
+  await rateLimit("shopee").acquire();
+
   const url = path.startsWith("http") ? path : `${SHOPEE_BASE}${path}`;
   const timeoutMs = opts.timeoutMs ?? 15_000;
 
@@ -53,23 +91,42 @@ async function shopeeFetch<T>(path: string, opts: FetchOptions = {}): Promise<T>
     async () => {
       const ctrl = new AbortController();
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+      // Pick proxy (sticky to current session) — null if not configured
+      const proxy = await proxyPool.pick(currentSessionId ?? undefined);
+
       try {
-        const res = await fetch(url, {
-          headers: defaultHeaders(opts.referer),
+        // Bun-native proxy support
+        const fetchInit: RequestInit & { proxy?: string } = {
+          headers: shopeeHeaders(opts.referer),
           signal: ctrl.signal,
-        });
+        };
+        if (proxy) fetchInit.proxy = proxy.url;
+
+        const res = await fetch(url, fetchInit);
 
         if (res.status === 429) {
+          if (proxy) proxyPool.recordResult(proxy.id, false);
           const retryAfter = res.headers.get("retry-after");
-          const wait = retryAfter ? Number(retryAfter) * 1000 : 30_000;
-          log.warn({ url, wait }, "rate limited");
+          const wait = retryAfter ? Number(retryAfter) * 1000 : 60_000;
+          log.warn({ url, wait, proxy: proxy?.host }, "rate limited; backing off");
           await sleep(wait);
           throw new Error("rate-limited");
         }
-        if (!res.ok) {
+        if (res.status === 403 || res.status === 451) {
+          // Possible IP block — rotate fingerprint + proxy
+          if (proxy) proxyPool.recordResult(proxy.id, false);
+          log.warn({ url, status: res.status, proxy: proxy?.host }, "blocked; rotating session");
+          startSession(); // new fingerprint
           const body = await res.text();
           throw new ShopeeHttpError(res.status, body.slice(0, 500), url);
         }
+        if (!res.ok) {
+          if (proxy) proxyPool.recordResult(proxy.id, false);
+          const body = await res.text();
+          throw new ShopeeHttpError(res.status, body.slice(0, 500), url);
+        }
+        if (proxy) proxyPool.recordResult(proxy.id, true);
         return (await res.json()) as T;
       } finally {
         clearTimeout(timer);
@@ -77,9 +134,13 @@ async function shopeeFetch<T>(path: string, opts: FetchOptions = {}): Promise<T>
     },
     {
       attempts: 3,
-      baseDelayMs: 1000,
+      baseDelayMs: 2000,
+      maxDelayMs: 60_000,
       shouldRetry: (err) => {
-        if (err instanceof ShopeeHttpError) return err.status >= 500 || err.status === 429;
+        if (err instanceof ShopeeHttpError) {
+          // Don't retry on permanent blocks (403 with WAF body)
+          return err.status >= 500 || err.status === 429;
+        }
         return true; // network errors
       },
       onAttempt: (attempt, err) =>
@@ -87,8 +148,6 @@ async function shopeeFetch<T>(path: string, opts: FetchOptions = {}): Promise<T>
     },
   );
 
-  // Polite delay between requests
-  await sleep(300 + Math.random() * 700);
   return result;
 }
 
