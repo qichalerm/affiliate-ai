@@ -1,0 +1,118 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PriceTag from "../../components/PriceTag.astro";
+import StarRating from "../../components/StarRating.astro";
+import { compactCount, shopeeAffiliateUrl } from "../../lib/format";
+import {
+  getAllPublishedBestOf,
+  getBestOfBySlug,
+  getProductSlugs,
+  type BestOfContent,
+} from "../../lib/queries-comparison";
+
+export async function getStaticPaths() {
+  let pages: Awaited<ReturnType<typeof getAllPublishedBestOf>> = [];
+  try {
+    pages = await getAllPublishedBestOf();
+  } catch (err) {
+    console.warn("best-of getStaticPaths: db unavailable", err);
+  }
+  return pages.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+const page = await getBestOfBySlug(slug!);
+if (!page) return Astro.redirect("/404");
+
+const c = (page.contentJson ?? {}) as BestOfContent;
+const productMeta = await getProductSlugs(c.items.map((i) => i.productId));
+---
+
+<BaseLayout
+  title={page.title}
+  description={page.metaDescription ?? undefined}
+  ogImage={page.ogImage ?? undefined}
+>
+  <article class="container-page py-8">
+    <nav class="mb-4 text-sm text-slate-500">
+      <a href="/" class="hover:text-brand-600">หน้าแรก</a>
+      <span class="mx-2">/</span>
+      <span>{c.categoryName}</span>
+    </nav>
+
+    <h1 class="text-2xl font-bold leading-tight sm:text-3xl">
+      {page.h1 ?? page.title}
+    </h1>
+
+    <p class="prose-th mt-4 max-w-3xl">{c.intro}</p>
+
+    {c.criteria && (
+      <p class="mt-3 max-w-3xl text-sm text-slate-500">
+        <strong>เกณฑ์การจัดอันดับ:</strong> {c.criteria}
+      </p>
+    )}
+
+    <ol class="mt-8 space-y-4">
+      {c.items.map((item) => {
+        const meta = productMeta.get(item.productId);
+        const reviewSlug = meta?.slug;
+        const subId = `web_bestof_${page.slug.slice(0, 30)}_${item.rank}`;
+        return (
+          <li class="card">
+            <div class="grid gap-4 sm:grid-cols-[120px_1fr_auto] sm:items-center">
+              <div class="relative aspect-square overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
+                {item.primaryImage && (
+                  <img src={item.primaryImage} alt={item.name} loading="lazy" class="h-full w-full object-cover" />
+                )}
+                <span class="absolute left-2 top-2 rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-bold text-white">
+                  #{item.rank}
+                </span>
+              </div>
+
+              <div>
+                {item.brand && <p class="text-xs uppercase text-slate-500">{item.brand}</p>}
+                <h2 class="text-base font-semibold leading-snug">
+                  {reviewSlug ? (
+                    <a href={`/รีวิว/${reviewSlug}`} class="hover:text-brand-600">{item.name}</a>
+                  ) : (
+                    item.name
+                  )}
+                </h2>
+                <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                  <StarRating rating={item.rating} size="sm" />
+                  {item.soldCount && <span>ขาย {compactCount(item.soldCount)}</span>}
+                </div>
+              </div>
+
+              <div class="flex flex-col items-end gap-2">
+                <PriceTag current={item.priceSatang} size="md" />
+                {meta?.shopExternalId && (
+                  <a
+                    href={shopeeAffiliateUrl(meta.shopExternalId, meta.externalId, subId)}
+                    rel="nofollow sponsored noopener"
+                    target="_blank"
+                    class="btn-primary text-sm"
+                  >
+                    ดูที่ Shopee →
+                  </a>
+                )}
+              </div>
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+
+    {c.tagline && (
+      <p class="mt-10 max-w-3xl rounded-lg bg-slate-50 p-4 text-sm italic text-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
+        {c.tagline}
+      </p>
+    )}
+
+    <p class="mt-8 text-xs text-slate-500">
+      * จัดอันดับจากข้อมูลจริง: ยอดขาย × คะแนนผู้ใช้ × ราคา
+      ราคาและสต็อกอาจเปลี่ยนแปลง — ตรวจสอบในหน้าร้านก่อนสั่งซื้อ
+      เนื้อหาบางส่วนสรุปโดย AI เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
+    </p>
+  </article>
+</BaseLayout>

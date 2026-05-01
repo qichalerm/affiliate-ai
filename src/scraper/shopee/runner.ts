@@ -19,6 +19,7 @@ import {
   getRatings,
   startSession,
   endSession,
+  warmUpSession,
 } from "./client.ts";
 import { browseSessionPause } from "../stealth/rate-limiter.ts";
 import {
@@ -73,6 +74,8 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
 
   // Start a fresh stealth session for this run (new UA fingerprint, sticky proxy)
   startSession(`run_${runId}`);
+  // Warm up: visit homepage first to establish cookies (looks like a real browser session)
+  await warmUpSession();
   log.info({ runId, target, maxProducts }, "shopee scrape start");
 
   let attempted = 0;

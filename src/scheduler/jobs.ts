@@ -9,6 +9,12 @@ import { broadcastDealsToChannel } from "../publisher/telegram-channel.ts";
 import { runHealthChecks } from "../monitoring/health.ts";
 import { sendDailyReport } from "../monitoring/daily-report.ts";
 import { runScoring } from "../intelligence/score-runner.ts";
+import {
+  generateComparisonPage,
+  findComparisonCandidates,
+} from "../content/comparison-generator.ts";
+import { generateAllBestOfPages } from "../content/best-of-generator.ts";
+import { publishPinsForTopProducts } from "../publisher/pinterest.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -227,6 +233,47 @@ export async function jobRescoreProducts(): Promise<void> {
 }
 
 /* ===================================================================
+ * 9. Generate comparison pages (A vs B in same category)
+ * =================================================================== */
+
+export async function jobGenerateComparisons(maxPages = 15): Promise<void> {
+  const pairs = await findComparisonCandidates(maxPages);
+  log.info({ pairs: pairs.length }, "generating comparison pages");
+  let success = 0;
+  let failed = 0;
+  let totalCost = 0;
+  for (const { aId, bId } of pairs) {
+    try {
+      const r = await generateComparisonPage({ productAId: aId, productBId: bId });
+      totalCost += r.costUsd;
+      if (r.status === "published" || r.status === "pending_review") success++;
+    } catch (err) {
+      failed++;
+      log.warn({ aId, bId, err: errMsg(err) }, "comparison failed");
+    }
+  }
+  log.info({ success, failed, totalCost: totalCost.toFixed(4) }, "comparisons done");
+}
+
+/* ===================================================================
+ * 10. Generate best-of pages (top 5 per category × 4 variants)
+ * =================================================================== */
+
+export async function jobGenerateBestOf(): Promise<void> {
+  const result = await generateAllBestOfPages();
+  log.info(result, "best-of pages done");
+}
+
+/* ===================================================================
+ * 11. Pinterest publishing (only when feature flag + token present)
+ * =================================================================== */
+
+export async function jobPinterestPublish(): Promise<void> {
+  const result = await publishPinsForTopProducts({ limit: 20 });
+  log.info(result, "pinterest publish done");
+}
+
+/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -239,6 +286,9 @@ export const JOBS = {
   dailyReport: jobDailyReport,
   cleanup: jobCleanup,
   rescoreProducts: jobRescoreProducts,
+  generateComparisons: jobGenerateComparisons,
+  generateBestOf: jobGenerateBestOf,
+  pinterestPublish: jobPinterestPublish,
 } as const;
 
 export type JobName = keyof typeof JOBS;

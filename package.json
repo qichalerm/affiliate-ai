@@ -18,6 +18,8 @@
     "scrape:once": "bun run src/scripts/scrape-once.ts",
     "scrape:trending": "bun run src/scripts/scrape-trending.ts",
     "score:once": "bun run src/scripts/score-once.ts",
+    "comparison:once": "bun run src/scripts/comparison-once.ts",
+    "bestof:once": "bun run src/scripts/best-of-once.ts",
     "generate:once": "bun run src/scripts/generate-once.ts",
     "build:pages": "bun run src/scripts/build-pages.ts",
     "compliance:check": "bun run src/scripts/compliance-check.ts",

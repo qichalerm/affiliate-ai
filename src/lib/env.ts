@@ -117,6 +117,8 @@ const envSchema = z.object({
 
   // Link mgmt
   BITLY_TOKEN: optStr,
+  SHORTIO_API_KEY: optStr,
+  SHORTIO_DOMAIN: optStr,
 
   // Auth
   CLERK_PUBLISHABLE_KEY: optStr,
@@ -217,7 +219,7 @@ export const can = {
   generateImages: () => Boolean(env.FLUX_API_KEY || env.REPLICATE_API_TOKEN),
   deployCloudflare: () => Boolean(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID),
   uploadR2: () => Boolean(env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY),
-  shortenLinks: () => Boolean(env.BITLY_TOKEN),
+  shortenLinks: () => Boolean(env.SHORTIO_API_KEY || env.BITLY_TOKEN),
   fetchTikTokTrends: () => Boolean(env.FASTMOSS_API_KEY || env.KALODATA_API_KEY),
   isDryRun: () => env.DEBUG_DRY_RUN,
 } as const;

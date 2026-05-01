@@ -14,6 +14,7 @@ import { formatBaht, compactCount, formatPercent } from "../lib/format.ts";
 import { env, can } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg, sleep } from "../lib/retry.ts";
+import { shortenAffiliate } from "../lib/short-link.ts";
 
 const log = child("publisher.telegram");
 
@@ -98,7 +99,19 @@ export async function broadcastDealsToChannel(
 
   for (const deal of deals) {
     try {
-      const message = formatDealMessage(deal);
+      // Build Shopee affiliate URL + shorten via Short.io for tracking
+      const subId = `tg_${deal.id}_${Date.now().toString(36).slice(-4)}`;
+      let shopeeShortUrl: string | null = null;
+      if (deal.shopExternalId) {
+        const fullUrl = buildShopeeUrl(deal.shopExternalId, deal.externalId, subId);
+        shopeeShortUrl = await shortenAffiliate({
+          fullUrl,
+          channel: "telegram",
+          contentSlug: deal.slug,
+          productExternalId: deal.externalId,
+        });
+      }
+      const message = formatDealMessage(deal, shopeeShortUrl);
       const photoUrl = deal.primaryImage ?? undefined;
 
       if (env.DEBUG_DRY_RUN) {
@@ -133,8 +146,8 @@ export async function broadcastDealsToChannel(
   return { broadcasted, skipped };
 }
 
-function formatDealMessage(d: DealCandidate): string {
-  const url = `https://${DOMAIN}/รีวิว/${d.slug}`;
+function formatDealMessage(d: DealCandidate, shopeeShortUrl: string | null): string {
+  const reviewUrl = `https://${DOMAIN}/รีวิว/${d.slug}`;
   const lines: string[] = [];
   lines.push(`🔥 *ลด ${formatPercent(d.discountPercent ?? 0)}*`);
   if (d.brand) lines.push(`*${d.brand}*`);
@@ -153,10 +166,21 @@ function formatDealMessage(d: DealCandidate): string {
   }
   if (d.isMall) lines.push("🏬 Shopee Mall");
   lines.push("");
-  lines.push(`👉 [ดูรีวิว + ราคาล่าสุด](${url})`);
+  if (shopeeShortUrl) {
+    lines.push(`🛒 [ซื้อที่ Shopee](${shopeeShortUrl})`);
+  }
+  lines.push(`📖 [อ่านรีวิวเต็ม](${reviewUrl})`);
   lines.push("");
   lines.push("_ลิงก์มี affiliate — ราคาคุณไม่เปลี่ยน_");
   return lines.join("\n");
+}
+
+/** Build Shopee URL with affiliate params (mirror of buildAffiliateUrl in scraper/shopee/client.ts). */
+function buildShopeeUrl(shopId: string, itemId: string, subId: string): string {
+  const params = new URLSearchParams();
+  params.set("af_sub1", subId);
+  if (env.SHOPEE_AFFILIATE_ID) params.set("affiliate_id", env.SHOPEE_AFFILIATE_ID);
+  return `https://shopee.co.th/product/${shopId}/${itemId}?${params}`;
 }
 
 /** Minimal Telegram Markdown escape — keep most chars, only escape what breaks. */
