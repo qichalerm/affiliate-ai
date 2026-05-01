@@ -75,12 +75,28 @@ export async function buildSitemap(opts: { outputDir?: string } = {}): Promise<{
 
   for (const p of pages) {
     const prefix =
-      p.type === "review" ? "/รีวิว/" : p.type === "comparison" ? "/เปรียบเทียบ/" : p.type === "best_of" ? "/ของดี/" : "/";
+      p.type === "review"
+        ? "/รีวิว/"
+        : p.type === "comparison"
+          ? "/เปรียบเทียบ/"
+          : p.type === "best_of"
+            ? "/ของดี/"
+            : p.type === "price_compare"
+              ? "/ราคา/"
+              : "/";
     entries.push({
       loc: `${prefix}${p.slug}`,
       lastmod: new Date(p.updated_at).toISOString(),
-      changefreq: p.type === "best_of" ? "weekly" : "monthly",
-      priority: p.type === "best_of" ? 0.8 : p.type === "comparison" ? 0.7 : 0.6,
+      changefreq:
+        p.type === "best_of" || p.type === "price_compare" ? "weekly" : "monthly",
+      priority:
+        p.type === "best_of"
+          ? 0.8
+          : p.type === "price_compare"
+            ? 0.85
+            : p.type === "comparison"
+              ? 0.7
+              : 0.6,
     });
   }
 

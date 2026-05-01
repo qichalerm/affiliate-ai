@@ -30,6 +30,8 @@
     "winners:report": "bun run src/scripts/winners-report.ts",
     "smoke": "bun run src/scripts/smoke-test.ts",
     "verify:backup": "bash scripts/verify-backup.sh",
+    "stats": "bun run src/scripts/stats.ts",
+    "price-compare:once": "bun run src/scripts/price-compare-once.ts",
     "generate:once": "bun run src/scripts/generate-once.ts",
     "build:pages": "bun run src/scripts/build-pages.ts",
     "compliance:check": "bun run src/scripts/compliance-check.ts",
