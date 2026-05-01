@@ -1,0 +1,83 @@
+---
+interface Props {
+  source?: string;
+  niche?: string;
+  variant?: "inline" | "card";
+}
+
+const { source = "footer_form", niche, variant = "card" } = Astro.props;
+---
+
+<form
+  data-subscribe-form
+  data-source={source}
+  data-niche={niche ?? ""}
+  class={
+    variant === "card"
+      ? "card flex flex-col gap-3 sm:flex-row sm:items-end"
+      : "flex flex-col gap-2 sm:flex-row sm:items-end"
+  }
+>
+  <div class="flex-1">
+    <label class="text-sm font-medium block mb-1">รับดีลคัดสรรทุกวันศุกร์</label>
+    <input
+      type="email"
+      name="email"
+      required
+      autocomplete="email"
+      placeholder="your@email.com"
+      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900"
+    />
+  </div>
+  <button type="submit" class="btn-primary text-sm whitespace-nowrap">
+    สมัครฟรี
+  </button>
+  <p
+    data-subscribe-message
+    class="hidden flex-1 text-sm sm:basis-full"
+  ></p>
+</form>
+
+<script>
+  document.querySelectorAll<HTMLFormElement>("[data-subscribe-form]").forEach((form) => {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = (form.elements.namedItem("email") as HTMLInputElement)?.value?.trim();
+      const source = form.dataset.source ?? "form";
+      const niche = form.dataset.niche || undefined;
+      const messageEl = form.querySelector<HTMLElement>("[data-subscribe-message]");
+      const buttonEl = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      if (!messageEl || !buttonEl) return;
+
+      buttonEl.disabled = true;
+      buttonEl.textContent = "กำลังสมัคร...";
+      messageEl.className = "hidden flex-1 text-sm sm:basis-full";
+
+      try {
+        const res = await fetch("/api/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, source, niche }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          messageEl.textContent = "ส่งอีเมลยืนยันให้แล้ว — ลองเช็ค inbox / กล่อง spam";
+          messageEl.className = "flex-1 text-sm text-emerald-700 dark:text-emerald-400 sm:basis-full";
+          form.reset();
+        } else {
+          messageEl.textContent =
+            data.error === "invalid_email"
+              ? "อีเมลไม่ถูกต้อง"
+              : "เกิดข้อผิดพลาด ลองใหม่อีกครั้ง";
+          messageEl.className = "flex-1 text-sm text-rose-700 dark:text-rose-400 sm:basis-full";
+        }
+      } catch {
+        messageEl.textContent = "เครือข่ายมีปัญหา ลองใหม่อีกครั้ง";
+        messageEl.className = "flex-1 text-sm text-rose-700 dark:text-rose-400 sm:basis-full";
+      } finally {
+        buttonEl.disabled = false;
+        buttonEl.textContent = "สมัครฟรี";
+      }
+    });
+  });
+</script>

@@ -1,13 +1,19 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import tailwind from "@astrojs/tailwind";
+import cloudflare from "@astrojs/cloudflare";
 
 const SITE = process.env.SITE_URL ?? `https://${process.env.DOMAIN_NAME ?? "yourdomain.com"}`;
 
 export default defineConfig({
   site: SITE,
   trailingSlash: "never",
-  output: "static",
+  // Hybrid: most pages prerendered, /api/* + /go/* + /unsubscribe/* run on-demand
+  output: "hybrid",
+  adapter: cloudflare({
+    mode: "directory",
+    runtime: { mode: "local" },
+  }),
   build: {
     format: "directory",
     inlineStylesheets: "auto",

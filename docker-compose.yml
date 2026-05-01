@@ -1,0 +1,72 @@
+# =============================================================================
+# Full-stack docker-compose for affiliate bot.
+#
+# Services:
+#   - postgres: database
+#   - scheduler: long-running cron (the "bot")
+#   - migrate: one-shot to apply DB migrations
+#
+# Usage:
+#   First-time setup:
+#     docker compose --profile init up migrate
+#     docker compose up -d scheduler
+#
+#   Logs:
+#     docker compose logs -f scheduler
+#
+#   One-shot CLI:
+#     docker compose run --rm scheduler bun run scrape:once "หูฟัง" 30
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-botuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD required in .env}
+      POSTGRES_DB: ${DB_NAME:-affiliate}
+      PGTZ: Asia/Bangkok
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/postgres-tuning.conf:/etc/postgresql/postgresql.conf:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-botuser} -d ${DB_NAME:-affiliate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build: .
+    profiles: ["init"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-botuser}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-affiliate}?sslmode=disable
+    command: ["bun", "run", "db:push"]
+
+  scheduler:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-botuser}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-affiliate}?sslmode=disable
+    volumes:
+      - generated:/app/generated
+      - ./secrets:/app/secrets:ro
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+volumes:
+  postgres_data:
+  generated:
