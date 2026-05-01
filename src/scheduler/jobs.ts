@@ -15,6 +15,12 @@ import {
 } from "../content/comparison-generator.ts";
 import { generateAllBestOfPages } from "../content/best-of-generator.ts";
 import { publishPinsForTopProducts } from "../publisher/pinterest.ts";
+import { runLazadaScrape } from "../scraper/lazada/runner.ts";
+import { runCrossPlatformMatcher } from "../intelligence/cross-platform-matcher.ts";
+import { buildSitemap } from "../seo/sitemap-builder.ts";
+import { submitToIndexNow } from "../seo/indexnow.ts";
+import { batchNotifyGoogle } from "../seo/google-indexing.ts";
+import { refreshAllInternalLinks } from "../seo/internal-linker.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -274,6 +280,102 @@ export async function jobPinterestPublish(): Promise<void> {
 }
 
 /* ===================================================================
+ * 12. Lazada scrape (Wave 3)
+ * =================================================================== */
+
+const NICHE_KEYWORDS_LAZADA: Record<string, string[]> = {
+  it_gadget: [
+    "wireless earbuds",
+    "gaming mouse",
+    "mechanical keyboard",
+    "powerbank",
+    "phone case",
+    "type c cable",
+    "bluetooth speaker",
+    "laptop stand",
+  ],
+  beauty: ["serum", "sunscreen", "lipstick", "face mask"],
+  home: ["air fryer", "coffee machine", "rice cooker", "vacuum cleaner"],
+  sports: ["dumbbell", "yoga mat", "running shoes"],
+  mom_baby: ["diaper", "milk powder", "baby bottle", "stroller"],
+};
+
+export async function jobScrapeLazada(): Promise<void> {
+  const keywords = NICHE_KEYWORDS_LAZADA[env.PRIMARY_NICHE] ?? NICHE_KEYWORDS_LAZADA.it_gadget;
+  const picks = keywords
+    .map((k) => [Math.random(), k] as const)
+    .sort(([a], [b]) => a - b)
+    .slice(0, 2) // smaller batch — Lazada is more sensitive
+    .map(([, k]) => k);
+
+  log.info({ picks }, "scraping lazada keywords");
+  for (const kw of picks) {
+    try {
+      await runLazadaScrape({ keyword: kw, maxPages: 2, maxProducts: 30 });
+    } catch (err) {
+      log.error({ kw, err: errMsg(err) }, "lazada scrape failed");
+      await createAlert({
+        severity: "warn",
+        code: "scrape.lazada_failed",
+        title: `Lazada scrape failed: ${kw}`,
+        body: errMsg(err),
+      });
+    }
+  }
+}
+
+/* ===================================================================
+ * 13. Cross-platform matcher (Shopee ↔ Lazada)
+ * =================================================================== */
+
+export async function jobCrossPlatformMatch(): Promise<void> {
+  const result = await runCrossPlatformMatcher({ minScore: 0.4, limit: 500 });
+  log.info(result, "cross-platform match done");
+}
+
+/* ===================================================================
+ * 14. Sitemap rebuild + IndexNow + Google Indexing API
+ * =================================================================== */
+
+export async function jobSitemapAndIndex(): Promise<void> {
+  // 1. Build sitemap files into web/public
+  const sitemap = await buildSitemap();
+  log.info(sitemap, "sitemap rebuilt");
+
+  // 2. Find URLs published in last 24h to ping IndexNow + Google
+  const recentUrls = await db.execute<{ slug: string; type: string }>(sql`
+    SELECT slug, type::text AS type
+      FROM content_pages
+     WHERE status = 'published'
+       AND COALESCE(updated_at, published_at) > now() - interval '24 hours'
+     LIMIT 200
+  `);
+  const SITE = `https://${env.DOMAIN_NAME}`;
+  const urls = recentUrls.map((p) => {
+    const prefix =
+      p.type === "review" ? "/รีวิว/" : p.type === "comparison" ? "/เปรียบเทียบ/" : "/ของดี/";
+    return `${SITE}${prefix}${p.slug}`;
+  });
+
+  // 3. IndexNow (Bing + Yandex)
+  const indexNow = await submitToIndexNow(urls);
+  log.info(indexNow, "indexnow submitted");
+
+  // 4. Google Indexing API (capped at 100/day to respect quota)
+  const google = await batchNotifyGoogle(urls);
+  log.info(google, "google indexing submitted");
+}
+
+/* ===================================================================
+ * 15. Refresh internal links
+ * =================================================================== */
+
+export async function jobRefreshInternalLinks(): Promise<void> {
+  const result = await refreshAllInternalLinks();
+  log.info(result, "internal links refresh done");
+}
+
+/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -289,6 +391,10 @@ export const JOBS = {
   generateComparisons: jobGenerateComparisons,
   generateBestOf: jobGenerateBestOf,
   pinterestPublish: jobPinterestPublish,
+  scrapeLazada: jobScrapeLazada,
+  crossPlatformMatch: jobCrossPlatformMatch,
+  sitemapAndIndex: jobSitemapAndIndex,
+  refreshInternalLinks: jobRefreshInternalLinks,
 } as const;
 
 export type JobName = keyof typeof JOBS;

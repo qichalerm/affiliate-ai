@@ -30,12 +30,16 @@ interface JobSchedule {
 
 const SCHEDULES: JobSchedule[] = [
   { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 */6 * * *", description: "Scrape trending Shopee products" },
+  { name: "scrapeLazada", cron: "0 1,13 * * *", description: "Scrape trending Lazada products (twice/day)" },
+  { name: "crossPlatformMatch", cron: "0 4 * * *", description: "Match Shopee ↔ Lazada products" },
   { name: "rescoreProducts", cron: "30 */3 * * *", description: "Re-score products (Layer 8)" },
   { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 7 * * *", description: "Generate review pages (sorted by final_score)" },
   { name: "generateComparisons", cron: "30 7 * * *", description: "Generate A vs B comparison pages" },
   { name: "generateBestOf", cron: "0 8 * * 1", description: "Generate best-of lists (Mondays)" },
+  { name: "refreshInternalLinks", cron: "0 9 * * 1", description: "Refresh internal links (Mondays)" },
   { name: "pinterestPublish", cron: "0 11,17 * * *", description: "Publish pins to Pinterest (if enabled)" },
   { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
+  { name: "sitemapAndIndex", cron: "0 22 * * *", description: "Rebuild sitemap + submit to Google/Bing" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
