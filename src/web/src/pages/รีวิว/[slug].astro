@@ -6,6 +6,7 @@ import PlatformBadge from "../../components/PlatformBadge.astro";
 import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
 import CrossPlatformPriceCard from "../../components/CrossPlatformPriceCard.astro";
 import RelatedLinks from "../../components/RelatedLinks.astro";
+import FaqAccordion from "../../components/FaqAccordion.astro";
 import { compactCount } from "../../lib/format";
 import { buildAffiliateUrl, platformLabel } from "../../lib/affiliate-links";
 import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../lib/queries";
@@ -31,6 +32,7 @@ type ContentJson = {
   verdict?: { text: string; pros: string[]; cons: string[]; best_for: string; skip_if: string };
   specs?: Record<string, string>;
   reviewExcerpts?: Array<{ rating: number; body: string; reviewer: string }>;
+  faqs?: Array<{ question: string; answer: string }>;
   relatedLinks?: import("../../lib/queries").RelatedLink[];
 };
 const content = (page.contentJson ?? {}) as ContentJson;
@@ -191,6 +193,10 @@ const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(
               ))}
             </div>
           </section>
+        )}
+
+        {content.faqs && content.faqs.length > 0 && (
+          <FaqAccordion faqs={content.faqs} />
         )}
 
         {content.relatedLinks && content.relatedLinks.length > 0 && (

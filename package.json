@@ -25,6 +25,7 @@
     "sitemap:build": "bun run src/scripts/sitemap-build.ts",
     "links:refresh": "bun run src/scripts/refresh-links.ts",
     "conversions:import": "bun run src/scripts/import-conversions.ts",
+    "backfill:faq": "bun run src/scripts/backfill-faq.ts",
     "generate:once": "bun run src/scripts/generate-once.ts",
     "build:pages": "bun run src/scripts/build-pages.ts",
     "compliance:check": "bun run src/scripts/compliance-check.ts",

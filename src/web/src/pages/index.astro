@@ -2,34 +2,47 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import ProductCard from "../components/ProductCard.astro";
 import { getTopProducts, getDealsToday } from "../lib/queries";
+import { getAllActiveCategories } from "../lib/queries-categories";
 
 let topProducts: Awaited<ReturnType<typeof getTopProducts>> = [];
 let deals: Awaited<ReturnType<typeof getDealsToday>> = [];
+let categories: Awaited<ReturnType<typeof getAllActiveCategories>> = [];
+
 try {
-  [topProducts, deals] = await Promise.all([getTopProducts(24), getDealsToday(12)]);
+  [topProducts, deals, categories] = await Promise.all([
+    getTopProducts(24),
+    getDealsToday(8),
+    getAllActiveCategories(),
+  ]);
 } catch (err) {
-  console.warn("homepage: failed to load products", err);
+  console.warn("homepage: failed to load data", err);
 }
+
+// Filter to top-level + with products
+const topCategories = categories.filter((c) => c.depth <= 1 && c.productCount >= 3).slice(0, 12);
 ---
 
 <BaseLayout
-  title="DealFinder — เปรียบเทียบราคา + รีวิวสินค้า Shopee"
-  description="รวมดีลและรีวิวสินค้า IT/Gadget จาก Shopee อัพเดทราคาทุก 6 ชั่วโมง"
+  title="DealFinder — เปรียบเทียบราคา + รีวิวสินค้า Shopee + Lazada"
+  description="รวมดีลและรีวิวสินค้า IT/Gadget จาก Shopee + Lazada อัพเดทราคาทุก 6 ชั่วโมง พร้อมเปรียบเทียบราคาข้ามแพลตฟอร์ม"
 >
-  <section class="container-page py-10">
-    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
-      หาดีลที่ดีที่สุดบน Shopee — อัพเดททุกๆ 6 ชั่วโมง
-    </h1>
-    <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-400">
-      เปรียบเทียบราคา · ตรวจสเปก · อ่านรีวิวจริง · กดเข้า Shopee ได้ทันที
-    </p>
+  <section class="container-page py-10 sm:py-14">
+    <div class="max-w-3xl">
+      <h1 class="text-3xl font-bold leading-tight sm:text-5xl">
+        หาดีลที่ดีที่สุด <span class="text-brand-600">ก่อน</span> กดซื้อ
+      </h1>
+      <p class="mt-4 text-base text-slate-600 dark:text-slate-400 sm:text-lg">
+        เปรียบเทียบราคา <strong>Shopee + Lazada</strong> ในที่เดียว ·
+        ตรวจสเปก · อ่านรีวิวจริง · ดูประวัติราคา · ระบบอัพเดทราคาทุก 6 ชั่วโมง
+      </p>
+    </div>
   </section>
 
   {deals.length > 0 && (
     <section class="container-page pb-12">
       <div class="mb-4 flex items-end justify-between">
         <h2 class="text-2xl font-bold">🔥 ดีลร้อนวันนี้</h2>
-        <a href="/best/deals" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
+        <a href="/best" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
       </div>
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {deals.map((p) => (
@@ -46,6 +59,25 @@ try {
             soldCount={p.soldCount}
             isMall={p.isMall}
           />
+        ))}
+      </div>
+    </section>
+  )}
+
+  {topCategories.length > 0 && (
+    <section class="container-page pb-12">
+      <h2 class="mb-4 text-2xl font-bold">หมวดสินค้ายอดนิยม</h2>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {topCategories.map((c) => (
+          <a
+            href={`/หมวด/${c.slug}`}
+            class="card group block text-center transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
+          >
+            <h3 class="text-sm font-semibold group-hover:text-brand-600">{c.nameTh}</h3>
+            {c.productCount > 0 && (
+              <p class="mt-0.5 text-xs text-slate-500">{c.productCount} รายการ</p>
+            )}
+          </a>
         ))}
       </div>
     </section>
@@ -80,4 +112,29 @@ try {
       <p>กำลังโหลดข้อมูลสินค้า — กรุณารอสักครู่...</p>
     </section>
   )}
+
+  <section class="container-page pb-16">
+    <div class="card bg-gradient-to-br from-brand-50 to-white dark:from-slate-800 dark:to-slate-900">
+      <div class="grid gap-6 sm:grid-cols-3">
+        <div>
+          <p class="text-2xl font-bold text-brand-600">2 แพลตฟอร์ม</p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Shopee + Lazada เปรียบเทียบราคาในหน้าเดียว
+          </p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-brand-600">ทุก 6 ชม.</p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            ระบบอัพเดทราคาและสต็อกอัตโนมัติ
+          </p>
+        </div>
+        <div>
+          <p class="text-2xl font-bold text-brand-600">รีวิวจริง</p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            จากผู้ซื้อจริง — ไม่ใช่บทความที่จ้างเขียน
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
 </BaseLayout>

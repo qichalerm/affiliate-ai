@@ -23,6 +23,13 @@ import {
   variationHint,
 } from "./prompts/verdict-styles.ts";
 import {
+  FAQ_SYSTEM_PROMPT,
+  buildFaqPrompt,
+  parseFaqJson,
+  faqInputFromProduct,
+} from "./prompts/faq.ts";
+import { buildReviewPageSchema } from "../seo/schema-builders.ts";
+import {
   SEO_META_SYSTEM,
   buildSeoMetaPrompt,
   parseSeoMetaJson,
@@ -166,6 +173,33 @@ export async function generateReviewPage(
   }
   await logRun("seo_meta", null, seoResp, "success", null, Date.now() - seoStart);
 
+  // === LLM call 3: FAQ (4-6 Q&A from real data) ===
+  const faqStart = Date.now();
+  let faqs: Array<{ question: string; answer: string }> = [];
+  let faqCost = 0;
+  try {
+    const faqResp = await complete(
+      buildFaqPrompt(
+        faqInputFromProduct(
+          product,
+          product.reviews.map((r) => r.body),
+        ),
+      ),
+      {
+        system: FAQ_SYSTEM_PROMPT,
+        cacheSystem: true,
+        tier: "fast",
+        maxTokens: 1500,
+        temperature: 0.6,
+      },
+    );
+    faqCost = faqResp.costUsd;
+    faqs = parseFaqJson(faqResp.text).faqs;
+    await logRun("faq", null, faqResp, "success", null, Date.now() - faqStart);
+  } catch (err) {
+    log.warn({ productId: product.id, err: errMsg(err) }, "faq generation failed (non-fatal)");
+  }
+
   // === Compliance check (forbidden words, disclosure) ===
   const compliance = await checkContent({
     text: [verdict.verdict, ...verdict.pros, ...verdict.cons, seo.title, seo.meta_description].join("\n"),
@@ -219,6 +253,7 @@ export async function generateReviewPage(
       body: r.body,
       reviewer: r.reviewerNameMasked,
     })),
+    faqs,
     keywords: [seo.primary_keyword, ...seo.secondary_keywords],
     affiliate: {
       shopId: product.shop?.externalId,
@@ -226,11 +261,27 @@ export async function generateReviewPage(
     },
   };
 
-  // === JSON-LD schema for SEO ===
-  const schemaJsonLd = buildProductSchema(product, verdict);
+  // === JSON-LD schema for SEO (combined: Product + Breadcrumb + FAQPage) ===
+  const pageUrl = `https://${process.env.DOMAIN_NAME ?? "yourdomain.com"}/รีวิว/${slug}`;
+  const schemaJsonLd = buildReviewPageSchema({
+    product: {
+      name: product.name,
+      brand: product.brand,
+      image: product.imageUrls ?? (product.primaryImage ? [product.primaryImage] : []),
+      description: contentText,
+      rating: product.rating,
+      ratingCount: product.ratingCount,
+      priceBaht: bahtFromSatang(product.currentPrice ?? 0),
+      inStock: (product.stock ?? 1) > 0,
+      sellerName: product.shop?.name,
+    },
+    pageUrl,
+    pageName: seo.h1 ?? product.name,
+    faq: faqs,
+  });
 
   // === Persist ===
-  const totalCost = verdictResp.costUsd + seoResp.costUsd;
+  const totalCost = verdictResp.costUsd + seoResp.costUsd + faqCost;
 
   // Block on either compliance OR quality gate failure
   const status = compliance.passed && quality.passed ? "published" : "pending_review";
@@ -302,41 +353,6 @@ export async function generateReviewPage(
     costUsd: totalCost,
     status: status as "published",
     rejectReason: compliance.passed ? undefined : compliance.flags.failedChecks.join(","),
-  };
-}
-
-function buildProductSchema(
-  product: typeof schema.products.$inferSelect & {
-    shop?: typeof schema.shops.$inferSelect | null;
-  },
-  verdict: VerdictOutput,
-) {
-  const priceBaht = bahtFromSatang(product.currentPrice ?? 0);
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    brand: product.brand ? { "@type": "Brand", name: product.brand } : undefined,
-    image: product.imageUrls ?? [product.primaryImage].filter(Boolean),
-    description: verdict.verdict,
-    aggregateRating:
-      product.rating && product.ratingCount
-        ? {
-            "@type": "AggregateRating",
-            ratingValue: product.rating,
-            reviewCount: product.ratingCount,
-          }
-        : undefined,
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "THB",
-      price: priceBaht,
-      availability:
-        product.stock && product.stock > 0
-          ? "https://schema.org/InStock"
-          : "https://schema.org/OutOfStock",
-      seller: product.shop?.name ? { "@type": "Organization", name: product.shop.name } : undefined,
-    },
   };
 }
 

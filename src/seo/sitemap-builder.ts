@@ -48,7 +48,30 @@ export async function buildSitemap(opts: { outputDir?: string } = {}): Promise<{
      ORDER BY revenue_30d_satang DESC NULLS LAST, updated_at DESC
   `);
 
+  // Category pages (only those with enough products)
+  const categories = await db.execute<{ slug: string }>(sql`
+    SELECT c.slug
+      FROM categories c
+     WHERE c.is_active = true
+       AND (SELECT COUNT(*) FROM products p
+             WHERE p.category_id = c.id
+               AND p.is_active = true
+               AND EXISTS (SELECT 1 FROM content_pages cp
+                            WHERE cp.primary_product_id = p.id
+                              AND cp.status = 'published')
+            ) >= 4
+  `);
+
   const entries: UrlEntry[] = [...STATIC_PAGES];
+
+  for (const c of categories) {
+    entries.push({
+      loc: `/หมวด/${c.slug}`,
+      lastmod: new Date().toISOString(),
+      changefreq: "daily",
+      priority: 0.85,
+    });
+  }
 
   for (const p of pages) {
     const prefix =
