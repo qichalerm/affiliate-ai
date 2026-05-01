@@ -86,3 +86,8 @@ htmlcov/
 # Logs
 logs/
 *.log
+
+# Astro build artifacts
+src/web/.astro/
+src/web/dist/
+src/web/bun.lock

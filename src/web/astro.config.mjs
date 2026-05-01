@@ -1,19 +1,15 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import tailwind from "@astrojs/tailwind";
-import cloudflare from "@astrojs/cloudflare";
 
 const SITE = process.env.SITE_URL ?? `https://${process.env.DOMAIN_NAME ?? "yourdomain.com"}`;
 
 export default defineConfig({
   site: SITE,
   trailingSlash: "never",
-  // Hybrid: most pages prerendered, /api/* + /go/* + /unsubscribe/* run on-demand
-  output: "hybrid",
-  adapter: cloudflare({
-    mode: "directory",
-    runtime: { mode: "local" },
-  }),
+  // Pure static for initial deploy. SSR endpoints (/api/*, /go/*, /confirm/*, /unsubscribe/*)
+  // are deferred to Cloudflare Workers (separate deployment) — Pages free tier supports this.
+  output: "static",
   build: {
     format: "directory",
     inlineStylesheets: "auto",

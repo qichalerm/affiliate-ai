@@ -115,6 +115,21 @@ const envSchema = z.object({
   PROXY_USERNAME: optStr,
   PROXY_PASSWORD: optStr,
 
+  // IPRoyal residential proxy (for Lazada and other non-protected sites)
+  IPROYAL_HOST: z.string().default("geo.iproyal.com"),
+  IPROYAL_PORT: z.coerce.number().int().positive().default(12321),
+  IPROYAL_LOGIN: optStr,
+  IPROYAL_PASSWORD: optStr,
+
+  // Apify (for Shopee — only working solution after testing)
+  APIFY_TOKEN: optStr,
+  APIFY_ACTOR_SHOPEE: z.string().default("xtracto/shopee-scraper"),
+  APIFY_DAILY_BUDGET_USD: z.coerce.number().nonnegative().default(2.0),
+  APIFY_MEMORY_MB: z.coerce.number().int().positive().default(1024),
+
+  // Scrapfly (kept for non-Shopee fallback / future)
+  SCRAPFLY_API_KEY: optStr,
+
   // Link mgmt
   BITLY_TOKEN: optStr,
   SHORTIO_API_KEY: optStr,
@@ -145,6 +160,11 @@ const envSchema = z.object({
     .enum(["it_gadget", "beauty", "home", "sports", "mom_baby"])
     .default("it_gadget"),
   SECONDARY_NICHE: optStr,
+  /** Enable Lazada scraper + cross-platform jobs. Off by default — Apify Shopee-only is the supported MVP path. */
+  FEATURE_LAZADA_ENABLED: boolish,
+  /** Per-run scrape sizing — kept conservative to fit APIFY_DAILY_BUDGET_USD. */
+  SCRAPE_KEYWORDS_PER_RUN: z.coerce.number().int().positive().default(3),
+  SCRAPE_PRODUCTS_PER_KEYWORD: z.coerce.number().int().positive().default(20),
   POSTING_MODE: z.enum(["full_auto", "hybrid", "manual_review"]).default("hybrid"),
   HUMAN_FACE_INTRO_SECONDS: z.coerce.number().default(7),
   MAX_CHANNEL_CONCENTRATION: z.coerce.number().min(0).max(1).default(0.4),
@@ -207,7 +227,9 @@ export const env = getEnv();
  * ------------------------------------------------------------------- */
 export const can = {
   generateContent: () => Boolean(env.ANTHROPIC_API_KEY),
-  scrapeShopee: () => true, // public endpoints, no auth required
+  scrapeShopee: () => Boolean(env.APIFY_TOKEN), // requires Apify (Shopee anti-bot blocks DIY)
+  scrapeShopeeViaApify: () => Boolean(env.APIFY_TOKEN),
+  proxyResidential: () => Boolean(env.IPROYAL_LOGIN && env.IPROYAL_PASSWORD),
   trackShopeeDashboard: () =>
     Boolean(env.SHOPEE_AFFILIATE_USERNAME && env.SHOPEE_AFFILIATE_PASSWORD),
   postTikTok: () => Boolean(env.TIKTOK_ACCESS_TOKEN) && env.FEATURE_TIKTOK_AUTO_POST,

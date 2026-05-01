@@ -1,5 +1,35 @@
 # Runbook — Day-to-day operations
 
+## Current operating state (May 2026)
+
+- **Scheduler**: `affiliate-scheduler.service` (systemd), enabled, auto-restart. Working dir `/root/research-2`.
+- **Shopee scraping**: routed through Apify `xtracto/shopee-scraper` (Apify Starter $29/mo plan).
+  Daily budget guard: `APIFY_DAILY_BUDGET_USD=1.20` (`scraper_runs.cost_usd_micros` is the source of truth).
+- **Schedule**: 6×/day at flash-sale windows (`0 0,4,8,12,18,21 * * *` BKK).
+- **Lazada**: disabled. `FEATURE_LAZADA_ENABLED=false` filters out scrapeLazada / crossPlatformMatch / generatePriceCompare from the scheduler.
+- **Telegram broadcast**: still in dry-run (`DEBUG_DRY_RUN=true`) — flip when content quality is verified.
+- **Site**: live on Cloudflare Pages (`*.pages.dev` domain — custom domain not yet pointed).
+
+### Operating commands
+
+```bash
+systemctl status affiliate-scheduler
+journalctl -u affiliate-scheduler -f
+systemctl restart affiliate-scheduler        # after editing .env
+
+# One-off scrape (uses Apify path automatically when APIFY_TOKEN is set)
+bun run scrape:once "iphone" 5
+
+# Smoke-test Apify integration without DB writes
+bun run src/scripts/test-apify-shopee.ts
+```
+
+### Cost dials
+
+- `SCRAPE_KEYWORDS_PER_RUN` (default 3) × `SCRAPE_PRODUCTS_PER_KEYWORD` (default 30) = products per run
+- `CRON_SCRAPE_PRODUCTS` controls frequency. 6×/day ≈ $27/mo on Starter.
+- `APIFY_DAILY_BUDGET_USD` is a hard kill-switch — runner throws `BudgetExceededError` and skips remaining keywords for the day.
+
 ## First-time setup (1 hour)
 
 ### 1. Install runtime

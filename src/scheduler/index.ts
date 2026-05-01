@@ -29,11 +29,11 @@ interface JobSchedule {
   description: string;
 }
 
-const SCHEDULES: JobSchedule[] = [
-  { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 */6 * * *", description: "Scrape trending Shopee products" },
-  { name: "scrapeLazada", cron: "0 1,13 * * *", description: "Scrape trending Lazada products (twice/day)" },
-  { name: "crossPlatformMatch", cron: "0 4 * * *", description: "Match Shopee ↔ Lazada products" },
-  { name: "rescoreProducts", cron: "30 */3 * * *", description: "Re-score products (Layer 8)" },
+const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
+  { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 7,19 * * *", description: "Scrape trending Shopee products" },
+  { name: "scrapeLazada", cron: "0 1,13 * * *", description: "Scrape trending Lazada products (twice/day)", lazada: true },
+  { name: "crossPlatformMatch", cron: "0 4 * * *", description: "Match Shopee ↔ Lazada products", lazada: true },
+  { name: "rescoreProducts", cron: "30 */2 * * *", description: "Re-score products (Layer 8) — every 2h since data is fresher with 6x/day scrape" },
   { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 7 * * *", description: "Generate review pages (sorted by final_score)" },
   { name: "generateComparisons", cron: "30 7 * * *", description: "Generate A vs B comparison pages" },
   { name: "generateBestOf", cron: "0 8 * * 1", description: "Generate best-of lists (Mondays)" },
@@ -43,13 +43,18 @@ const SCHEDULES: JobSchedule[] = [
   { name: "sitemapAndIndex", cron: "0 22 * * *", description: "Rebuild sitemap + submit to Google/Bing" },
   { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
   { name: "sourceHealth", cron: "0 * * * *", description: "Per-source health check (hourly)" },
-  { name: "generatePriceCompare", cron: "0 6 * * *", description: "Cross-platform price compare pages" },
+  { name: "generatePriceCompare", cron: "0 6 * * *", description: "Cross-platform price compare pages", lazada: true },
   { name: "twitterPublish", cron: "0 14 * * *", description: "Twitter thread publish (if enabled)" },
   { name: "emailDigest", cron: "0 9 * * 5", description: "Weekly email digest (Friday)" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
 ];
+
+// Filter out Lazada-dependent jobs when FEATURE_LAZADA_ENABLED is false (default).
+const SCHEDULES: JobSchedule[] = ALL_SCHEDULES.filter(
+  (s) => env.FEATURE_LAZADA_ENABLED || !s.lazada,
+);
 
 const TZ = env.TIMEZONE;
 
@@ -73,7 +78,7 @@ function startScheduler(): void {
   log.info({ tz: TZ, jobs: SCHEDULES.length }, "scheduler starting");
 
   for (const sched of SCHEDULES) {
-    const job = Cron(
+    const job = new Cron(
       sched.cron,
       { name: sched.name, timezone: TZ, protect: true, catch: true },
       () => runJob(sched.name),

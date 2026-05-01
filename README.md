@@ -3,17 +3,18 @@
 Full-auto Shopee Affiliate aggregator + multi-channel content engine.
 Scrapes Shopee → generates SEO-optimized review pages → broadcasts deals to Telegram → tracks compliance.
 
-**Status**: Phase 1 (foundation) — scaffolding complete, ready to plug in credentials.
+**Status**: Phase 1 **LIVE** — `affiliate-scheduler.service` running 24/7 under systemd on the production Droplet. First scrape went out 2026-05-01.
 
 ## What's working in Phase 1
 
-- ✅ Shopee scraper (public JSON API, no auth required for read)
-- ✅ Postgres schema with full data model (products, prices, reviews, content_pages, ...)
+- ✅ Shopee scraper via **Apify `xtracto/shopee-scraper`** — managed actor with built-in anti-bot bypass. (Direct fetch and residential-proxy approaches were both blocked by Shopee's app-layer detection — see [Scraping vendor decision](#scraping-vendor-decision-may-2026) below.)
+- ✅ Postgres schema with full data model (products, prices, reviews, content_pages, scraper_runs with `cost_usd_micros`, ...)
 - ✅ Claude-powered review page generator (Haiku 4.5) with verdict + SEO meta + JSON-LD
-- ✅ Static Astro site (homepage, review pages, deals page) deployable to Cloudflare Pages
-- ✅ Telegram channel broadcaster (auto-pick top deals, dedupe across 7d)
-- ✅ Cron scheduler running 7 jobs (scrape, generate, broadcast, health, daily report, cleanup)
+- ✅ Static Astro site (homepage, review pages, deals page) deployed on Cloudflare Pages
+- ✅ Telegram channel broadcaster (auto-pick top deals, dedupe across 7d) — currently `DEBUG_DRY_RUN=true`
+- ✅ systemd scheduler running 16 jobs (scrape 6×/day, generate, broadcast, health, daily report, cleanup)
 - ✅ Compliance layer (Thai forbidden-words, AI label, affiliate disclosure)
+- ✅ Per-run cost tracking + daily Apify budget cap (`APIFY_DAILY_BUDGET_USD`)
 - ✅ Self-healing retry/backoff on every external call
 
 ## Project structure
@@ -142,28 +143,48 @@ See `docs/architecture.md` for details.
 
 | Cron | Job |
 |---|---|
-| `0 */6 * * *` | Scrape trending Shopee products |
-| `0 7 * * *` | Generate up to 50 missing review pages |
+| `0 0,4,8,12,18,21 * * *` | Scrape trending Shopee products (6×/day on flash-sale windows) |
+| `30 */2 * * *` | Re-score products (Layer 8) |
+| `0 6 * * *` | Generate up to 50 missing review pages |
+| `30 7 * * *` | Generate A vs B comparison pages |
 | `0 10,16,20 * * *` | Broadcast deals to Telegram channel |
-| `*/5 * * * *` | Health check |
+| `0 11,17 * * *` | Pinterest publish (feature-gated) |
+| `0 22 * * *` | Sitemap rebuild + submit Google/Bing |
+| `0 * * * *` | Per-source health check |
+| `*/5 * * * *` | System health check |
 | `0 21 * * *` | Daily report (Telegram) |
 | `0 3 * * 0` | Weekly cleanup |
 
-Override via `CRON_*` env vars.
+Override via `CRON_*` env vars. Lazada-related jobs are filtered out unless `FEATURE_LAZADA_ENABLED=true`.
 
-## Cost (Phase 1)
+## Cost (Phase 1, actual)
 
 | Item | Monthly |
 |---|---|
-| DigitalOcean Droplet (1 vCPU 2GB, includes Postgres) | $6–12 |
-| DO Spaces (optional backups) | $5 |
-| Claude API (Haiku, ~50k pages) | ~$40 |
+| DigitalOcean Droplet (existing, 1 vCPU 2GB, includes Postgres) | $0 marginal |
+| **Apify Starter** (Shopee scraper, 6×/day × 90 products = ~540/day) | **$29** |
+| Claude API (Haiku, ~3k pages/mo) | ~$10–20 |
 | Cloudflare Pages | $0 |
 | Domain (amortized) | $1 |
-| **Total** | **~$50–60** |
+| **Total** | **~$40–50** |
 
 Postgres runs on the same Droplet (`localhost`) → zero network latency, one bill.
 See [docs/digitalocean-setup.md](docs/digitalocean-setup.md) for setup.
+
+## Scraping vendor decision (May 2026)
+
+Shopee Thailand has a hard-to-bypass two-layer defence: Cloudflare WAF at the edge **and** an app-layer signed-token check (response code `90309999`) that rejects API calls without a valid `af-ac-enc-dat` header. We empirically tested every credible bypass:
+
+| Approach | Result |
+|---|---|
+| Direct fetch from DC IP (DigitalOcean) | ❌ 403 at Cloudflare |
+| Residential proxy — IPRoyal (TH 3BB IP confirmed) | ❌ Past Cloudflare, blocked at app layer |
+| Residential proxy — SOAX | ❌ SOAX itself blocks `shopee.*` at the proxy with `422 Access restricted` |
+| Scrapfly ASP + render_js | ❌ HTML returned but search results never populate |
+| Playwright Chromium + IPRoyal + warm cookies | ❌ Same `90309999` block |
+| **Apify `xtracto/shopee-scraper`** | ✅ Real product data, ~$0.05–0.15 per run of 60–90 items |
+
+Apify is currently the only working path — its actor authors have done the per-target work we'd otherwise have to maintain ourselves. **Plan 2 fallback** would be to build a custom Apify actor (Phase 2 cost-cutting move if traffic justifies it).
 
 ## Expected revenue (base case)
 
@@ -187,10 +208,28 @@ Variance is high — see conversation history for pessimistic/optimistic ranges.
 
 ## What's intentionally not built yet
 
+- Lazada (`FEATURE_LAZADA_ENABLED=false` — no working Apify Lazada actor exists; would need custom build)
+- SSR endpoints (`/api/subscribe`, `/go/*`, `/confirm`, `/unsubscribe`) — moved to `src/web/_disabled-ssr/` pending Cloudflare Workers deploy
+- Custom domain on Cloudflare Pages — currently using `*.pages.dev`
 - TikTok / Meta / YouTube auto-posters (Phase 3)
 - Voice + video generation (Phase 3)
 - ML-based content scoring (Phase 4)
-- A/B testing framework (Phase 4)
+- A/B testing / true adaptive learning loop (Phase 4)
 - Dashboard UI (Phase 2)
 
 These are defined in the schema and feature flags so they can be plugged in without refactor.
+
+## Operating commands
+
+```bash
+# Scheduler
+systemctl status affiliate-scheduler
+journalctl -u affiliate-scheduler -f       # live log feed
+systemctl restart affiliate-scheduler      # after .env changes
+
+# Manual scrape (uses Apify if APIFY_TOKEN set)
+bun run scrape:once "iphone" 5
+
+# Smoke-test Apify directly
+bun run src/scripts/test-apify-shopee.ts
+```

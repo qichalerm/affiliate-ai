@@ -586,6 +586,8 @@ export const scraperRuns = pgTable(
     durationMs: integer("duration_ms"),
     errorMessage: text("error_message"),
     proxyUsed: varchar("proxy_used", { length: 128 }),
+    /** Cost in micro-USD ($1 = 1,000,000). Tracks per-run spend on managed scrapers (Apify, Scrapfly). */
+    costUsdMicros: bigint("cost_usd_micros", { mode: "number" }).default(0),
     raw: jsonb("raw"),
     startedAt: timestamp("started_at", { withTimezone: true }).defaultNow().notNull(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),
@@ -593,6 +595,7 @@ export const scraperRuns = pgTable(
   (t) => ({
     scraperTimeIdx: index("scraper_runs_scraper_time_idx").on(t.scraper, t.startedAt),
     statusIdx: index("scraper_runs_status_idx").on(t.status),
+    startedAtIdx: index("scraper_runs_started_at_idx").on(t.startedAt),
   }),
 );
 

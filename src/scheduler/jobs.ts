@@ -94,31 +94,40 @@ const NICHE_KEYWORDS: Record<string, string[]> = {
 
 export async function jobScrapeTrending(): Promise<void> {
   const keywords = NICHE_KEYWORDS[env.PRIMARY_NICHE] ?? NICHE_KEYWORDS.it_gadget;
-  // Pick 3 random keywords each run to spread coverage
+  const perRun = Math.max(1, env.SCRAPE_KEYWORDS_PER_RUN);
+  // Pick N random keywords each run to spread coverage
   const picks = keywords
     .map((k) => [Math.random(), k] as const)
     .sort(([a], [b]) => a - b)
-    .slice(0, 3)
+    .slice(0, perRun)
     .map(([, k]) => k);
 
-  log.info({ picks }, "scraping trending keywords");
+  log.info({ picks, productsPerKeyword: env.SCRAPE_PRODUCTS_PER_KEYWORD }, "scraping trending keywords");
 
   for (const kw of picks) {
     try {
       await runShopeeScrape({
         keyword: kw,
-        maxProducts: 30,
-        fetchDetails: true,
-        reviewsPerProduct: 15,
+        maxProducts: env.SCRAPE_PRODUCTS_PER_KEYWORD,
+        // Apify basic mode is the only working path; details/reviews are no-ops there.
+        // Kept here for code-shape compat with the (currently disabled) direct path.
+        fetchDetails: false,
+        reviewsPerProduct: 0,
         orderBy: 5,
       });
     } catch (err) {
-      log.error({ kw, err: errMsg(err) }, "scrape failed for keyword");
+      const msg = errMsg(err);
+      // Budget exceeded is informational, not an error to alert on
+      if (msg.includes("budget exceeded")) {
+        log.warn({ kw }, "skipping keyword: apify budget exceeded for the day");
+        break;
+      }
+      log.error({ kw, err: msg }, "scrape failed for keyword");
       await createAlert({
         severity: "warn",
         code: "scrape.keyword_failed",
         title: `Scrape failed: ${kw}`,
-        body: errMsg(err),
+        body: msg,
       });
     }
   }

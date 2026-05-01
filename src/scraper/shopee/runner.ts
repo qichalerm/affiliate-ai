@@ -10,7 +10,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../../lib/db.ts";
 import { child } from "../../lib/logger.ts";
 import { errMsg, sleep } from "../../lib/retry.ts";
-import { env } from "../../lib/env.ts";
+import { env, can } from "../../lib/env.ts";
 import {
   searchByKeyword,
   browseCategory,
@@ -29,6 +29,7 @@ import {
   parseReviews,
 } from "./parser.ts";
 import { upsertShop, upsertProduct, insertReviews } from "./persist.ts";
+import { searchByKeywordViaApify, BudgetExceededError } from "./apify-client.ts";
 
 const log = child("shopee.runner");
 
@@ -58,6 +59,12 @@ export async function runShopeeScrape(opts: RunOptions): Promise<RunResult> {
   if (!opts.keyword && !opts.shopeeCategoryId) {
     throw new Error("runShopeeScrape: keyword or shopeeCategoryId required");
   }
+  // Apify is the only working path for Shopee TH (anti-bot blocks DIY).
+  // Falls back to direct fetch only if APIFY_TOKEN is missing — useful in CI/dev.
+  if (can.scrapeShopeeViaApify() && opts.keyword) {
+    return runShopeeScrapeViaApify(opts);
+  }
+
   const target = opts.keyword ?? `cat:${opts.shopeeCategoryId}`;
   const maxProducts = opts.maxProducts ?? 60;
 
@@ -231,4 +238,136 @@ function shouldIngest(p: import("./types.ts").ShopeeProduct): boolean {
   }
   if ((p.soldCount ?? 0) < env.MIN_PRODUCT_SOLD && (p.ratingCount ?? 0) < 10) return false;
   return true;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Apify-backed scrape path                                                   */
+/* -------------------------------------------------------------------------- */
+
+async function runShopeeScrapeViaApify(opts: RunOptions): Promise<RunResult> {
+  const keyword = opts.keyword!;
+  const target = `apify:${keyword}`;
+  const maxProducts = opts.maxProducts ?? 60;
+
+  const [run] = await db
+    .insert(schema.scraperRuns)
+    .values({ scraper: "shopee", target, status: "running", proxyUsed: "apify" })
+    .returning({ id: schema.scraperRuns.id });
+  const runId = run.id;
+  const startedAt = Date.now();
+
+  log.info({ runId, keyword, maxProducts, path: "apify" }, "shopee apify scrape start");
+
+  try {
+    const sortMap: Record<number, "sales" | "relevance" | "latest" | "rating" | "price_asc" | "price_desc"> = {
+      1: "relevance",
+      2: "latest",
+      5: "sales",
+      12: "price_asc",
+      13: "price_desc",
+      18: "rating",
+    };
+    // Note: we do NOT pass opts.fetchDetails to Apify by default. Apify's basic mode
+    // returns all fields we need (name, price, image, rating, discount) at lower cost.
+    // fetchDetail mode adds models[]/breadcrumb/full description but moves price into
+    // models[] which complicates extraction. Re-enable later only if we need rich detail.
+    const { products, shopsByExternalId, stats } = await searchByKeywordViaApify(keyword, {
+      maxProducts,
+      sort: sortMap[opts.orderBy ?? 5] ?? "sales",
+      fetchDetail: false,
+    });
+
+    let attempted = 0;
+    let succeeded = 0;
+    let failed = 0;
+    const shopDbIds = new Map<string, number>();
+
+    for (const product of products) {
+      attempted++;
+      try {
+        // Apify already returns top-ranked search results; relax gate (just basic sanity).
+        if (!product.name || product.name.length < 4 || product.currentPriceSatang <= 0) {
+          failed++;
+          continue;
+        }
+
+        let shopDbId = shopDbIds.get(product.shopExternalId);
+        if (!shopDbId) {
+          const shopMeta = shopsByExternalId.get(product.shopExternalId);
+          if (!shopMeta) {
+            log.warn({ shopExternalId: product.shopExternalId }, "missing shop metadata; skipping");
+            failed++;
+            continue;
+          }
+          shopDbId = await upsertShop(shopMeta);
+          shopDbIds.set(product.shopExternalId, shopDbId);
+        }
+
+        const { isNew } = await upsertProduct(product, shopDbId);
+        succeeded++;
+        if (isNew && env.DEBUG_VERBOSE_LOGGING) {
+          log.info(
+            { runId, name: product.name, price: product.currentPriceSatang },
+            "+ new product (apify)",
+          );
+        }
+      } catch (err) {
+        failed++;
+        const msg = errMsg(err);
+        log.error({ err: msg, itemId: product.externalId }, "apify product persist failed");
+        console.error(`[persist err] item=${product.externalId} shop=${product.shopExternalId}: ${msg}`);
+      }
+    }
+
+    const durationMs = Date.now() - startedAt;
+    await db
+      .update(schema.scraperRuns)
+      .set({
+        status: "success",
+        itemsAttempted: attempted,
+        itemsSucceeded: succeeded,
+        itemsFailed: failed,
+        durationMs,
+        finishedAt: new Date(),
+        costUsdMicros: Math.round(stats.costUsd * 1_000_000),
+        raw: { apifyRunId: stats.apifyRunId, apifyDurationMs: stats.durationMs },
+      })
+      .where(eq(schema.scraperRuns.id, runId));
+
+    log.info(
+      {
+        runId,
+        attempted,
+        succeeded,
+        failed,
+        durationMs,
+        costUsd: stats.costUsd.toFixed(4),
+        apifyRunId: stats.apifyRunId,
+      },
+      "shopee apify scrape done",
+    );
+
+    return {
+      scraperRunId: runId,
+      itemsAttempted: attempted,
+      itemsSucceeded: succeeded,
+      itemsFailed: failed,
+      durationMs,
+    };
+  } catch (err) {
+    const isBudget = err instanceof BudgetExceededError;
+    await db
+      .update(schema.scraperRuns)
+      .set({
+        status: "failed",
+        errorMessage: errMsg(err).slice(0, 1000),
+        finishedAt: new Date(),
+        durationMs: Date.now() - startedAt,
+      })
+      .where(eq(schema.scraperRuns.id, runId));
+    if (isBudget) {
+      log.warn({ runId, err: errMsg(err) }, "shopee apify scrape skipped (budget)");
+    }
+    throw err;
+  }
 }
