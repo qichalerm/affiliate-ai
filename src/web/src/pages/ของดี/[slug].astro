@@ -2,13 +2,17 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PriceTag from "../../components/PriceTag.astro";
 import StarRating from "../../components/StarRating.astro";
-import { compactCount, shopeeAffiliateUrl } from "../../lib/format";
+import PlatformBadge from "../../components/PlatformBadge.astro";
+import RelatedLinks from "../../components/RelatedLinks.astro";
+import { compactCount } from "../../lib/format";
+import { buildAffiliateUrl, platformLabel } from "../../lib/affiliate-links";
 import {
   getAllPublishedBestOf,
   getBestOfBySlug,
   getProductSlugs,
   type BestOfContent,
 } from "../../lib/queries-comparison";
+import type { RelatedLink } from "../../lib/queries";
 
 export async function getStaticPaths() {
   let pages: Awaited<ReturnType<typeof getAllPublishedBestOf>> = [];
@@ -24,7 +28,7 @@ const { slug } = Astro.params;
 const page = await getBestOfBySlug(slug!);
 if (!page) return Astro.redirect("/404");
 
-const c = (page.contentJson ?? {}) as BestOfContent;
+const c = (page.contentJson ?? {}) as BestOfContent & { relatedLinks?: RelatedLink[] };
 const productMeta = await getProductSlugs(c.items.map((i) => i.productId));
 ---
 
@@ -86,16 +90,27 @@ const productMeta = await getProductSlugs(c.items.map((i) => i.productId));
 
               <div class="flex flex-col items-end gap-2">
                 <PriceTag current={item.priceSatang} size="md" />
-                {meta?.shopExternalId && (
-                  <a
-                    href={shopeeAffiliateUrl(meta.shopExternalId, meta.externalId, subId)}
-                    rel="nofollow sponsored noopener"
-                    target="_blank"
-                    class="btn-primary text-sm"
-                  >
-                    ดูที่ Shopee →
-                  </a>
+                {meta && (
+                  <PlatformBadge platform={meta.platform} size="sm" />
                 )}
+                {meta && (() => {
+                  const url = buildAffiliateUrl({
+                    platform: meta.platform,
+                    externalId: meta.externalId,
+                    shopExternalId: meta.shopExternalId,
+                    subId,
+                  });
+                  return url ? (
+                    <a
+                      href={url}
+                      rel="nofollow sponsored noopener"
+                      target="_blank"
+                      class="btn-primary text-sm"
+                    >
+                      ดูที่ {platformLabel(meta.platform)} →
+                    </a>
+                  ) : null;
+                })()}
               </div>
             </div>
           </li>
@@ -107,6 +122,10 @@ const productMeta = await getProductSlugs(c.items.map((i) => i.productId));
       <p class="mt-10 max-w-3xl rounded-lg bg-slate-50 p-4 text-sm italic text-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
         {c.tagline}
       </p>
+    )}
+
+    {c.relatedLinks && c.relatedLinks.length > 0 && (
+      <RelatedLinks links={c.relatedLinks} />
     )}
 
     <p class="mt-8 text-xs text-slate-500">

@@ -15,12 +15,14 @@ import { env, can } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg, sleep } from "../lib/retry.ts";
 import { shortenAffiliate } from "../lib/short-link.ts";
+import { buildAffiliateUrl, PLATFORM_LABELS, type Platform } from "../adapters/affiliate-links.ts";
 
 const log = child("publisher.telegram");
 
 interface DealCandidate {
   id: number;
   slug: string;
+  platform: Platform;
   name: string;
   brand: string | null;
   primaryImage: string | null;
@@ -63,7 +65,8 @@ export async function broadcastDealsToChannel(
   const dedupeHours = opts.dedupeHours ?? 24 * 7;
 
   const deals = await db.execute<DealCandidate>(sql`
-    SELECT p.id, p.slug, p.name, p.brand, p.primary_image AS "primaryImage",
+    SELECT p.id, p.slug, p.platform::text AS platform,
+           p.name, p.brand, p.primary_image AS "primaryImage",
            p.current_price AS "currentPrice", p.original_price AS "originalPrice",
            p.discount_percent AS "discountPercent",
            p.rating, p.rating_count AS "ratingCount", p.sold_count AS "soldCount",
@@ -99,19 +102,24 @@ export async function broadcastDealsToChannel(
 
   for (const deal of deals) {
     try {
-      // Build Shopee affiliate URL + shorten via Short.io for tracking
+      // Build platform-aware affiliate URL + shorten via Short.io
       const subId = `tg_${deal.id}_${Date.now().toString(36).slice(-4)}`;
-      let shopeeShortUrl: string | null = null;
-      if (deal.shopExternalId) {
-        const fullUrl = buildShopeeUrl(deal.shopExternalId, deal.externalId, subId);
-        shopeeShortUrl = await shortenAffiliate({
+      const fullUrl = buildAffiliateUrl({
+        platform: deal.platform,
+        externalId: deal.externalId,
+        shopExternalId: deal.shopExternalId,
+        subId,
+      });
+      let buyShortUrl: string | null = null;
+      if (fullUrl) {
+        buyShortUrl = await shortenAffiliate({
           fullUrl,
           channel: "telegram",
           contentSlug: deal.slug,
           productExternalId: deal.externalId,
         });
       }
-      const message = formatDealMessage(deal, shopeeShortUrl);
+      const message = formatDealMessage(deal, buyShortUrl);
       const photoUrl = deal.primaryImage ?? undefined;
 
       if (env.DEBUG_DRY_RUN) {
@@ -146,10 +154,11 @@ export async function broadcastDealsToChannel(
   return { broadcasted, skipped };
 }
 
-function formatDealMessage(d: DealCandidate, shopeeShortUrl: string | null): string {
+function formatDealMessage(d: DealCandidate, buyShortUrl: string | null): string {
   const reviewUrl = `https://${DOMAIN}/รีวิว/${d.slug}`;
+  const platformLabel = PLATFORM_LABELS[d.platform] ?? "Shopee";
   const lines: string[] = [];
-  lines.push(`🔥 *ลด ${formatPercent(d.discountPercent ?? 0)}*`);
+  lines.push(`🔥 *ลด ${formatPercent(d.discountPercent ?? 0)}* — ${platformLabel}`);
   if (d.brand) lines.push(`*${d.brand}*`);
   lines.push(`${escapeMd(d.name)}`);
   lines.push("");
@@ -164,23 +173,16 @@ function formatDealMessage(d: DealCandidate, shopeeShortUrl: string | null): str
   if (d.soldCount != null && d.soldCount > 0) {
     lines.push(`📦 ขายแล้ว ${compactCount(d.soldCount)} ชิ้น`);
   }
-  if (d.isMall) lines.push("🏬 Shopee Mall");
+  if (d.isMall && d.platform === "shopee") lines.push("🏬 Shopee Mall");
+  if (d.isMall && d.platform === "lazada") lines.push("🏬 LazMall");
   lines.push("");
-  if (shopeeShortUrl) {
-    lines.push(`🛒 [ซื้อที่ Shopee](${shopeeShortUrl})`);
+  if (buyShortUrl) {
+    lines.push(`🛒 [ซื้อที่ ${platformLabel}](${buyShortUrl})`);
   }
   lines.push(`📖 [อ่านรีวิวเต็ม](${reviewUrl})`);
   lines.push("");
   lines.push("_ลิงก์มี affiliate — ราคาคุณไม่เปลี่ยน_");
   return lines.join("\n");
-}
-
-/** Build Shopee URL with affiliate params (mirror of buildAffiliateUrl in scraper/shopee/client.ts). */
-function buildShopeeUrl(shopId: string, itemId: string, subId: string): string {
-  const params = new URLSearchParams();
-  params.set("af_sub1", subId);
-  if (env.SHOPEE_AFFILIATE_ID) params.set("affiliate_id", env.SHOPEE_AFFILIATE_ID);
-  return `https://shopee.co.th/product/${shopId}/${itemId}?${params}`;
 }
 
 /** Minimal Telegram Markdown escape — keep most chars, only escape what breaks. */

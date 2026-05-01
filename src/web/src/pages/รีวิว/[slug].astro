@@ -2,9 +2,12 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PriceTag from "../../components/PriceTag.astro";
 import StarRating from "../../components/StarRating.astro";
-import AffiliateButton from "../../components/AffiliateButton.astro";
+import PlatformBadge from "../../components/PlatformBadge.astro";
 import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
+import CrossPlatformPriceCard from "../../components/CrossPlatformPriceCard.astro";
+import RelatedLinks from "../../components/RelatedLinks.astro";
 import { compactCount } from "../../lib/format";
+import { buildAffiliateUrl, platformLabel } from "../../lib/affiliate-links";
 import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../lib/queries";
 
 export async function getStaticPaths() {
@@ -19,19 +22,27 @@ export async function getStaticPaths() {
 
 const { slug } = Astro.params;
 const data = await getReviewPageBySlug(slug!);
+if (!data) return Astro.redirect("/404");
 
-if (!data) {
-  return Astro.redirect("/404");
-}
+const { page, product, reviews, priceHistory, crossPlatform } = data;
 
-const { page, product, reviews, priceHistory } = data;
 type ContentJson = {
   hero?: Record<string, unknown>;
   verdict?: { text: string; pros: string[]; cons: string[]; best_for: string; skip_if: string };
   specs?: Record<string, string>;
   reviewExcerpts?: Array<{ rating: number; body: string; reviewer: string }>;
+  relatedLinks?: import("../../lib/queries").RelatedLink[];
 };
 const content = (page.contentJson ?? {}) as ContentJson;
+
+const subId = `web_review_${page.slug.slice(0, 50)}`;
+const affiliateUrl = buildAffiliateUrl({
+  platform: product.platform,
+  externalId: product.externalId,
+  shopExternalId: product.shopExternalId,
+  subId,
+});
+const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(product.platform)}`;
 ---
 
 <BaseLayout
@@ -49,19 +60,27 @@ const content = (page.contentJson ?? {}) as ContentJson;
 
     <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
       <div>
-        {product.brand && (
-          <p class="text-sm uppercase tracking-wider text-brand-600">{product.brand}</p>
-        )}
-        <h1 class="mt-1 text-2xl font-bold leading-tight sm:text-3xl">{page.h1 ?? product.name}</h1>
+        <div class="mb-2 flex items-center gap-2">
+          <PlatformBadge platform={product.platform} />
+          {product.brand && (
+            <span class="text-sm uppercase tracking-wider text-brand-600">{product.brand}</span>
+          )}
+        </div>
+        <h1 class="text-2xl font-bold leading-tight sm:text-3xl">{page.h1 ?? product.name}</h1>
 
         <div class="mt-3 flex flex-wrap items-center gap-4">
           <StarRating rating={product.rating} count={product.ratingCount} />
           {product.soldCount != null && product.soldCount > 0 && (
             <span class="text-sm text-slate-500">ขายแล้ว {compactCount(product.soldCount)}</span>
           )}
-          {product.isMall && (
+          {product.isMall && product.platform === "shopee" && (
             <span class="rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
               Shopee Mall
+            </span>
+          )}
+          {product.isMall && product.platform === "lazada" && (
+            <span class="rounded bg-indigo-700 px-2 py-0.5 text-xs font-bold text-white">
+              LazMall
             </span>
           )}
         </div>
@@ -119,6 +138,22 @@ const content = (page.contentJson ?? {}) as ContentJson;
           </section>
         )}
 
+        {crossPlatform.length > 0 && (
+          <section class="mt-8">
+            <CrossPlatformPriceCard
+              primary={{
+                platform: product.platform,
+                currentPrice: product.currentPrice,
+                rating: product.rating,
+                externalId: product.externalId,
+                shopExternalId: product.shopExternalId,
+                pageSlug: page.slug,
+              }}
+              matches={crossPlatform}
+            />
+          </section>
+        )}
+
         {content.specs && Object.keys(content.specs).length > 0 && (
           <section class="mt-8">
             <h2 class="mb-3 text-lg font-semibold">สเปกสำคัญ</h2>
@@ -158,8 +193,12 @@ const content = (page.contentJson ?? {}) as ContentJson;
           </section>
         )}
 
+        {content.relatedLinks && content.relatedLinks.length > 0 && (
+          <RelatedLinks links={content.relatedLinks} />
+        )}
+
         <p class="mt-8 text-xs text-slate-500">
-          * ข้อมูลราคาและรีวิวรวบรวมจาก Shopee เป็นระยะ
+          * ข้อมูลราคาและรีวิวรวบรวมจาก {platformLabel(product.platform)} เป็นระยะ
           เนื้อหาสรุปบางส่วนสร้างโดย AI จากข้อมูลจริง
           เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
         </p>
@@ -179,14 +218,25 @@ const content = (page.contentJson ?? {}) as ContentJson;
             </p>
           )}
           <div class="mt-4">
-            <AffiliateButton
-              shopExternalId={product.shopExternalId!}
-              itemExternalId={product.externalId}
-              pageSlug={page.slug}
-            />
+            {affiliateUrl ? (
+              <a
+                href={affiliateUrl}
+                rel="nofollow sponsored noopener"
+                target="_blank"
+                class="btn-primary group w-full"
+                data-affiliate-link
+                data-platform={product.platform}
+                data-item-id={product.externalId}
+              >
+                {ctaLabel}
+                <span class="ml-2 transition group-hover:translate-x-0.5">→</span>
+              </a>
+            ) : (
+              <p class="text-sm text-slate-500">ลิงก์ affiliate ไม่พร้อม</p>
+            )}
           </div>
           <p class="mt-3 text-center text-xs text-slate-500">
-            ราคาอาจเปลี่ยนแปลง — ตรวจสอบอีกครั้งบนหน้า Shopee
+            ราคาอาจเปลี่ยนแปลง — ตรวจสอบอีกครั้งบนหน้าร้าน
           </p>
         </div>
       </aside>

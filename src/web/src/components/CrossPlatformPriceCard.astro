@@ -1,0 +1,111 @@
+---
+import PlatformBadge from "./PlatformBadge.astro";
+import StarRating from "./StarRating.astro";
+import { formatBaht } from "../lib/format";
+import { buildAffiliateUrl, type Platform } from "../lib/affiliate-links";
+import type { CrossPlatformMatch } from "../lib/queries";
+
+interface Props {
+  primary: {
+    platform: Platform;
+    currentPrice: number | null;
+    rating: number | null;
+    externalId: string;
+    shopExternalId: string | null;
+    pageSlug: string;
+  };
+  matches: CrossPlatformMatch[];
+}
+
+const { primary, matches } = Astro.props;
+
+if (matches.length === 0) return null;
+
+// Combine primary + matches into one ranked list (cheapest first)
+const all = [
+  {
+    platform: primary.platform,
+    isPrimary: true,
+    name: "Shopee",
+    price: primary.currentPrice,
+    rating: primary.rating,
+    externalId: primary.externalId,
+    shopExternalId: primary.shopExternalId,
+    matchConfidence: 1,
+  },
+  ...matches.map((m) => ({
+    platform: m.platform as Platform,
+    isPrimary: false,
+    name: m.name,
+    price: m.currentPrice,
+    rating: m.rating,
+    externalId: m.externalId,
+    shopExternalId: m.shopExternalId,
+    matchConfidence: m.matchConfidence,
+  })),
+].sort((a, b) => (a.price ?? Infinity) - (b.price ?? Infinity));
+
+const cheapest = all[0];
+---
+
+<section class="card border-l-4 border-l-emerald-500">
+  <div class="mb-3 flex items-center justify-between">
+    <h2 class="text-lg font-semibold">เปรียบเทียบราคาข้ามแพลตฟอร์ม</h2>
+    <span class="text-xs text-slate-500">{matches.length + 1} แหล่ง</span>
+  </div>
+
+  <div class="space-y-2">
+    {all.map((item) => {
+      const isCheapest = item === cheapest && all.length > 1;
+      const subId = `web_xplat_${primary.pageSlug.slice(0, 40)}`;
+      const url = buildAffiliateUrl({
+        platform: item.platform,
+        externalId: item.externalId,
+        shopExternalId: item.shopExternalId,
+        subId,
+      });
+      return (
+        <div
+          class={`flex items-center justify-between rounded-lg border px-3 py-2 ${
+            isCheapest
+              ? "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-900/20"
+              : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+          }`}
+        >
+          <div class="flex items-center gap-3">
+            <PlatformBadge platform={item.platform} size="sm" />
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-base font-bold">{formatBaht(item.price)}</span>
+                {isCheapest && (
+                  <span class="rounded bg-emerald-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    ถูกสุด
+                  </span>
+                )}
+              </div>
+              {item.rating != null && item.rating > 0 && (
+                <div class="mt-0.5">
+                  <StarRating rating={item.rating} size="sm" />
+                </div>
+              )}
+            </div>
+          </div>
+          {url && (
+            <a
+              href={url}
+              rel="nofollow sponsored noopener"
+              target="_blank"
+              class="btn-ghost text-sm"
+            >
+              ดู →
+            </a>
+          )}
+        </div>
+      );
+    })}
+  </div>
+
+  <p class="mt-3 text-[11px] text-slate-500">
+    * ราคา snapshot จากการ scrape — ตรวจสอบราคาล่าสุดในหน้าร้านก่อนสั่งซื้อ
+  </p>
+</section>

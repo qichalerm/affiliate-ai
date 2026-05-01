@@ -9,6 +9,7 @@ import { sql } from "drizzle-orm";
 export interface ProductRow {
   id: number;
   slug: string;
+  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
   name: string;
   brand: string | null;
   primaryImage: string | null;
@@ -27,6 +28,26 @@ export interface ProductRow {
   specifications: Record<string, string> | null;
   description: string | null;
   categoryId: number | null;
+}
+
+export interface CrossPlatformMatch {
+  matchedProductId: number;
+  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+  name: string;
+  brand: string | null;
+  externalId: string;
+  shopExternalId: string | null;
+  currentPrice: number | null;
+  rating: number | null;
+  matchConfidence: number;
+}
+
+export interface RelatedLink {
+  type: "review" | "comparison" | "best_of";
+  slug: string;
+  title: string;
+  thumbnail?: string | null;
+  reason: string;
 }
 
 export interface ContentPageRow {
@@ -88,7 +109,8 @@ export async function getReviewPageBySlug(slug: string): Promise<{
   if (!page) return null;
 
   const productRows = await db.execute<ProductRow>(sql`
-    SELECT p.id, p.slug, p.name, p.brand, p.primary_image AS "primaryImage",
+    SELECT p.id, p.slug, p.platform::text AS platform,
+           p.name, p.brand, p.primary_image AS "primaryImage",
            COALESCE(p.image_urls, '[]'::jsonb) AS "imageUrls",
            p.current_price AS "currentPrice", p.original_price AS "originalPrice",
            p.discount_percent AS "discountPercent", p.rating, p.rating_count AS "ratingCount",
@@ -121,12 +143,40 @@ export async function getReviewPageBySlug(slug: string): Promise<{
      LIMIT 200
   `);
 
-  return { page, product, reviews, priceHistory };
+  const crossPlatform = await getCrossPlatformMatches(product.id);
+
+  return { page, product, reviews, priceHistory, crossPlatform };
+}
+
+/**
+ * Get matched products on other platforms (for cross-platform price compare card).
+ */
+export async function getCrossPlatformMatches(productId: number): Promise<CrossPlatformMatch[]> {
+  return db.execute<CrossPlatformMatch>(sql`
+    SELECT pc.matched_product_id AS "matchedProductId",
+           p.platform::text AS platform,
+           p.name, p.brand,
+           p.external_id AS "externalId",
+           s.external_id AS "shopExternalId",
+           p.current_price AS "currentPrice",
+           p.rating,
+           pc.match_confidence AS "matchConfidence"
+      FROM price_compare pc
+      JOIN products p ON p.id = pc.matched_product_id
+      LEFT JOIN shops s ON s.id = p.shop_id
+     WHERE pc.primary_product_id = ${productId}
+       AND p.is_active = true
+       AND p.flag_blacklisted = false
+       AND pc.match_confidence >= 0.7
+     ORDER BY pc.match_confidence DESC, p.current_price ASC
+     LIMIT 5
+  `);
 }
 
 export async function getTopProducts(limit = 24): Promise<ProductRow[]> {
   const rows = await db.execute<ProductRow>(sql`
-    SELECT p.id, p.slug, p.name, p.brand, p.primary_image AS "primaryImage",
+    SELECT p.id, p.slug, p.platform::text AS platform,
+           p.name, p.brand, p.primary_image AS "primaryImage",
            COALESCE(p.image_urls, '[]'::jsonb) AS "imageUrls",
            p.current_price AS "currentPrice", p.original_price AS "originalPrice",
            p.discount_percent AS "discountPercent", p.rating, p.rating_count AS "ratingCount",
@@ -141,6 +191,7 @@ export async function getTopProducts(limit = 24): Promise<ProductRow[]> {
        AND p.flag_blacklisted = false
        AND p.current_price IS NOT NULL
        AND p.rating >= 4.0
+       AND EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id AND cp.status = 'published')
      ORDER BY COALESCE(p.final_score, p.sold_count, 0) DESC NULLS LAST
      LIMIT ${limit}
   `);
@@ -149,7 +200,8 @@ export async function getTopProducts(limit = 24): Promise<ProductRow[]> {
 
 export async function getDealsToday(limit = 24): Promise<ProductRow[]> {
   const rows = await db.execute<ProductRow>(sql`
-    SELECT p.id, p.slug, p.name, p.brand, p.primary_image AS "primaryImage",
+    SELECT p.id, p.slug, p.platform::text AS platform,
+           p.name, p.brand, p.primary_image AS "primaryImage",
            COALESCE(p.image_urls, '[]'::jsonb) AS "imageUrls",
            p.current_price AS "currentPrice", p.original_price AS "originalPrice",
            p.discount_percent AS "discountPercent", p.rating, p.rating_count AS "ratingCount",

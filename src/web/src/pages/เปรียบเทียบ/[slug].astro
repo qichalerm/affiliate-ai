@@ -2,12 +2,16 @@
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import PriceTag from "../../components/PriceTag.astro";
 import StarRating from "../../components/StarRating.astro";
-import { compactCount, shopeeAffiliateUrl } from "../../lib/format";
+import PlatformBadge from "../../components/PlatformBadge.astro";
+import RelatedLinks from "../../components/RelatedLinks.astro";
+import { compactCount } from "../../lib/format";
+import { buildAffiliateUrl, platformLabel } from "../../lib/affiliate-links";
 import {
   getAllPublishedComparisons,
   getComparisonBySlug,
   type ComparisonContent,
 } from "../../lib/queries-comparison";
+import type { RelatedLink } from "../../lib/queries";
 
 export async function getStaticPaths() {
   let pages: Awaited<ReturnType<typeof getAllPublishedComparisons>> = [];
@@ -23,8 +27,13 @@ const { slug } = Astro.params;
 const page = await getComparisonBySlug(slug!);
 if (!page) return Astro.redirect("/404");
 
-const c = (page.contentJson ?? {}) as ComparisonContent;
+const c = (page.contentJson ?? {}) as ComparisonContent & { relatedLinks?: RelatedLink[] };
 const subId = `web_compare_${page.slug.slice(0, 50)}`;
+
+// Default platform to shopee for backward-compat with old comparison records
+function platformOf(p: ComparisonContent["productA"]) {
+  return p.platform ?? "shopee";
+}
 ---
 
 <BaseLayout
@@ -47,11 +56,21 @@ const subId = `web_compare_${page.slug.slice(0, 50)}`;
     <div class="mt-8 grid gap-4 md:grid-cols-2">
       {[c.productA, c.productB].map((p, idx) => {
         const sub = `${subId}_${idx === 0 ? "a" : "b"}`;
+        const platform = platformOf(p);
+        const url = buildAffiliateUrl({
+          platform,
+          externalId: p.externalId,
+          shopExternalId: p.shopExternalId,
+          subId: sub,
+        });
         return (
           <div class="card">
-            <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">
-              ตัวเลือก {idx === 0 ? "A" : "B"}
-            </span>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold uppercase tracking-wider text-brand-600">
+                ตัวเลือก {idx === 0 ? "A" : "B"}
+              </span>
+              <PlatformBadge platform={platform} size="sm" />
+            </div>
             {p.primaryImage && (
               <div class="my-3 aspect-square overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
                 <img src={p.primaryImage} alt={p.name} loading="lazy" class="h-full w-full object-cover" />
@@ -67,14 +86,18 @@ const subId = `web_compare_${page.slug.slice(0, 50)}`;
               {p.soldCount && <span>ขาย {compactCount(p.soldCount)}</span>}
               {p.shop.isMall && <span class="rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold text-white">Mall</span>}
             </div>
-            <a
-              href={p.shopExternalId ? shopeeAffiliateUrl(p.shopExternalId, p.externalId, sub) : "#"}
-              rel="nofollow sponsored noopener"
-              target="_blank"
-              class="btn-primary mt-3 w-full text-sm"
-            >
-              ดูราคาที่ Shopee →
-            </a>
+            {url ? (
+              <a
+                href={url}
+                rel="nofollow sponsored noopener"
+                target="_blank"
+                class="btn-primary mt-3 w-full text-sm"
+              >
+                ดูที่ {platformLabel(platform)} →
+              </a>
+            ) : (
+              <p class="mt-3 text-xs text-slate-500">ลิงก์ affiliate ไม่พร้อม</p>
+            )}
           </div>
         );
       })}
@@ -132,6 +155,10 @@ const subId = `web_compare_${page.slug.slice(0, 50)}`;
       <h2 class="mb-2 text-lg font-semibold">สรุป</h2>
       <p class="prose-th">{c.verdict}</p>
     </section>
+
+    {c.relatedLinks && c.relatedLinks.length > 0 && (
+      <RelatedLinks links={c.relatedLinks} />
+    )}
 
     <p class="mt-8 text-xs text-slate-500">
       * เปรียบเทียบจากข้อมูลจริง ณ วันที่ระบบดึงข้อมูล

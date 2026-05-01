@@ -1,0 +1,58 @@
+---
+import type { RelatedLink } from "../lib/queries";
+
+interface Props {
+  links: RelatedLink[];
+  title?: string;
+}
+
+const { links, title = "บทความที่เกี่ยวข้อง" } = Astro.props;
+
+if (!links || links.length === 0) return null;
+
+const TYPE_PREFIX: Record<RelatedLink["type"], string> = {
+  review: "/รีวิว/",
+  comparison: "/เปรียบเทียบ/",
+  best_of: "/ของดี/",
+};
+
+const TYPE_LABEL: Record<RelatedLink["type"], string> = {
+  review: "รีวิว",
+  comparison: "เปรียบเทียบ",
+  best_of: "รายการแนะนำ",
+};
+
+// Group by type for cleaner UX
+const byType = {
+  review: links.filter((l) => l.type === "review"),
+  comparison: links.filter((l) => l.type === "comparison"),
+  best_of: links.filter((l) => l.type === "best_of"),
+};
+---
+
+<section class="mt-10">
+  <h2 class="mb-3 text-lg font-semibold">{title}</h2>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {links.slice(0, 9).map((link) => (
+      <a
+        href={`${TYPE_PREFIX[link.type]}${link.slug}`}
+        class="card group flex gap-3 transition hover:-translate-y-0.5 hover:shadow-md"
+      >
+        {link.thumbnail && (
+          <div class="aspect-square w-16 shrink-0 overflow-hidden rounded-md bg-slate-100 dark:bg-slate-800">
+            <img src={link.thumbnail} alt="" loading="lazy" class="h-full w-full object-cover" />
+          </div>
+        )}
+        <div class="min-w-0 flex-1">
+          <div class="text-[10px] font-semibold uppercase tracking-wider text-brand-600">
+            {TYPE_LABEL[link.type]}
+          </div>
+          <h3 class="line-clamp-2 text-sm font-medium leading-snug text-slate-900 group-hover:text-brand-600 dark:text-slate-100">
+            {link.title}
+          </h3>
+          <p class="mt-1 text-xs text-slate-500">{link.reason}</p>
+        </div>
+      </a>
+    ))}
+  </div>
+</section>

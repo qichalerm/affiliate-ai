@@ -36,6 +36,10 @@ export function compactCount(n: number | null | undefined): string {
   return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
 }
 
+/**
+ * @deprecated Use buildAffiliateUrl({ platform: "shopee", ... }) from ./affiliate-links instead.
+ * Kept for backward compatibility with any older code paths.
+ */
 export function shopeeAffiliateUrl(
   shopExternalId: string,
   itemExternalId: string,

@@ -5,6 +5,7 @@ import type { ContentPageRow } from "./queries";
 interface ComparisonProductInner {
   id: number;
   slug: string;
+  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
   name: string;
   brand: string | null;
   priceSatang: number | null;
@@ -105,20 +106,40 @@ export async function getBestOfBySlug(slug: string): Promise<ContentPageRow | nu
  */
 export async function getProductSlugs(
   ids: number[],
-): Promise<Map<number, { slug: string; externalId: string; shopExternalId: string | null }>> {
+): Promise<
+  Map<
+    number,
+    {
+      slug: string;
+      platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+      externalId: string;
+      shopExternalId: string | null;
+    }
+  >
+> {
   if (ids.length === 0) return new Map();
   const rows = await db.execute<{
     id: number;
     slug: string;
+    platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
     externalId: string;
     shopExternalId: string | null;
   }>(sql`
-    SELECT p.id, p.slug, p.external_id AS "externalId", s.external_id AS "shopExternalId"
+    SELECT p.id, p.slug, p.platform::text AS platform,
+           p.external_id AS "externalId", s.external_id AS "shopExternalId"
       FROM products p
       LEFT JOIN shops s ON s.id = p.shop_id
      WHERE p.id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
   `);
-  const map = new Map<number, { slug: string; externalId: string; shopExternalId: string | null }>();
+  const map = new Map<
+    number,
+    {
+      slug: string;
+      platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+      externalId: string;
+      shopExternalId: string | null;
+    }
+  >();
   for (const r of rows) map.set(r.id, r);
   return map;
 }
