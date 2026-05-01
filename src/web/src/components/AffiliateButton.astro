@@ -1,0 +1,30 @@
+---
+import { shopeeAffiliateUrl } from "../lib/format";
+
+interface Props {
+  shopExternalId: string;
+  itemExternalId: string;
+  pageSlug: string;
+}
+
+const { shopExternalId, itemExternalId, pageSlug } = Astro.props;
+
+const subId = `web_${pageSlug.slice(0, 60)}`;
+const href = shopeeAffiliateUrl(shopExternalId, itemExternalId, subId);
+---
+
+<a
+  href={href}
+  rel="nofollow sponsored noopener"
+  target="_blank"
+  class="btn-primary group w-full"
+  data-affiliate-link
+  data-shop-id={shopExternalId}
+  data-item-id={itemExternalId}
+>
+  <svg class="mr-2 h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M19 7h-3V6a4 4 0 1 0-8 0v1H5a1 1 0 0 0-1 1v11a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V8a1 1 0 0 0-1-1zM10 6a2 2 0 1 1 4 0v1h-4V6zm9 13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9h2v1a1 1 0 0 0 2 0V9h4v1a1 1 0 0 0 2 0V9h2v10z"/>
+  </svg>
+  ดูราคาล่าสุดที่ Shopee
+  <span class="ml-2 transition group-hover:translate-x-0.5">→</span>
+</a>

@@ -1,0 +1,88 @@
+# Environment / Secrets — DO NOT REMOVE THESE
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.pg-password
+secrets/
+*.pem
+*.key
+*.p8
+*.p12
+google-service-account.json
+session.json
+
+# Backups (may contain data)
+backups/
+*.sql
+*.sql.gz
+*.dump
+
+# OAuth tokens
+.tiktok-token
+.meta-token
+.youtube-token
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/local/
+
+# Generated content (large)
+generated/videos/
+generated/images/
+generated/audio/
+scraped/raw/
+
+# Cache
+.cache/
+*.cache
+
+# Coverage
+coverage/
+.coverage
+htmlcov/
+
+# Deploy
+.vercel
+.cloudflare/
+.wrangler/
+
+# Logs
+logs/
+*.log

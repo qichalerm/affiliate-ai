@@ -1,0 +1,81 @@
+---
+import { formatBaht } from "../lib/format";
+
+interface PricePoint {
+  capturedAt: Date | string;
+  price: number; // satang
+}
+
+interface Props {
+  history: PricePoint[];
+  height?: number;
+}
+
+const { history, height = 120 } = Astro.props;
+
+const points = history
+  .map((p) => ({
+    t: typeof p.capturedAt === "string" ? new Date(p.capturedAt).getTime() : p.capturedAt.getTime(),
+    p: p.price,
+  }))
+  .sort((a, b) => a.t - b.t);
+
+const minPrice = Math.min(...points.map((x) => x.p));
+const maxPrice = Math.max(...points.map((x) => x.p));
+const minTime = points[0]?.t ?? 0;
+const maxTime = points[points.length - 1]?.t ?? 1;
+const timeRange = Math.max(1, maxTime - minTime);
+const priceRange = Math.max(1, maxPrice - minPrice);
+
+const W = 600;
+const H = height;
+const PAD = 12;
+
+function x(t: number) {
+  return PAD + ((t - minTime) / timeRange) * (W - PAD * 2);
+}
+function y(p: number) {
+  return H - PAD - ((p - minPrice) / priceRange) * (H - PAD * 2);
+}
+
+const path =
+  points.length > 0
+    ? `M ${x(points[0].t).toFixed(1)} ${y(points[0].p).toFixed(1)} ` +
+      points
+        .slice(1)
+        .map((pt) => `L ${x(pt.t).toFixed(1)} ${y(pt.p).toFixed(1)}`)
+        .join(" ")
+    : "";
+---
+
+{points.length >= 2 ? (
+  <div class="card">
+    <div class="mb-2 flex items-center justify-between text-sm">
+      <h3 class="font-medium">ประวัติราคา ({points.length} จุด)</h3>
+      <span class="text-slate-500">
+        ต่ำสุด <span class="font-medium text-emerald-600">{formatBaht(minPrice)}</span>
+        · สูงสุด <span class="font-medium text-rose-600">{formatBaht(maxPrice)}</span>
+      </span>
+    </div>
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      class="w-full"
+      preserveAspectRatio="none"
+      role="img"
+      aria-label="ประวัติราคา"
+    >
+      <defs>
+        <linearGradient id="priceFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="rgb(249,115,22)" stop-opacity="0.25" />
+          <stop offset="100%" stop-color="rgb(249,115,22)" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={`${path} L ${x(maxTime).toFixed(1)} ${H - PAD} L ${x(minTime).toFixed(1)} ${H - PAD} Z`} fill="url(#priceFill)" />
+      <path d={path} fill="none" stroke="rgb(234,88,12)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+      {points.map((pt) => (
+        <circle cx={x(pt.t)} cy={y(pt.p)} r="2.5" fill="rgb(234,88,12)" />
+      ))}
+    </svg>
+    <p class="mt-1 text-xs text-slate-500">ราคา snapshot จากการ scrape — ไม่ใช่ราคาทุกการเปลี่ยนแปลง</p>
+  </div>
+) : null}

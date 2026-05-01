@@ -1,0 +1,195 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PriceTag from "../../components/PriceTag.astro";
+import StarRating from "../../components/StarRating.astro";
+import AffiliateButton from "../../components/AffiliateButton.astro";
+import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
+import { compactCount } from "../../lib/format";
+import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../lib/queries";
+
+export async function getStaticPaths() {
+  let pages: Awaited<ReturnType<typeof getAllPublishedReviewPages>> = [];
+  try {
+    pages = await getAllPublishedReviewPages();
+  } catch (err) {
+    console.warn("getStaticPaths: db unavailable, using empty list", err);
+  }
+  return pages.map((p) => ({ params: { slug: p.slug } }));
+}
+
+const { slug } = Astro.params;
+const data = await getReviewPageBySlug(slug!);
+
+if (!data) {
+  return Astro.redirect("/404");
+}
+
+const { page, product, reviews, priceHistory } = data;
+type ContentJson = {
+  hero?: Record<string, unknown>;
+  verdict?: { text: string; pros: string[]; cons: string[]; best_for: string; skip_if: string };
+  specs?: Record<string, string>;
+  reviewExcerpts?: Array<{ rating: number; body: string; reviewer: string }>;
+};
+const content = (page.contentJson ?? {}) as ContentJson;
+---
+
+<BaseLayout
+  title={page.title}
+  description={page.metaDescription ?? undefined}
+  ogImage={page.ogImage ?? product.primaryImage ?? undefined}
+  jsonLd={page.schemaJsonLd ?? undefined}
+>
+  <article class="container-page py-8">
+    <nav class="mb-4 text-sm text-slate-500">
+      <a href="/" class="hover:text-brand-600">หน้าแรก</a>
+      <span class="mx-2">/</span>
+      <span>รีวิว</span>
+    </nav>
+
+    <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
+      <div>
+        {product.brand && (
+          <p class="text-sm uppercase tracking-wider text-brand-600">{product.brand}</p>
+        )}
+        <h1 class="mt-1 text-2xl font-bold leading-tight sm:text-3xl">{page.h1 ?? product.name}</h1>
+
+        <div class="mt-3 flex flex-wrap items-center gap-4">
+          <StarRating rating={product.rating} count={product.ratingCount} />
+          {product.soldCount != null && product.soldCount > 0 && (
+            <span class="text-sm text-slate-500">ขายแล้ว {compactCount(product.soldCount)}</span>
+          )}
+          {product.isMall && (
+            <span class="rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
+              Shopee Mall
+            </span>
+          )}
+        </div>
+
+        {product.primaryImage && (
+          <div class="mt-6 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+            <img
+              src={product.primaryImage}
+              alt={product.name}
+              class="aspect-square w-full object-cover"
+              loading="eager"
+              fetchpriority="high"
+            />
+          </div>
+        )}
+
+        {content.verdict && (
+          <section class="mt-8 card border-l-4 border-l-brand-500">
+            <h2 class="mb-2 text-lg font-semibold">สรุปก่อนตัดสินใจซื้อ</h2>
+            <p class="prose-th">{content.verdict.text}</p>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              {content.verdict.pros?.length > 0 && (
+                <div>
+                  <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">ข้อดี</h3>
+                  <ul class="mt-1 space-y-1 text-sm">
+                    {content.verdict.pros.map((p) => (
+                      <li class="flex gap-2"><span>+</span><span>{p}</span></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {content.verdict.cons?.length > 0 && (
+                <div>
+                  <h3 class="text-sm font-semibold text-rose-700 dark:text-rose-400">ข้อจำกัด</h3>
+                  <ul class="mt-1 space-y-1 text-sm">
+                    {content.verdict.cons.map((c) => (
+                      <li class="flex gap-2"><span>−</span><span>{c}</span></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {(content.verdict.best_for || content.verdict.skip_if) && (
+              <div class="mt-4 grid gap-2 rounded-lg bg-slate-50 p-4 text-sm dark:bg-slate-800/40 sm:grid-cols-2">
+                {content.verdict.best_for && (
+                  <p><strong>เหมาะสำหรับ:</strong> {content.verdict.best_for}</p>
+                )}
+                {content.verdict.skip_if && (
+                  <p><strong>ข้ามไปก่อน ถ้า:</strong> {content.verdict.skip_if}</p>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {content.specs && Object.keys(content.specs).length > 0 && (
+          <section class="mt-8">
+            <h2 class="mb-3 text-lg font-semibold">สเปกสำคัญ</h2>
+            <div class="card">
+              <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                {Object.entries(content.specs).slice(0, 16).map(([k, v]) => (
+                  <div class="flex justify-between gap-4 border-b border-slate-100 py-1 dark:border-slate-800">
+                    <dt class="text-slate-500">{k}</dt>
+                    <dd class="text-right font-medium text-slate-900 dark:text-slate-100">{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        )}
+
+        {priceHistory.length >= 2 && (
+          <section class="mt-8">
+            <PriceHistoryChart history={priceHistory} />
+          </section>
+        )}
+
+        {reviews.length > 0 && (
+          <section class="mt-8">
+            <h2 class="mb-3 text-lg font-semibold">รีวิวจากผู้ซื้อจริง ({reviews.length})</h2>
+            <div class="space-y-3">
+              {reviews.map((r) => (
+                <div class="card">
+                  <div class="mb-1 flex items-center gap-2 text-sm">
+                    <StarRating rating={r.rating ?? 0} size="sm" />
+                    <span class="text-slate-500">— {r.reviewerNameMasked ?? "ผู้ใช้"}</span>
+                  </div>
+                  <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{r.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <p class="mt-8 text-xs text-slate-500">
+          * ข้อมูลราคาและรีวิวรวบรวมจาก Shopee เป็นระยะ
+          เนื้อหาสรุปบางส่วนสร้างโดย AI จากข้อมูลจริง
+          เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
+        </p>
+      </div>
+
+      <aside class="lg:sticky lg:top-6 lg:self-start">
+        <div class="card">
+          <PriceTag
+            current={product.currentPrice}
+            original={product.originalPrice}
+            discountPercent={product.discountPercent}
+            size="lg"
+          />
+          {product.shopName && (
+            <p class="mt-2 text-sm text-slate-500">
+              ขายโดย <span class="font-medium text-slate-700 dark:text-slate-300">{product.shopName}</span>
+            </p>
+          )}
+          <div class="mt-4">
+            <AffiliateButton
+              shopExternalId={product.shopExternalId!}
+              itemExternalId={product.externalId}
+              pageSlug={page.slug}
+            />
+          </div>
+          <p class="mt-3 text-center text-xs text-slate-500">
+            ราคาอาจเปลี่ยนแปลง — ตรวจสอบอีกครั้งบนหน้า Shopee
+          </p>
+        </div>
+      </aside>
+    </div>
+  </article>
+</BaseLayout>

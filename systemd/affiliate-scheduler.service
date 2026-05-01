@@ -1,0 +1,21 @@
+[Unit]
+Description=Shopee Affiliate Bot Scheduler
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/research-2
+EnvironmentFile=/root/research-2/.env
+ExecStart=/root/.bun/bin/bun run src/scheduler/index.ts
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/affiliate-scheduler.log
+StandardError=append:/var/log/affiliate-scheduler.log
+
+# Resource limits (small VPS)
+MemoryMax=1G
+CPUQuota=80%
+
+[Install]
+WantedBy=multi-user.target

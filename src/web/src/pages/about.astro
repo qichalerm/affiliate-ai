@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout title="เกี่ยวกับ DealFinder" description="เกี่ยวกับเว็บไซต์ของเรา">
+  <article class="container-page py-10 prose-th max-w-3xl">
+    <h1 class="text-3xl font-bold">เกี่ยวกับเรา</h1>
+
+    <p class="mt-4">
+      DealFinder เป็นเว็บเปรียบเทียบราคา + รีวิวสินค้าจาก Shopee, Lazada และมาร์เก็ตเพลสไทย
+      จุดเด่นคือ:
+    </p>
+    <ul class="mt-4 list-disc space-y-2 pl-6">
+      <li>ราคา real-time อัพเดททุก 6 ชั่วโมง</li>
+      <li>มีประวัติราคาย้อนหลัง ดูได้ว่าตอนนี้ถูก/แพง</li>
+      <li>สรุปรีวิวจากผู้ซื้อจริง — ไม่ใช่บทความที่จ้างเขียน</li>
+      <li>เปรียบเทียบราคาข้ามแพลตฟอร์ม (เร็วๆ นี้)</li>
+    </ul>
+
+    <h2 class="mt-8 text-xl font-bold">เนื้อหาและ AI</h2>
+    <p class="mt-2">
+      เนื้อหาในเว็บใช้ AI สรุปจากข้อมูลจริง (สเปก, ราคา, รีวิว) ที่ scrape จาก Shopee
+      AI ทำหน้าที่เพียง <strong>สรุปและจัดระเบียบ</strong> ไม่ได้สร้างข้อมูลเอง
+      ส่วน "Verdict" สั้นๆ ในแต่ละหน้าสร้างจาก review จริงและสเปกจริงเท่านั้น
+    </p>
+
+    <h2 class="mt-8 text-xl font-bold">Affiliate Disclosure</h2>
+    <p class="mt-2">
+      เราเป็น Shopee Affiliate Partner — ลิงก์ไปยัง Shopee ทุกลิงก์เป็น affiliate link
+      ถ้าคุณกดผ่านเว็บเราแล้วซื้อ เราอาจได้รับค่าคอมจาก Shopee (ราคาคุณไม่เปลี่ยน)
+      เงินค่าคอมส่วนนี้คือสิ่งที่หล่อเลี้ยงให้เว็บนี้ให้บริการต่อได้
+    </p>
+
+    <h2 class="mt-8 text-xl font-bold">ข้อจำกัดความรับผิด</h2>
+    <p class="mt-2">
+      ราคาและสต็อกอาจเปลี่ยนแปลงทุกเมื่อ — กรุณาตรวจสอบในหน้าร้านก่อนสั่งซื้อทุกครั้ง
+      เราพยายามคงข้อมูลให้ถูกต้องที่สุด แต่ไม่รับประกันความสมบูรณ์
+    </p>
+  </article>
+</BaseLayout>

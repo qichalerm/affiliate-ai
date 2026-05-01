@@ -1,0 +1,44 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProductCard from "../components/ProductCard.astro";
+import { getTopProducts } from "../lib/queries";
+
+let products: Awaited<ReturnType<typeof getTopProducts>> = [];
+try {
+  products = await getTopProducts(60);
+} catch (err) {
+  console.warn("best.astro: db unavailable", err);
+}
+---
+
+<BaseLayout
+  title="รวมสินค้ายอดนิยม — DealFinder"
+  description="รวมรีวิวสินค้าขายดี + คะแนนสูง อัพเดทรายวัน"
+>
+  <section class="container-page py-10">
+    <h1 class="text-3xl font-bold">รวมสินค้ายอดนิยม</h1>
+    <p class="mt-2 text-slate-600 dark:text-slate-400">
+      จัดเรียงตามคะแนนจริง × ยอดขาย × ราคาคุ้ม
+    </p>
+  </section>
+
+  <section class="container-page pb-16">
+    <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      {products.map((p) => (
+        <ProductCard
+          slug={p.slug}
+          name={p.name}
+          brand={p.brand}
+          primaryImage={p.primaryImage}
+          currentPrice={p.currentPrice}
+          originalPrice={p.originalPrice}
+          discountPercent={p.discountPercent}
+          rating={p.rating}
+          ratingCount={p.ratingCount}
+          soldCount={p.soldCount}
+          isMall={p.isMall}
+        />
+      ))}
+    </div>
+  </section>
+</BaseLayout>

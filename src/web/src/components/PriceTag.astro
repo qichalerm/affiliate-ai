@@ -1,0 +1,35 @@
+---
+import { formatBaht, formatPercent } from "../lib/format";
+
+interface Props {
+  current: number | null | undefined;
+  original?: number | null | undefined;
+  discountPercent?: number | null | undefined;
+  size?: "sm" | "md" | "lg";
+}
+
+const { current, original, discountPercent, size = "md" } = Astro.props;
+
+const sizeClasses = {
+  sm: { current: "text-lg font-bold", original: "text-xs", badge: "text-xs" },
+  md: { current: "text-2xl font-bold", original: "text-sm", badge: "text-xs" },
+  lg: { current: "text-4xl font-bold", original: "text-base", badge: "text-sm" },
+};
+const cl = sizeClasses[size];
+
+const showOriginal = original != null && current != null && original > current;
+---
+
+<div class="flex flex-wrap items-baseline gap-2">
+  <span class={`${cl.current} text-brand-600 dark:text-brand-500`}>
+    {formatBaht(current)}
+  </span>
+  {showOriginal && (
+    <span class={`${cl.original} text-slate-400 line-through`}>{formatBaht(original)}</span>
+  )}
+  {discountPercent != null && discountPercent > 0 && (
+    <span class={`${cl.badge} rounded-md bg-red-100 px-2 py-0.5 font-medium text-red-700 dark:bg-red-900/40 dark:text-red-300`}>
+      -{formatPercent(discountPercent)}
+    </span>
+  )}
+</div>

@@ -1,0 +1,88 @@
+---
+import "../styles/globals.css";
+
+interface Props {
+  title: string;
+  description?: string;
+  ogImage?: string;
+  canonical?: string;
+  jsonLd?: object;
+  noindex?: boolean;
+}
+
+const {
+  title,
+  description = "เว็บเปรียบเทียบราคา + รีวิวสินค้าจาก Shopee, Lazada, TikTok Shop ราคา real-time",
+  ogImage,
+  canonical,
+  jsonLd,
+  noindex = false,
+} = Astro.props;
+
+const site = Astro.site?.toString().replace(/\/$/, "") ?? "";
+const canonicalUrl = canonical ?? `${site}${Astro.url.pathname}`;
+---
+
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    {noindex && <meta name="robots" content="noindex,follow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {ogImage && <meta name="twitter:image" content={ogImage} />}
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://down-th.img.susercontent.com" />
+    <link rel="preconnect" href="https://cf.shopee.co.th" />
+
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <header class="border-b border-slate-200 dark:border-slate-800">
+      <div class="container-page flex h-14 items-center justify-between">
+        <a href="/" class="text-lg font-bold tracking-tight">
+          <span class="text-brand-600">Deal</span>Finder
+        </a>
+        <nav class="flex items-center gap-4 text-sm">
+          <a href="/best" class="hover:text-brand-600">รวมดีล</a>
+          <a href="/category" class="hover:text-brand-600">หมวดสินค้า</a>
+          <a href="/about" class="hover:text-brand-600">เกี่ยวกับ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="min-h-[60vh]">
+      <slot />
+    </main>
+
+    <footer class="mt-16 border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
+      <div class="container-page py-8 text-sm text-slate-600 dark:text-slate-400">
+        <p>
+          <strong>หมายเหตุ:</strong> เว็บไซต์นี้มีลิงก์ affiliate
+          เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
+          ราคาและสต็อกอัพเดทจาก Shopee เป็นระยะ — ตรวจสอบราคาล่าสุดในหน้าร้านก่อนสั่งซื้อทุกครั้ง
+        </p>
+        <p class="mt-2">
+          เนื้อหาบางส่วนสรุปโดย AI จากข้อมูลจริงและรีวิวจากผู้ซื้อ
+        </p>
+        <p class="mt-4">© {new Date().getFullYear()} DealFinder · ติดต่อ: hello@example.com</p>
+      </div>
+    </footer>
+  </body>
+</html>

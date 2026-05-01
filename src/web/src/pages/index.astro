@@ -1,0 +1,83 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ProductCard from "../components/ProductCard.astro";
+import { getTopProducts, getDealsToday } from "../lib/queries";
+
+let topProducts: Awaited<ReturnType<typeof getTopProducts>> = [];
+let deals: Awaited<ReturnType<typeof getDealsToday>> = [];
+try {
+  [topProducts, deals] = await Promise.all([getTopProducts(24), getDealsToday(12)]);
+} catch (err) {
+  console.warn("homepage: failed to load products", err);
+}
+---
+
+<BaseLayout
+  title="DealFinder — เปรียบเทียบราคา + รีวิวสินค้า Shopee"
+  description="รวมดีลและรีวิวสินค้า IT/Gadget จาก Shopee อัพเดทราคาทุก 6 ชั่วโมง"
+>
+  <section class="container-page py-10">
+    <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
+      หาดีลที่ดีที่สุดบน Shopee — อัพเดททุกๆ 6 ชั่วโมง
+    </h1>
+    <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-400">
+      เปรียบเทียบราคา · ตรวจสเปก · อ่านรีวิวจริง · กดเข้า Shopee ได้ทันที
+    </p>
+  </section>
+
+  {deals.length > 0 && (
+    <section class="container-page pb-12">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 class="text-2xl font-bold">🔥 ดีลร้อนวันนี้</h2>
+        <a href="/best/deals" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
+      </div>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {deals.map((p) => (
+          <ProductCard
+            slug={p.slug}
+            name={p.name}
+            brand={p.brand}
+            primaryImage={p.primaryImage}
+            currentPrice={p.currentPrice}
+            originalPrice={p.originalPrice}
+            discountPercent={p.discountPercent}
+            rating={p.rating}
+            ratingCount={p.ratingCount}
+            soldCount={p.soldCount}
+            isMall={p.isMall}
+          />
+        ))}
+      </div>
+    </section>
+  )}
+
+  {topProducts.length > 0 ? (
+    <section class="container-page pb-16">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 class="text-2xl font-bold">⭐ รีวิวสินค้ายอดนิยม</h2>
+        <a href="/best" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
+      </div>
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+        {topProducts.map((p) => (
+          <ProductCard
+            slug={p.slug}
+            name={p.name}
+            brand={p.brand}
+            primaryImage={p.primaryImage}
+            currentPrice={p.currentPrice}
+            originalPrice={p.originalPrice}
+            discountPercent={p.discountPercent}
+            rating={p.rating}
+            ratingCount={p.ratingCount}
+            soldCount={p.soldCount}
+            isMall={p.isMall}
+          />
+        ))}
+      </div>
+    </section>
+  ) : (
+    <section class="container-page pb-16 text-center text-slate-500">
+      <p>กำลังโหลดข้อมูลสินค้า — กรุณารอสักครู่...</p>
+    </section>
+  )}
+</BaseLayout>

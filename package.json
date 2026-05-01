@@ -1,0 +1,55 @@
+{
+  "name": "shopee-affiliate-system",
+  "version": "0.1.0",
+  "description": "Full-auto Shopee Affiliate aggregator + multi-channel content engine",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bun": ">=1.1.0"
+  },
+  "scripts": {
+    "check-env": "bun run src/scripts/check-env.ts",
+    "test-connections": "bun run src/scripts/test-connections.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:push": "drizzle-kit push",
+    "db:seed": "bun run src/scripts/seed.ts",
+    "scrape:once": "bun run src/scripts/scrape-once.ts",
+    "scrape:trending": "bun run src/scripts/scrape-trending.ts",
+    "generate:once": "bun run src/scripts/generate-once.ts",
+    "build:pages": "bun run src/scripts/build-pages.ts",
+    "compliance:check": "bun run src/scripts/compliance-check.ts",
+    "telegram:test": "bun run src/scripts/telegram-test.ts",
+    "scheduler:start": "bun run src/scheduler/index.ts",
+    "web:dev": "cd src/web && bun run dev",
+    "web:build": "cd src/web && bun run build",
+    "web:preview": "cd src/web && bun run preview",
+    "lint": "biome check src/",
+    "format": "biome format --write src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@neondatabase/serverless": "^0.10.4",
+    "croner": "^9.0.0",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.36.4",
+    "fast-xml-parser": "^4.5.1",
+    "node-html-parser": "^6.1.13",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "playwright": "^1.49.1",
+    "postgres": "^3.4.5",
+    "telegraf": "^4.16.3",
+    "undici": "^7.2.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
+    "@types/node": "^22.10.5",
+    "drizzle-kit": "^0.29.1",
+    "typescript": "^5.7.2"
+  }
+}

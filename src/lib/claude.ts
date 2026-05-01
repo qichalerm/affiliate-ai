@@ -1,0 +1,157 @@
+import Anthropic from "@anthropic-ai/sdk";
+import { env, can } from "./env.ts";
+import { child } from "./logger.ts";
+import { retry, errMsg } from "./retry.ts";
+
+const log = child("claude");
+
+let _client: Anthropic | undefined;
+
+function client(): Anthropic {
+  if (!can.generateContent()) {
+    throw new Error("ANTHROPIC_API_KEY not configured — content generation disabled");
+  }
+  if (!_client) {
+    _client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  }
+  return _client;
+}
+
+export type ClaudeTier = "fast" | "smart";
+
+export interface CompleteOptions {
+  tier?: ClaudeTier;
+  system?: string;
+  maxTokens?: number;
+  temperature?: number;
+  /** Force JSON object output via prefill technique. */
+  jsonMode?: boolean;
+  cacheSystem?: boolean;
+}
+
+export interface CompleteResult {
+  text: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  model: string;
+  cacheHit: boolean;
+}
+
+/**
+ * Pricing (USD per 1M tokens) — adjust if pricing changes.
+ * Includes prompt-cache rate.
+ */
+const PRICING: Record<string, { in: number; out: number; cacheRead: number; cacheWrite: number }> =
+  {
+    "claude-haiku-4-5-20251001": { in: 1.0, out: 5.0, cacheRead: 0.1, cacheWrite: 1.25 },
+    "claude-sonnet-4-6": { in: 3.0, out: 15.0, cacheRead: 0.3, cacheWrite: 3.75 },
+  };
+
+function modelFor(tier: ClaudeTier): string {
+  return tier === "smart" ? env.ANTHROPIC_MODEL_SMART : env.ANTHROPIC_MODEL_FAST;
+}
+
+function priceFor(model: string) {
+  return (
+    PRICING[model] ?? {
+      in: 1.0,
+      out: 5.0,
+      cacheRead: 0.1,
+      cacheWrite: 1.25,
+    }
+  );
+}
+
+/**
+ * Single-turn completion. Handles caching, JSON-mode, retry/backoff.
+ */
+export async function complete(prompt: string, opts: CompleteOptions = {}): Promise<CompleteResult> {
+  const model = modelFor(opts.tier ?? "fast");
+
+  const system = opts.system
+    ? opts.cacheSystem
+      ? [{ type: "text" as const, text: opts.system, cache_control: { type: "ephemeral" as const } }]
+      : opts.system
+    : undefined;
+
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: prompt }];
+  if (opts.jsonMode) {
+    messages.push({ role: "assistant", content: "{" });
+  }
+
+  const response = await retry(
+    () =>
+      client().messages.create({
+        model,
+        max_tokens: opts.maxTokens ?? 1024,
+        temperature: opts.temperature ?? 0.4,
+        ...(system ? { system } : {}),
+        messages,
+      }),
+    {
+      attempts: 4,
+      baseDelayMs: 1_000,
+      shouldRetry: (err) => {
+        const status = (err as { status?: number })?.status;
+        return status === undefined || status >= 500 || status === 429;
+      },
+      onAttempt: (attempt, err) =>
+        log.warn({ attempt, err: errMsg(err) }, "claude retry"),
+    },
+  );
+
+  const block = response.content.find((c): c is Anthropic.TextBlock => c.type === "text");
+  let text = block?.text ?? "";
+  if (opts.jsonMode) text = `{${text}`;
+
+  const usage = response.usage;
+  const cacheRead = (usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0;
+  const cacheWrite =
+    (usage as { cache_creation_input_tokens?: number }).cache_creation_input_tokens ?? 0;
+  const inputTokens = usage.input_tokens + cacheRead + cacheWrite;
+  const outputTokens = usage.output_tokens;
+  const p = priceFor(model);
+  const costUsd =
+    (usage.input_tokens * p.in +
+      cacheRead * p.cacheRead +
+      cacheWrite * p.cacheWrite +
+      outputTokens * p.out) /
+    1_000_000;
+
+  log.debug(
+    { model, inputTokens, outputTokens, cacheRead, costUsd: costUsd.toFixed(4) },
+    "claude complete",
+  );
+
+  return {
+    text,
+    inputTokens,
+    outputTokens,
+    costUsd,
+    model,
+    cacheHit: cacheRead > 0,
+  };
+}
+
+/**
+ * Generate JSON output, validate against a parser/schema, retry on parse failure.
+ */
+export async function completeJson<T>(
+  prompt: string,
+  parse: (raw: string) => T,
+  opts: CompleteOptions = {},
+): Promise<{ data: T; result: CompleteResult }> {
+  const result = await complete(prompt, { ...opts, jsonMode: true });
+  try {
+    return { data: parse(result.text), result };
+  } catch (err) {
+    log.warn({ err: errMsg(err), raw: result.text.slice(0, 200) }, "JSON parse failed, retrying");
+    const retryResult = await complete(`${prompt}\n\nReturn ONLY valid JSON.`, {
+      ...opts,
+      jsonMode: true,
+      temperature: 0.1,
+    });
+    return { data: parse(retryResult.text), result: retryResult };
+  }
+}

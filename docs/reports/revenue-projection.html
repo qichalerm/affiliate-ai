@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>รายงานคาดการณ์รายได้ — Shopee Affiliate AI System</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, "Sukhumvit Set", "Noto Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: #f8fafc;
+    color: #0f172a;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  header {
+    border-bottom: 2px solid #ea580c;
+    padding-bottom: 16px;
+    margin-bottom: 28px;
+  }
+  header h1 { font-size: 28px; margin: 0; letter-spacing: -0.5px; }
+  header p { margin: 4px 0 0; color: #64748b; font-size: 14px; }
+
+  h2 {
+    font-size: 20px;
+    margin: 36px 0 12px;
+    padding-left: 12px;
+    border-left: 4px solid #ea580c;
+  }
+  h3 { font-size: 16px; margin: 20px 0 8px; color: #334155; }
+
+  .card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .grid { display: grid; gap: 16px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .kpi {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .kpi .label { font-size: 12px; color: #9a3412; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .kpi .value { font-size: 28px; font-weight: 800; color: #c2410c; margin: 4px 0; }
+  .kpi .sub { font-size: 12px; color: #78350f; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #334155;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr:hover td { background: #f8fafc; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+  .chart-wrap { margin: 12px 0; }
+
+  .note {
+    font-size: 12px;
+    color: #64748b;
+    background: #f1f5f9;
+    border-left: 3px solid #94a3b8;
+    padding: 10px 14px;
+    border-radius: 4px;
+    margin-top: 12px;
+  }
+
+  .bullet-row {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 8px;
+    align-items: start;
+    margin: 8px 0;
+    font-size: 14px;
+  }
+
+  @media print {
+    body { background: white; }
+    .page { padding: 0; max-width: 100%; }
+    .card { box-shadow: none; break-inside: avoid; }
+  }
+  @media (max-width: 720px) {
+    .grid-3 { grid-template-columns: 1fr; }
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>📊 รายงานคาดการณ์รายได้</h1>
+    <p>Shopee Affiliate AI System · ประเมิน Year 1 – Year 3 · ปรับปรุงล่าสุด 1 พ.ค. 2026</p>
+  </header>
+
+  <!-- ============ KPI HERO ============ -->
+  <section>
+    <div class="grid grid-3">
+      <div class="kpi">
+        <div class="label">Year 1 (Expected)</div>
+        <div class="value">฿1.5M</div>
+        <div class="sub">Range: 600k – 3M (น้ำหนัก probability)</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Year 2 (Expected)</div>
+        <div class="value">฿7M</div>
+        <div class="sub">Range: 2.5M – 17M (Phase 3)</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Steady-state /เดือน</div>
+        <div class="value">฿200k – 1.5M</div>
+        <div class="sub">Margin 95%+ (cost ~$300/mo)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CHART 1: Revenue projection over time ============ -->
+  <h2>1. คาดการณ์รายได้รายเดือน (24 เดือน, ทำครบ Phase 5)</h2>
+  <div class="card chart-wrap">
+    <svg viewBox="0 0 900 360" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <!-- background grid -->
+      <defs>
+        <pattern id="grid1" width="60" height="40" patternUnits="userSpaceOnUse">
+          <path d="M60 0 L0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+        </pattern>
+        <linearGradient id="baseFill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stop-color="#fb923c" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#fb923c" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <rect x="60" y="20" width="780" height="280" fill="url(#grid1)" />
+
+      <!-- Y-axis labels (log scale: 1k, 10k, 100k, 1M, 10M) -->
+      <g font-size="11" fill="#64748b" text-anchor="end">
+        <text x="55" y="304">฿1k</text>
+        <text x="55" y="234">฿10k</text>
+        <text x="55" y="164">฿100k</text>
+        <text x="55" y="94">฿1M</text>
+        <text x="55" y="24">฿10M</text>
+      </g>
+
+      <!-- X-axis labels (months 1-24) -->
+      <g font-size="10" fill="#64748b" text-anchor="middle">
+        <text x="60" y="320">M1</text>
+        <text x="190" y="320">M4</text>
+        <text x="320" y="320">M8</text>
+        <text x="450" y="320">M12</text>
+        <text x="580" y="320">M16</text>
+        <text x="710" y="320">M20</text>
+        <text x="840" y="320">M24</text>
+      </g>
+
+      <!-- Pessimistic (red) - log positions -->
+      <!-- M1=1.5k(283), M3=2k(290), M6=12k(225), M12=50k(190), M18=150k(150), M24=400k(120) -->
+      <polyline fill="none" stroke="#f87171" stroke-width="2"
+        points="60,283 92,288 125,289 158,265 190,253 223,243 256,234 288,225 320,212 353,203 386,194 418,189 450,184 483,180 515,174 548,168 580,164 613,158 646,152 678,146 710,140 743,134 776,127 808,123 840,120"
+        stroke-dasharray="6,3"/>
+
+      <!-- Base case (orange) - thicker -->
+      <!-- M1=1.5k(283), M3=9k(238), M6=350k(132), M12=1.2M(85), M18=2.4M(60), M24=6M(28) -->
+      <polygon fill="url(#baseFill)" stroke="none"
+        points="60,283 92,265 125,238 158,200 190,170 223,150 256,140 288,132 320,118 353,108 386,98 418,93 450,85 483,78 515,72 548,66 580,60 613,54 646,48 678,42 710,36 743,32 776,30 808,28 840,28 840,300 60,300"/>
+      <polyline fill="none" stroke="#ea580c" stroke-width="3"
+        points="60,283 92,265 125,238 158,200 190,170 223,150 256,140 288,132 320,118 353,108 386,98 418,93 450,85 483,78 515,72 548,66 580,60 613,54 646,48 678,42 710,36 743,32 776,30 808,28 840,28"/>
+
+      <!-- Optimistic (green) -->
+      <!-- M3=25k(214), M6=700k(112), M12=2.5M(58), M18=5M(36), M24=12M(8) -->
+      <polyline fill="none" stroke="#22c55e" stroke-width="2"
+        points="60,283 92,242 125,214 158,165 190,135 223,120 256,116 288,112 320,90 353,80 386,68 418,63 450,58 483,52 515,48 548,42 580,36 613,32 646,28 678,22 710,18 743,14 776,10 808,8 840,8"
+        stroke-dasharray="6,3"/>
+
+      <!-- Phase markers -->
+      <g font-size="10" fill="#94a3b8">
+        <line x1="93" y1="20" x2="93" y2="300" stroke="#cbd5e1" stroke-dasharray="3,3"/>
+        <text x="96" y="34">Phase 2</text>
+        <line x1="190" y1="20" x2="190" y2="300" stroke="#cbd5e1" stroke-dasharray="3,3"/>
+        <text x="193" y="34">Phase 3</text>
+        <line x1="320" y1="20" x2="320" y2="300" stroke="#cbd5e1" stroke-dasharray="3,3"/>
+        <text x="323" y="34">Phase 4</text>
+        <line x1="450" y1="20" x2="450" y2="300" stroke="#cbd5e1" stroke-dasharray="3,3"/>
+        <text x="453" y="34">Phase 5</text>
+      </g>
+
+      <!-- annotation: now -->
+      <g>
+        <circle cx="60" cy="283" r="5" fill="#ea580c"/>
+        <text x="65" y="278" font-size="11" fill="#ea580c" font-weight="bold">วันนี้ (Phase 1 เสร็จ)</text>
+      </g>
+
+      <!-- end labels -->
+      <text x="845" y="124" font-size="11" fill="#f87171" font-weight="bold">Pessimistic ฿400k</text>
+      <text x="845" y="32" font-size="11" fill="#ea580c" font-weight="bold">Base ฿6M</text>
+      <text x="845" y="12" font-size="11" fill="#22c55e" font-weight="bold">Optimistic ฿12M</text>
+    </svg>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:#f87171"></span>Pessimistic (35% prob.)</span>
+      <span><span class="swatch" style="background:#ea580c"></span>Base case (35% prob.)</span>
+      <span><span class="swatch" style="background:#22c55e"></span>Optimistic (15% prob.)</span>
+      <span><span class="swatch" style="background:#94a3b8"></span>Phase milestones</span>
+    </div>
+    <p class="note">Y-axis เป็น log scale (1k → 10M). คาดการณ์ตามสมมติฐาน niche IT/Gadget, CTR 18%, CVR 2.5%, AOV ฿1,200, commission 4.5% blended.</p>
+  </div>
+
+  <!-- ============ CHART 2: Phase comparison ============ -->
+  <h2>2. รายได้ตาม "หยุดที่ Phase ไหน" (Year 1 vs Year 2 — Base case)</h2>
+  <div class="card chart-wrap">
+    <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <!-- Y axis labels -->
+      <g font-size="11" fill="#64748b" text-anchor="end">
+        <text x="55" y="280">0</text>
+        <text x="55" y="220">฿10M</text>
+        <text x="55" y="160">฿20M</text>
+        <text x="55" y="100">฿30M</text>
+        <text x="55" y="40">฿40M</text>
+      </g>
+      <line x1="60" y1="280" x2="860" y2="280" stroke="#cbd5e1" stroke-width="1"/>
+
+      <!-- Bars: 5 phases × 2 (Y1 + Y2) -->
+      <!-- Each phase: 140 wide, 14 gap. Y1 + Y2 stacked left/right -->
+      <!-- Scale: max 50M -> y=40 (height 240) -->
+
+      <!-- Phase 1: Y1=750k(276) Y2=3.6M(258) -->
+      <g>
+        <rect x="80" y="276" width="55" height="4" fill="#fb923c"/>
+        <rect x="140" y="258" width="55" height="22" fill="#ea580c"/>
+        <text x="137" y="304" font-size="12" fill="#334155" text-anchor="middle" font-weight="bold">Phase 1</text>
+        <text x="137" y="320" font-size="10" fill="#64748b" text-anchor="middle">หยุดเลย</text>
+      </g>
+
+      <!-- Phase 2: Y1=1.8M(269) Y2=8.4M(229) -->
+      <g>
+        <rect x="225" y="269" width="55" height="11" fill="#fb923c"/>
+        <rect x="285" y="229" width="55" height="51" fill="#ea580c"/>
+        <text x="282" y="304" font-size="12" fill="#334155" text-anchor="middle" font-weight="bold">Phase 2</text>
+        <text x="282" y="320" font-size="10" fill="#64748b" text-anchor="middle">+ Intelligence</text>
+      </g>
+
+      <!-- Phase 3: Y1=3.5M(259) Y2=18M(172) -->
+      <g>
+        <rect x="370" y="259" width="55" height="21" fill="#fb923c"/>
+        <rect x="430" y="172" width="55" height="108" fill="#ea580c"/>
+        <text x="427" y="304" font-size="12" fill="#334155" text-anchor="middle" font-weight="bold">Phase 3</text>
+        <text x="427" y="320" font-size="10" fill="#64748b" text-anchor="middle">+ Social</text>
+      </g>
+
+      <!-- Phase 4: Y1=4M(256) Y2=28M=160 actually 30M-> y=100 -->
+      <g>
+        <rect x="515" y="256" width="55" height="24" fill="#fb923c"/>
+        <rect x="575" y="100" width="55" height="180" fill="#ea580c"/>
+        <text x="572" y="304" font-size="12" fill="#334155" text-anchor="middle" font-weight="bold">Phase 4</text>
+        <text x="572" y="320" font-size="10" fill="#64748b" text-anchor="middle">+ ML</text>
+      </g>
+
+      <!-- Phase 5: Y1=4.5M(253) Y2=50M(40) -->
+      <g>
+        <rect x="660" y="253" width="55" height="27" fill="#fb923c"/>
+        <rect x="720" y="40" width="55" height="240" fill="#ea580c"/>
+        <text x="717" y="304" font-size="12" fill="#334155" text-anchor="middle" font-weight="bold">Phase 5</text>
+        <text x="717" y="320" font-size="10" fill="#64748b" text-anchor="middle">Multi-niche</text>
+      </g>
+
+      <!-- value labels on top of bars -->
+      <g font-size="10" fill="#334155" text-anchor="middle">
+        <text x="107" y="270">750k</text>
+        <text x="167" y="252">3.6M</text>
+        <text x="252" y="263">1.8M</text>
+        <text x="312" y="223">8.4M</text>
+        <text x="397" y="253">3.5M</text>
+        <text x="457" y="166">18M</text>
+        <text x="542" y="250">4M</text>
+        <text x="602" y="94">30M</text>
+        <text x="687" y="247">4.5M</text>
+        <text x="747" y="34" font-weight="bold">50M</text>
+      </g>
+    </svg>
+    <div class="legend">
+      <span><span class="swatch" style="background:#fb923c"></span>Year 1 (รวม)</span>
+      <span><span class="swatch" style="background:#ea580c"></span>Year 2 (รวม)</span>
+    </div>
+    <p class="note">Year 1 ใกล้เคียงกันทุก Phase (ramp ช้า) — ความแตกต่างหลักเกิดที่ Year 2 เมื่อระบบเข้า steady state</p>
+  </div>
+
+  <!-- ============ CHART 3: Funnel ============ -->
+  <h2>3. Funnel จากผู้เข้าชม → รายได้</h2>
+  <div class="card">
+    <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <defs>
+        <linearGradient id="funnelG" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#fed7aa"/>
+          <stop offset="100%" stop-color="#ea580c"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Stage 1: Visitors 100,000/วัน -->
+      <rect x="60" y="40" width="780" height="40" fill="url(#funnelG)" rx="6"/>
+      <text x="450" y="65" font-size="16" fill="white" font-weight="bold" text-anchor="middle">100,000 visitors / วัน</text>
+
+      <!-- Arrow + CTR -->
+      <text x="450" y="100" font-size="11" fill="#64748b" text-anchor="middle">↓ CTR 18%</text>
+
+      <!-- Stage 2: Affiliate clicks 18,000 -->
+      <rect x="138" y="110" width="624" height="36" fill="url(#funnelG)" rx="6" opacity="0.9"/>
+      <text x="450" y="133" font-size="14" fill="white" font-weight="bold" text-anchor="middle">18,000 affiliate clicks</text>
+
+      <text x="450" y="162" font-size="11" fill="#64748b" text-anchor="middle">↓ CVR 2.5%</text>
+
+      <!-- Stage 3: Orders 450 -->
+      <rect x="234" y="172" width="432" height="32" fill="url(#funnelG)" rx="6" opacity="0.85"/>
+      <text x="450" y="193" font-size="13" fill="white" font-weight="bold" text-anchor="middle">450 orders × ฿1,200 AOV</text>
+
+      <text x="450" y="222" font-size="11" fill="#64748b" text-anchor="middle">↓ commission 4.5% × indirect 1.3x</text>
+
+      <!-- Stage 4: Revenue -->
+      <rect x="320" y="232" width="260" height="36" fill="#c2410c" rx="6"/>
+      <text x="450" y="255" font-size="14" fill="white" font-weight="bold" text-anchor="middle">฿31,590 / วัน</text>
+
+      <!-- Multiplier annotations -->
+      <text x="855" y="65" font-size="11" fill="#9a3412" text-anchor="end">Top of funnel</text>
+      <text x="780" y="135" font-size="11" fill="#9a3412" text-anchor="end">นับ tracking link</text>
+      <text x="685" y="195" font-size="11" fill="#9a3412" text-anchor="end">ซื้อจริง</text>
+      <text x="595" y="256" font-size="11" fill="white" text-anchor="end" font-weight="bold">≈ ฿950k/เดือน</text>
+    </svg>
+    <p class="note">Funnel แสดงตอน steady-state ที่ traffic 100k visit/วัน (คาดการณ์เดือน 12–15 ของ Phase 3-4 base case)</p>
+  </div>
+
+  <!-- ============ CHART 4: Cost vs Revenue ============ -->
+  <h2>4. Cost vs Revenue (รายเดือน, Base case Phase 3+)</h2>
+  <div class="card chart-wrap">
+    <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <!-- Background grid -->
+      <line x1="60" y1="270" x2="860" y2="270" stroke="#cbd5e1"/>
+
+      <!-- Y axis -->
+      <g font-size="11" fill="#64748b" text-anchor="end">
+        <text x="55" y="270">0</text>
+        <text x="55" y="225">฿250k</text>
+        <text x="55" y="180">฿500k</text>
+        <text x="55" y="135">฿750k</text>
+        <text x="55" y="90">฿1M</text>
+        <text x="55" y="45">฿1.25M</text>
+      </g>
+
+      <!-- X axis labels (months) -->
+      <g font-size="10" fill="#64748b" text-anchor="middle">
+        <text x="125" y="290">M1</text>
+        <text x="240" y="290">M3</text>
+        <text x="395" y="290">M6</text>
+        <text x="625" y="290">M12</text>
+        <text x="855" y="290">M18</text>
+      </g>
+
+      <!-- Cost (slate, lower) -->
+      <!-- M1=$60(2k baht)=268, M3=$120(4k)=265, M6=$220(7.7k)=261, M12=$280(9.8k)=259, M18=$300(10.5k)=258 -->
+      <polyline fill="none" stroke="#64748b" stroke-width="2"
+        points="125,268 240,265 395,261 625,259 855,258"/>
+
+      <!-- Revenue (orange) -->
+      <!-- M1=฿1.5k(269), M3=฿9k(268), M6=฿350k(207), M12=฿1.2M(54), M18=฿2.4M= -3 capped to 18 -->
+      <polygon fill="#fed7aa" stroke="none" opacity="0.5"
+        points="125,269 240,268 395,207 625,54 855,18 855,270 125,270"/>
+      <polyline fill="none" stroke="#ea580c" stroke-width="3"
+        points="125,269 240,268 395,207 625,54 855,18"/>
+
+      <!-- Profit area annotation -->
+      <text x="500" y="160" font-size="14" fill="#9a3412" font-weight="bold">Profit area (margin 95%+)</text>
+      <text x="500" y="178" font-size="11" fill="#9a3412">Year 2 net profit ≈ ฿17M</text>
+
+      <!-- Break-even line annotation -->
+      <line x1="125" y1="265" x2="240" y2="268" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="135" y="252" font-size="10" fill="#ef4444">Break-even ~ Month 2</text>
+    </svg>
+    <div class="legend">
+      <span><span class="swatch" style="background:#ea580c"></span>Revenue (รายได้)</span>
+      <span><span class="swatch" style="background:#64748b"></span>Cost (infra + API)</span>
+    </div>
+  </div>
+
+  <!-- ============ CHART 5: Probability distribution ============ -->
+  <h2>5. การกระจายความน่าจะเป็นของผลลัพธ์</h2>
+  <div class="card chart-wrap">
+    <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <!-- 5 outcomes as horizontal bars -->
+      <!-- Failure 10% / Pessimistic 35% / Base 35% / Optimistic 15% / Exceptional 5% -->
+
+      <g font-size="13">
+        <!-- Row 1: Failure -->
+        <text x="180" y="40" text-anchor="end" fill="#334155" font-weight="600">Failure</text>
+        <rect x="190" y="25" width="55" height="22" fill="#1e293b" rx="4"/>
+        <text x="217" y="41" fill="white" font-size="11" text-anchor="middle">10%</text>
+        <text x="260" y="41" fill="#64748b">บัญชีโดนแบน, project ล้ม → รายได้ ~0</text>
+
+        <!-- Row 2: Pessimistic -->
+        <text x="180" y="80" text-anchor="end" fill="#334155" font-weight="600">Pessimistic</text>
+        <rect x="190" y="65" width="193" height="22" fill="#dc2626" rx="4"/>
+        <text x="287" y="81" fill="white" font-size="11" text-anchor="middle">35%</text>
+        <text x="395" y="81" fill="#64748b">ทำไม่ครบ Phase, ramp ช้า → ปีแรก 80–600k</text>
+
+        <!-- Row 3: Base -->
+        <text x="180" y="120" text-anchor="end" fill="#334155" font-weight="600">Base case</text>
+        <rect x="190" y="105" width="193" height="22" fill="#ea580c" rx="4"/>
+        <text x="287" y="121" fill="white" font-size="11" text-anchor="middle">35%</text>
+        <text x="395" y="121" fill="#64748b">ทำตามแผน → Y1 ~3.5M / Y2 ~18M</text>
+
+        <!-- Row 4: Optimistic -->
+        <text x="180" y="160" text-anchor="end" fill="#334155" font-weight="600">Optimistic</text>
+        <rect x="190" y="145" width="83" height="22" fill="#16a34a" rx="4"/>
+        <text x="232" y="161" fill="white" font-size="11" text-anchor="middle">15%</text>
+        <text x="395" y="161" fill="#64748b">viral hits + niche dominate → Y1 ~12M / Y2 ~48M</text>
+
+        <!-- Row 5: Exceptional -->
+        <text x="180" y="200" text-anchor="end" fill="#334155" font-weight="600">Exceptional</text>
+        <rect x="190" y="185" width="28" height="22" fill="#7c3aed" rx="4"/>
+        <text x="204" y="201" fill="white" font-size="10" text-anchor="middle">5%</text>
+        <text x="395" y="201" fill="#64748b">เป็น Priceza ตัวที่ 2 → 50M+ /ปี</text>
+      </g>
+
+      <!-- Expected value note -->
+      <g>
+        <rect x="180" y="230" width="640" height="40" fill="#fff7ed" stroke="#fed7aa" rx="6"/>
+        <text x="200" y="247" font-size="13" fill="#9a3412" font-weight="bold">Expected Value (Year 1):</text>
+        <text x="200" y="263" font-size="12" fill="#9a3412">
+          (0×10%) + (0.34M×35%) + (3.5M×35%) + (12M×15%) + (50M×5%) ≈ ฿5.7M ปกติ → discount 50% ความไม่แน่นอน → ~฿3M
+        </text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ============ CHART 6: ROI per hour ============ -->
+  <h2>6. ROI ต่อชั่วโมงทำงาน (เทียบ Year 2 / 520 ชม.)</h2>
+  <div class="card chart-wrap">
+    <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+      <line x1="160" y1="20" x2="160" y2="240" stroke="#cbd5e1"/>
+
+      <!-- Bars (horizontal) -->
+      <!-- Max ~90,000 baht/hr -->
+      <g font-size="13">
+        <text x="155" y="50" text-anchor="end" fill="#334155">Freelance Dev (ทั่วไป)</text>
+        <rect x="160" y="35" width="14" height="22" fill="#94a3b8" rx="2"/>
+        <text x="180" y="51" font-size="11" fill="#64748b">฿1,200/ชม.</text>
+
+        <text x="155" y="85" text-anchor="end" fill="#334155">Senior Engineer in-house</text>
+        <rect x="160" y="70" width="22" height="22" fill="#94a3b8" rx="2"/>
+        <text x="190" y="86" font-size="11" fill="#64748b">฿1,800/ชม.</text>
+
+        <text x="155" y="120" text-anchor="end" fill="#334155">Phase 1 only (Y2)</text>
+        <rect x="160" y="105" width="55" height="22" fill="#fdba74" rx="2"/>
+        <text x="225" y="121" font-size="11" fill="#9a3412">฿4,615/ชม.</text>
+
+        <text x="155" y="155" text-anchor="end" fill="#334155">Phase 2 (Y2)</text>
+        <rect x="160" y="140" width="155" height="22" fill="#fb923c" rx="2"/>
+        <text x="325" y="156" font-size="11" fill="#9a3412">฿13,077/ชม.</text>
+
+        <text x="155" y="190" text-anchor="end" fill="#334155" font-weight="600">Phase 3 (Y2)</text>
+        <rect x="160" y="175" width="385" height="22" fill="#ea580c" rx="2"/>
+        <text x="555" y="191" font-size="11" fill="#9a3412" font-weight="bold">฿32,692/ชม.</text>
+
+        <text x="155" y="225" text-anchor="end" fill="#334155" font-weight="600">Phase 4 (Y2)</text>
+        <rect x="160" y="210" width="635" height="22" fill="#c2410c" rx="2"/>
+        <text x="805" y="226" font-size="11" fill="#9a3412" font-weight="bold">฿53,846/ชม.</text>
+      </g>
+
+      <text x="160" y="260" font-size="10" fill="#64748b">สมมติคุณทำ 10 ชม./สัปดาห์ × 52 สัปดาห์ = 520 ชม./ปี · ใช้ Year 2 net income</text>
+    </svg>
+    <p class="note">Y2 ROI สูงเพราะระบบ scale ตัวเอง ไม่ต้องเพิ่ม hour input — ต่างจากงาน trade-time-for-money</p>
+  </div>
+
+  <!-- ============ TABLE: Detailed monthly ============ -->
+  <h2>7. ตารางรายได้รายเดือน (Phase 3+ Base case)</h2>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>เดือน</th>
+          <th class="num">Pessimistic</th>
+          <th class="num">Base case</th>
+          <th class="num">Optimistic</th>
+          <th class="num">Cost</th>
+          <th class="num">Net (Base)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Month 1</td><td class="num">฿500</td><td class="num">฿1,500</td><td class="num">฿5,000</td><td class="num">฿2,100</td><td class="num">−฿600</td></tr>
+        <tr><td>Month 3</td><td class="num">฿2,000</td><td class="num">฿9,000</td><td class="num">฿25,000</td><td class="num">฿4,200</td><td class="num">฿4,800</td></tr>
+        <tr><td>Month 6</td><td class="num">฿12,000</td><td class="num">฿200,000</td><td class="num">฿700,000</td><td class="num">฿7,700</td><td class="num">฿192,300</td></tr>
+        <tr><td>Month 9</td><td class="num">฿30,000</td><td class="num">฿500,000</td><td class="num">฿1,500,000</td><td class="num">฿9,100</td><td class="num">฿490,900</td></tr>
+        <tr><td>Month 12</td><td class="num">฿100,000</td><td class="num"><strong>฿700,000</strong></td><td class="num">฿2,500,000</td><td class="num">฿9,800</td><td class="num"><strong>฿690,200</strong></td></tr>
+        <tr><td>Month 15</td><td class="num">฿180,000</td><td class="num">฿1,200,000</td><td class="num">฿3,500,000</td><td class="num">฿10,200</td><td class="num">฿1,189,800</td></tr>
+        <tr><td>Month 18</td><td class="num">฿250,000</td><td class="num"><strong>฿1,800,000</strong></td><td class="num">฿4,500,000</td><td class="num">฿10,500</td><td class="num"><strong>฿1,789,500</strong></td></tr>
+        <tr><td>Month 24</td><td class="num">฿400,000</td><td class="num">฿2,500,000</td><td class="num">฿6,000,000</td><td class="num">฿11,000</td><td class="num">฿2,489,000</td></tr>
+        <tr style="background:#fff7ed; font-weight:bold;">
+          <td>Year 1 รวม</td><td class="num">฿400k</td><td class="num">฿3.5M</td><td class="num">฿12M</td><td class="num">฿80k</td><td class="num">฿3.4M</td>
+        </tr>
+        <tr style="background:#fff7ed; font-weight:bold;">
+          <td>Year 2 รวม</td><td class="num">฿2.4M</td><td class="num">฿18M</td><td class="num">฿48M</td><td class="num">฿130k</td><td class="num">฿17.9M</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">ตัวเลข Cost รวม VPS + Anthropic API + ElevenLabs + Flux + Submagic + Webshare + FastMoss ที่ peak Phase 3+</p>
+  </div>
+
+  <!-- ============ Decision matrix ============ -->
+  <h2>8. ปัจจัยที่กำหนดว่าคุณจะอยู่ scenario ไหน</h2>
+  <div class="grid grid-2">
+    <div class="card">
+      <h3 style="color:#16a34a;">✅ ดันไปทาง Optimistic</h3>
+      <div class="bullet-row"><span>✓</span><span>ทำต่อเนื่อง 12+ เดือน ไม่เลิกตอนเดือน 3-4</span></div>
+      <div class="bullet-row"><span>✓</span><span>iterate scraper เมื่อ Shopee เปลี่ยน HTML</span></div>
+      <div class="bullet-row"><span>✓</span><span>หาช่องว่าง niche ที่ Priceza อ่อน</span></div>
+      <div class="bullet-row"><span>✓</span><span>ใช้ data จริง 90%, AI text แค่ 10%</span></div>
+      <div class="bullet-row"><span>✓</span><span>backlink จริงจาก guest post</span></div>
+      <div class="bullet-row"><span>✓</span><span>Hybrid mode (5-10 วิ ออกหน้ากล้อง/wk)</span></div>
+    </div>
+    <div class="card">
+      <h3 style="color:#dc2626;">❌ ดันไปทาง Pessimistic / Failure</h3>
+      <div class="bullet-row"><span>✗</span><span>เลิกตอนเดือน 3-4 ที่ยังไม่มีรายได้</span></div>
+      <div class="bullet-row"><span>✗</span><span>AI content 100% ไม่มี real data</span></div>
+      <div class="bullet-row"><span>✗</span><span>Spam ลิงก์ใน FB group ผิด TOS</span></div>
+      <div class="bullet-row"><span>✗</span><span>self-purchase เพื่อปั่น mission</span></div>
+      <div class="bullet-row"><span>✗</span><span>ทำหลาย niche ตั้งแต่แรก กระจายความสนใจ</span></div>
+      <div class="bullet-row"><span>✗</span><span>ไม่ comply AI label / affiliate disclosure</span></div>
+    </div>
+  </div>
+
+  <!-- ============ Footer ============ -->
+  <h2>📌 สรุปบรรทัดเดียว</h2>
+  <div class="card" style="background:#fff7ed; border-color:#fed7aa;">
+    <p style="font-size:18px; line-height:1.6; margin:0; color:#9a3412;">
+      <strong>ระบบนี้คาดการณ์รายได้ ฿1.5M – 7M ปีที่ 1, ฿7M – 30M ปีที่ 2</strong> ขึ้นอยู่กับ
+      (1) ทำครบทุก Phase หรือหยุดที่ Phase 1, (2) ทำต่อเนื่องไม่เลิกกลางทาง,
+      (3) ความสามารถ iterate เมื่อ algorithm/Shopee เปลี่ยน
+    </p>
+    <p style="margin-top:12px; font-size:13px; color:#78350f;">
+      คุณภาพของระบบนี้เปิดโอกาสให้ <strong>top 15-20% ของผู้ทำ affiliate</strong> ได้
+      — ไม่รับประกันว่าทุกคนจะได้ตัวเลขนี้ แต่โครงสร้างพร้อมจะดันคุณไปสู่จุดนั้น
+    </p>
+  </div>
+
+  <p style="text-align:center; color:#94a3b8; font-size:11px; margin-top:48px;">
+    Generated by Claude Code · Shopee Affiliate AI System · 1 May 2026<br>
+    เปิดในเบราว์เซอร์ · พิมพ์เป็น PDF ได้ผ่าน Cmd/Ctrl+P · screenshot แต่ละ chart เป็นรูปได้
+  </p>
+
+</div>
+</body>
+</html>
