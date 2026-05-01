@@ -109,8 +109,12 @@ const topCategories = categories.filter((c) => c.depth <= 1 && c.productCount >=
       </div>
     </section>
   ) : (
-    <section class="container-page pb-16 text-center text-slate-500">
-      <p>กำลังโหลดข้อมูลสินค้า — กรุณารอสักครู่...</p>
+    <section class="container-page pb-16">
+      <EmptyState
+        icon="🌱"
+        title="ยังไม่มีรีวิวสินค้า"
+        description="ระบบกำลังเก็บข้อมูลรอบแรก พบกันใหม่ในไม่ช้า — สมัครรับอีเมลเพื่อให้เราแจ้งเตือนเมื่อมีดีลใหม่"
+      />
     </section>
   )}
 
