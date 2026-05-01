@@ -36,6 +36,8 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: optStr,
   ANTHROPIC_MODEL_FAST: z.string().default("claude-haiku-4-5-20251001"),
   ANTHROPIC_MODEL_SMART: z.string().default("claude-sonnet-4-6"),
+  ANTHROPIC_MODEL_PRO: z.string().default("claude-opus-4-7"),
+  ANTHROPIC_PRO_THINKING_BUDGET: z.coerce.number().int().nonnegative().default(8000),
 
   // Affiliate
   SHOPEE_AFFILIATE_ID: optStr,

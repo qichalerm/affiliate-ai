@@ -17,7 +17,7 @@ function client(): Anthropic {
   return _client;
 }
 
-export type ClaudeTier = "fast" | "smart";
+export type ClaudeTier = "fast" | "smart" | "pro";
 
 export interface CompleteOptions {
   tier?: ClaudeTier;
@@ -27,6 +27,10 @@ export interface CompleteOptions {
   /** Force JSON object output via prefill technique. */
   jsonMode?: boolean;
   cacheSystem?: boolean;
+  /** Enable extended thinking (Pro tier only). Token budget defaults to env. */
+  extendedThinking?: boolean;
+  /** Override thinking budget tokens. */
+  thinkingBudget?: number;
 }
 
 export interface CompleteResult {
@@ -46,10 +50,18 @@ const PRICING: Record<string, { in: number; out: number; cacheRead: number; cach
   {
     "claude-haiku-4-5-20251001": { in: 1.0, out: 5.0, cacheRead: 0.1, cacheWrite: 1.25 },
     "claude-sonnet-4-6": { in: 3.0, out: 15.0, cacheRead: 0.3, cacheWrite: 3.75 },
+    "claude-opus-4-7": { in: 15.0, out: 75.0, cacheRead: 1.5, cacheWrite: 18.75 },
   };
 
 function modelFor(tier: ClaudeTier): string {
-  return tier === "smart" ? env.ANTHROPIC_MODEL_SMART : env.ANTHROPIC_MODEL_FAST;
+  switch (tier) {
+    case "pro":
+      return env.ANTHROPIC_MODEL_PRO;
+    case "smart":
+      return env.ANTHROPIC_MODEL_SMART;
+    default:
+      return env.ANTHROPIC_MODEL_FAST;
+  }
 }
 
 function priceFor(model: string) {
@@ -76,19 +88,32 @@ export async function complete(prompt: string, opts: CompleteOptions = {}): Prom
     : undefined;
 
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: prompt }];
-  if (opts.jsonMode) {
+  if (opts.jsonMode && !opts.extendedThinking) {
+    // Prefill is incompatible with extended thinking — skip if thinking enabled
     messages.push({ role: "assistant", content: "{" });
   }
+
+  // Extended thinking (Opus 4.7 "adaptive" mode) — only Pro tier
+  const useThinking = (opts.tier === "pro" && opts.extendedThinking) ?? false;
+  const thinkingBudget = opts.thinkingBudget ?? env.ANTHROPIC_PRO_THINKING_BUDGET;
 
   const response = await retry(
     () =>
       client().messages.create({
         model,
-        max_tokens: opts.maxTokens ?? 1024,
-        temperature: opts.temperature ?? 0.4,
+        max_tokens: opts.maxTokens ?? (useThinking ? Math.max(2048, thinkingBudget + 1024) : 1024),
+        temperature: useThinking ? 1 : opts.temperature ?? 0.4, // thinking requires temp=1
         ...(system ? { system } : {}),
+        ...(useThinking
+          ? {
+              thinking: {
+                type: "enabled" as const,
+                budget_tokens: thinkingBudget,
+              },
+            }
+          : {}),
         messages,
-      }),
+      } as Anthropic.MessageCreateParamsNonStreaming),
     {
       attempts: 4,
       baseDelayMs: 1_000,
@@ -103,7 +128,7 @@ export async function complete(prompt: string, opts: CompleteOptions = {}): Prom
 
   const block = response.content.find((c): c is Anthropic.TextBlock => c.type === "text");
   let text = block?.text ?? "";
-  if (opts.jsonMode) text = `{${text}`;
+  if (opts.jsonMode && !useThinking) text = `{${text}`;
 
   const usage = response.usage;
   const cacheRead = (usage as { cache_read_input_tokens?: number }).cache_read_input_tokens ?? 0;
