@@ -104,9 +104,10 @@ export async function jobScrapeTrending(): Promise<void> {
 
   log.info({ picks, productsPerKeyword: env.SCRAPE_PRODUCTS_PER_KEYWORD }, "scraping trending keywords");
 
+  let totalSucceeded = 0;
   for (const kw of picks) {
     try {
-      await runShopeeScrape({
+      const result = await runShopeeScrape({
         keyword: kw,
         maxProducts: env.SCRAPE_PRODUCTS_PER_KEYWORD,
         // Apify basic mode is the only working path; details/reviews are no-ops there.
@@ -115,6 +116,7 @@ export async function jobScrapeTrending(): Promise<void> {
         reviewsPerProduct: 0,
         orderBy: 5,
       });
+      totalSucceeded += result.itemsSucceeded;
     } catch (err) {
       const msg = errMsg(err);
       // Budget exceeded is informational, not an error to alert on
@@ -130,6 +132,12 @@ export async function jobScrapeTrending(): Promise<void> {
         body: msg,
       });
     }
+  }
+
+  // Trigger site rebuild so fresh prices/deals appear on the homepage within ~1-2 min.
+  // Threshold of 5 avoids deploying for tiny changes (e.g. when budget cuts the run short).
+  if (totalSucceeded >= 5) {
+    await triggerSiteRebuild(`scrape:${totalSucceeded}_items`);
   }
 }
 
