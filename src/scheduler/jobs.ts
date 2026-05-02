@@ -405,7 +405,11 @@ export async function jobSitemapAndIndex(): Promise<void> {
   const sitemap = await buildSitemap();
   log.info(sitemap, "sitemap rebuilt");
 
-  // 2. Find URLs published in last 24h to ping IndexNow + Google
+  // 2. Trigger site rebuild + deploy so the freshly-written sitemap.xml lands on Cloudflare.
+  // Without this, sitemap.xml only exists on the server and search engines see 404.
+  await triggerSiteRebuild("sitemap");
+
+  // 3. Find URLs published in last 24h to ping IndexNow + Google
   const recentUrls = await db.execute<{ slug: string; type: string }>(sql`
     SELECT slug, type::text AS type
       FROM content_pages
@@ -420,11 +424,11 @@ export async function jobSitemapAndIndex(): Promise<void> {
     return `${SITE}${prefix}${p.slug}`;
   });
 
-  // 3. IndexNow (Bing + Yandex)
+  // 4. IndexNow (Bing + Yandex)
   const indexNow = await submitToIndexNow(urls);
   log.info(indexNow, "indexnow submitted");
 
-  // 4. Google Indexing API (capped at 100/day to respect quota)
+  // 5. Google Indexing API (capped at 100/day to respect quota)
   const google = await batchNotifyGoogle(urls);
   log.info(google, "google indexing submitted");
 }
