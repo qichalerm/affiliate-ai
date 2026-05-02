@@ -65,14 +65,18 @@ const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
     <meta property="og:description" content={finalDesc} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:locale" content={lang === "th" ? "th_TH" : lang === "zh" ? "zh_CN" : lang === "ja" ? "ja_JP" : "en_US"} />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta property="og:image" content={ogImage ?? `${site}/og-image.svg`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={finalTitle} />
     <meta name="twitter:description" content={finalDesc} />
-    {ogImage && <meta name="twitter:image" content={ogImage} />}
+    <meta name="twitter:image" content={ogImage ?? `${site}/og-image.svg`} />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#0b5fff" />
     <link rel="preconnect" href="https://down-th.img.susercontent.com" crossorigin />
     <link rel="preconnect" href="https://cf.shopee.co.th" crossorigin />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -96,10 +100,15 @@ const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
     <!-- Sticky header -->
     <header class="sticky top-0 z-30 border-b border-ink-200/70 bg-white/85 backdrop-blur-lg dark:border-ink-800/70 dark:bg-ink-950/85">
       <div class="container-page flex h-16 items-center gap-3 sm:gap-6">
-        <!-- Logo -->
-        <a href={localePath(lang, "/")} class="flex items-center gap-2 shrink-0">
-          <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white shadow-soft">
-            <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 6h2l2 11h11l2-8H7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="17" cy="20" r="1.4" fill="currentColor"/></svg>
+        <!-- Logo: ฿ stem + chevron-down = "price drop / lower price found" -->
+        <a href={localePath(lang, "/")} class="flex items-center gap-2 shrink-0" aria-label="PriceTH home">
+          <span class="relative grid h-9 w-9 place-items-center rounded-xl bg-brand-500 shadow-soft" aria-hidden="true">
+            <svg viewBox="0 0 64 64" class="h-7 w-7" fill="none">
+              <path d="M18 19h28" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3.2" stroke-linecap="round"/>
+              <path d="M32 20v28" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+              <path d="M18 36l14 14 14-14" stroke="#FFFFFF" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-deal-600 ring-2 ring-white dark:ring-ink-950"></span>
           </span>
           <span class="hidden sm:block text-lg font-bold tracking-tight text-ink-900 dark:text-ink-50">
             Price<span class="text-brand-500">TH</span>
@@ -171,9 +180,14 @@ const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
         <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
           <!-- Brand column (spans 2 on mobile) -->
           <div class="col-span-2 md:col-span-1">
-            <a href={localePath(lang, "/")} class="flex items-center gap-2">
-              <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white">
-                <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 6h2l2 11h11l2-8H7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <a href={localePath(lang, "/")} class="flex items-center gap-2" aria-label="PriceTH home">
+              <span class="relative grid h-9 w-9 place-items-center rounded-xl bg-brand-500 shadow-soft" aria-hidden="true">
+                <svg viewBox="0 0 64 64" class="h-7 w-7" fill="none">
+                  <path d="M18 19h28" stroke="#FFFFFF" stroke-opacity="0.55" stroke-width="3.2" stroke-linecap="round"/>
+                  <path d="M32 20v28" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+                  <path d="M18 36l14 14 14-14" stroke="#FFFFFF" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-deal-600 ring-2 ring-white dark:ring-ink-950"></span>
               </span>
               <span class="text-lg font-bold tracking-tight text-ink-900 dark:text-ink-50">Price<span class="text-brand-500">TH</span></span>
             </a>
