@@ -66,13 +66,17 @@ const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:locale" content={lang === "th" ? "th_TH" : lang === "zh" ? "zh_CN" : lang === "ja" ? "ja_JP" : "en_US"} />
     <meta property="og:image" content={ogImage ?? `${site}/og-image.png`} />
+    <meta property="og:image:secure_url" content={ogImage ?? `${site}/og-image.png`} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PriceTH — เช็คราคาก่อนช้อป ประหยัดได้ทุกครั้ง" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={finalTitle} />
     <meta name="twitter:description" content={finalDesc} />
     <meta name="twitter:image" content={ogImage ?? `${site}/og-image.png`} />
+    <meta name="twitter:image:alt" content="PriceTH — Check prices before you shop" />
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/favicon.svg" />
