@@ -29,9 +29,11 @@ async function main() {
          AND flag_blacklisted = false
          AND flag_regulated = false
          AND rating >= 4.0
-         AND sold_count >= 50
+         AND current_price > 0
+         -- Apify basic mode often returns sold_count=0; use rating_count / discount as alt signals
+         AND (sold_count >= 20 OR rating_count >= 5 OR discount_percent >= 0.10 OR sold_count = 0)
          AND NOT EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = products.id)
-       ORDER BY sold_count DESC NULLS LAST
+       ORDER BY sold_count DESC NULLS LAST, rating_count DESC NULLS LAST, rating DESC NULLS LAST
        LIMIT ${max}
     `);
     productIds = candidates.map((c) => c.id);

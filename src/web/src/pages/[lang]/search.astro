@@ -1,0 +1,220 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { type Lang, getDict, SUPPORTED_LANGS, localePath } from "../../lib/i18n";
+import { getTopProducts, getDealsToday } from "../../lib/queries";
+import { bestProductLink } from "../../lib/affiliate-links";
+
+export function getStaticPaths() {
+  return SUPPORTED_LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params as { lang: Lang };
+const t = getDict(lang);
+
+// Build the search corpus at build time — newest 200 products + deals.
+// Client-side JS filters this in-memory; works without any API.
+let products: Awaited<ReturnType<typeof getTopProducts>> = [];
+try {
+  const [top, deals] = await Promise.all([getTopProducts(150), getDealsToday(100)]);
+  // Merge + dedupe by id
+  const seen = new Set<number>();
+  for (const p of [...top, ...deals]) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    products.push(p);
+  }
+} catch (err) {
+  console.warn("/search corpus load failed", err);
+}
+
+// Build a lean payload for client (only fields ProductCard needs)
+const corpus = products.map((p) => ({
+  i: p.id,
+  s: p.slug,
+  pl: p.platform,
+  ext: p.externalId,
+  shop: p.shopExternalId,
+  hr: !!p.hasReviewPage,
+  n: p.name,
+  b: p.brand,
+  img: p.primaryImage,
+  cp: p.currentPrice,
+  op: p.originalPrice,
+  d: p.discountPercent,
+  r: p.rating,
+  rc: p.ratingCount,
+  sc: p.soldCount,
+  m: p.isMall,
+}));
+
+const corpusJson = JSON.stringify(corpus);
+
+// affiliate config for client URL builder
+const SHOPEE_AFFILIATE_ID = process.env.SHOPEE_AFFILIATE_ID ?? "";
+---
+
+<BaseLayout lang={lang} title={`${t.search.title} — ${t.site.brand}`} description={t.site.description} noindex={true}>
+  <section class="container-page py-10 sm:py-14">
+    <p class="section-eyebrow">{t.nav.search}</p>
+    <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-ink-900 dark:text-ink-50">
+      {t.search.title}
+    </h1>
+    <p class="mt-2 text-sm text-ink-500">{t.search.tip}</p>
+
+    <form id="search-form" class="mt-6 max-w-2xl">
+      <label class="relative block">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-ink-400">
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </span>
+        <input id="search-input" name="q" type="search" autocomplete="off" autofocus required minlength="2"
+               placeholder={t.search.placeholder}
+               class="block w-full h-14 rounded-2xl border border-ink-200 bg-white pl-12 pr-32 text-base text-ink-900 placeholder:text-ink-400 shadow-soft focus:border-brand-500 focus:outline-none focus:shadow-ring dark:border-ink-800 dark:bg-ink-900 dark:text-ink-50" />
+        <button type="submit" class="absolute inset-y-2 right-2 inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white hover:bg-brand-600">
+          {t.search.submit}
+        </button>
+      </label>
+    </form>
+  </section>
+
+  <section class="container-page pb-16">
+    <div id="search-meta" class="mb-4 text-sm text-ink-500">{t.search.no_query}</div>
+    <div id="search-results" class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"></div>
+  </section>
+
+  <script
+    is:inline
+    define:vars={{
+      corpus: corpusJson,
+      labels: {
+        check: t.card.check_price, sold: t.card.sold,
+        no_results: t.search.no_results, results_count: t.search.results_count,
+        no_query: t.search.no_query, all_time_low: t.card.all_time_low,
+      },
+      shopeeAffiliateId: SHOPEE_AFFILIATE_ID,
+      langCode: lang,
+    }}
+  >
+    (function () {
+      const data = JSON.parse(corpus);
+      const form = document.getElementById('search-form');
+      const input = document.getElementById('search-input');
+      const meta = document.getElementById('search-meta');
+      const out = document.getElementById('search-results');
+      if (!form || !input || !meta || !out) return;
+
+      function fmtBaht(satang) {
+        if (!satang || satang <= 0) return '—';
+        return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(satang / 100);
+      }
+      function compact(n) {
+        if (!n || n <= 0) return '';
+        if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1) + 'k';
+        return String(n);
+      }
+      function buildShopeeUrl(p) {
+        if (!p.shop) return 'https://shopee.co.th';
+        const params = new URLSearchParams();
+        params.set('af_sub1', 'search_' + langCode);
+        if (shopeeAffiliateId) params.set('affiliate_id', shopeeAffiliateId);
+        return 'https://shopee.co.th/product/' + p.shop + '/' + p.ext + '?' + params.toString();
+      }
+      function bestLink(p) {
+        if (p.hr) return { href: '/รีวิว/' + p.s, target: '', rel: '' };
+        return { href: buildShopeeUrl(p), target: '_blank', rel: 'nofollow sponsored noopener' };
+      }
+      function escape(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+        });
+      }
+
+      function score(p, q) {
+        const name = (p.n || '').toLowerCase();
+        const brand = (p.b || '').toLowerCase();
+        let s = 0;
+        for (const term of q) {
+          if (!term) continue;
+          if (name === term) s += 100;
+          else if (name.startsWith(term)) s += 50;
+          else if (name.includes(term)) s += 20;
+          if (brand && brand.includes(term)) s += 30;
+        }
+        return s;
+      }
+
+      function render(query) {
+        if (!query || query.length < 2) {
+          meta.textContent = labels.no_query;
+          out.innerHTML = '';
+          return;
+        }
+        const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+        const ranked = data
+          .map(function (p) { return { p: p, s: score(p, terms) }; })
+          .filter(function (x) { return x.s > 0; })
+          .sort(function (a, b) { return b.s - a.s; })
+          .slice(0, 60);
+
+        if (ranked.length === 0) {
+          meta.textContent = labels.no_results.replace('{q}', query);
+          out.innerHTML = '';
+          return;
+        }
+        meta.textContent = labels.results_count.replace('{n}', ranked.length).replace('{q}', query);
+        out.innerHTML = ranked.map(function (x) {
+          const p = x.p;
+          const link = bestLink(p);
+          const discount = p.d ? Math.round(p.d * 100) : 0;
+          const price = fmtBaht(p.cp);
+          const orig = (p.op && p.cp && p.op > p.cp)
+            ? '<span class="text-xs text-ink-400 line-through ml-2">฿' + fmtBaht(p.op) + '</span>' : '';
+          const rating = p.r ? '★ ' + p.r.toFixed(1) + (p.rc ? ' (' + compact(p.rc) + ')' : '') : '—';
+          const sold = p.sc && p.sc > 0 ? '<span>' + labels.sold + ' ' + compact(p.sc) + '</span>' : '';
+          const dealBadge = discount > 0
+            ? '<span class="absolute left-2.5 top-2.5 rounded-md bg-deal-600 px-2 py-0.5 text-xs font-bold text-white shadow-soft">−' + discount + '%</span>' : '';
+          const mallBadge = p.m
+            ? '<span class="absolute right-2.5 top-2.5 rounded-md bg-ink-900/85 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Mall</span>' : '';
+          const img = p.img
+            ? '<img src="' + escape(p.img) + '" alt="' + escape(p.n) + '" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />'
+            : '<div class="flex h-full items-center justify-center text-3xl text-ink-300">📦</div>';
+          const targetAttr = link.target ? ' target="' + link.target + '"' : '';
+          const relAttr = link.rel ? ' rel="' + link.rel + '"' : '';
+          return (
+            '<article class="card-interactive group p-0 overflow-hidden">'
+            + '<a href="' + escape(link.href) + '"' + targetAttr + relAttr + ' class="flex flex-col h-full">'
+            + '<div class="relative aspect-square overflow-hidden bg-ink-100">'
+              + img + dealBadge + mallBadge
+            + '</div>'
+            + '<div class="flex flex-1 flex-col p-3.5">'
+              + (p.b ? '<p class="text-[10px] uppercase tracking-wider text-ink-500">' + escape(p.b) + '</p>' : '')
+              + '<h3 class="line-clamp-2 min-h-[2.6rem] text-sm leading-tight font-medium text-ink-900 dark:text-ink-50">' + escape(p.n) + '</h3>'
+              + '<div class="mt-2 flex items-baseline gap-1">'
+                + '<span class="price text-xl font-bold text-ink-900 dark:text-ink-50">฿' + price + '</span>' + orig
+              + '</div>'
+              + '<div class="mt-2 flex items-center justify-between text-[11px] text-ink-500">'
+                + '<span>' + rating + '</span>' + sold
+              + '</div>'
+              + '<div class="mt-auto pt-3 flex items-center justify-end">'
+                + '<span class="text-xs font-semibold text-brand-600">' + escape(labels.check) + ' →</span>'
+              + '</div>'
+            + '</div>'
+            + '</a></article>'
+          );
+        }).join('');
+      }
+
+      // Initial render from URL ?q= and live as user types
+      const urlQ = new URLSearchParams(location.search).get('q') || '';
+      if (urlQ) { input.value = urlQ; render(urlQ); }
+      let debounceTimer;
+      input.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () { render(input.value.trim()); }, 150);
+      });
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        render(input.value.trim());
+      });
+    })();
+  </script>
+</BaseLayout>

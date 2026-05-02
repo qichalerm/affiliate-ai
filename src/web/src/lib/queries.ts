@@ -28,6 +28,8 @@ export interface ProductRow {
   specifications: Record<string, string> | null;
   description: string | null;
   categoryId: number | null;
+  /** True when a published content_page exists — UI uses this to choose between /รีวิว/{slug} and direct affiliate URL. */
+  hasReviewPage?: boolean;
 }
 
 export interface CrossPlatformMatch {
@@ -118,7 +120,8 @@ export async function getReviewPageBySlug(slug: string): Promise<{
            p.shop_id AS "shopId", s.external_id AS "shopExternalId", s.name AS "shopName",
            COALESCE(s.is_mall, false) AS "isMall",
            p.specifications, p.description_raw AS description,
-           p.category_id AS "categoryId"
+           p.category_id AS "categoryId",
+           EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id AND cp.status='published') AS "hasReviewPage"
       FROM products p
       LEFT JOIN shops s ON s.id = p.shop_id
      WHERE p.id = ${page.primaryProductId}
@@ -184,7 +187,8 @@ export async function getTopProducts(limit = 24): Promise<ProductRow[]> {
            p.shop_id AS "shopId", s.external_id AS "shopExternalId", s.name AS "shopName",
            COALESCE(s.is_mall, false) AS "isMall",
            p.specifications, p.description_raw AS description,
-           p.category_id AS "categoryId"
+           p.category_id AS "categoryId",
+           EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id AND cp.status='published') AS "hasReviewPage"
       FROM products p
       LEFT JOIN shops s ON s.id = p.shop_id
      WHERE p.is_active = true
@@ -209,7 +213,8 @@ export async function getDealsToday(limit = 24): Promise<ProductRow[]> {
            p.shop_id AS "shopId", s.external_id AS "shopExternalId", s.name AS "shopName",
            COALESCE(s.is_mall, false) AS "isMall",
            p.specifications, p.description_raw AS description,
-           p.category_id AS "categoryId"
+           p.category_id AS "categoryId",
+           EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id AND cp.status='published') AS "hasReviewPage"
       FROM products p
       LEFT JOIN shops s ON s.id = p.shop_id
      WHERE p.is_active = true

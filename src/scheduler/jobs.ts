@@ -147,13 +147,17 @@ export async function jobGeneratePages(maxPages = 50): Promise<void> {
        AND p.flag_blacklisted = false
        AND p.flag_regulated = false
        AND p.rating >= 4.0
-       AND p.sold_count >= 50
+       -- Apify basic mode often returns sold_count=null/0 even for legit products,
+       -- so use rating_count or discount as alternative "real product" signals
+       AND (p.sold_count >= 20 OR p.rating_count >= 5 OR p.discount_percent >= 0.10 OR p.sold_count = 0)
+       AND p.current_price > 0
        AND NOT EXISTS (
          SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id
        )
      ORDER BY
        p.final_score DESC NULLS LAST,
        p.sold_count DESC NULLS LAST,
+       p.rating_count DESC NULLS LAST,
        p.rating DESC NULLS LAST
      LIMIT ${maxPages}
   `);
@@ -182,6 +186,32 @@ export async function jobGeneratePages(maxPages = 50): Promise<void> {
       body: `${failed}/${candidates.length} pages failed in this run`,
     });
   }
+
+  // Trigger Astro rebuild + Cloudflare Pages deploy so new review pages go live.
+  // Static site = baked at build time; without this, generated pages stay invisible.
+  if (success > 0) {
+    await triggerSiteRebuild(success);
+  }
+}
+
+/**
+ * Spawns `bun run build:pages` in detached mode so the cron job returns quickly
+ * while Astro+wrangler runs in the background. Logs success/failure via systemd journal.
+ */
+async function triggerSiteRebuild(reason: number | string): Promise<void> {
+  log.info({ reason }, "▶ triggering site rebuild + deploy");
+  const { spawn } = await import("node:child_process");
+  const proc = spawn("bun", ["run", "build:pages"], {
+    cwd: "/root/research-2",
+    env: process.env,
+    detached: true,
+    stdio: "ignore",
+  });
+  proc.unref(); // allow parent to exit even if child still running
+  proc.on("error", (err) => {
+    log.error({ err: errMsg(err) }, "site rebuild spawn failed");
+  });
+  log.info({ pid: proc.pid }, "site rebuild spawned (background)");
 }
 
 /* ===================================================================

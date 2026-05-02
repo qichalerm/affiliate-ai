@@ -70,3 +70,32 @@ export const PLATFORM_LABELS: Record<Platform, string> = {
 export function platformLabel(platform: Platform): string {
   return PLATFORM_LABELS[platform];
 }
+
+/**
+ * Choose the best link for a product card, given whether a review page exists.
+ * - If review page exists → internal /รีวิว/{slug} (more pages indexed by Google + sticks user on site)
+ * - Otherwise → direct affiliate URL to Shopee (better than 404)
+ */
+export function bestProductLink(input: {
+  hasReviewPage?: boolean;
+  slug: string;
+  platform: Platform;
+  externalId: string;
+  shopExternalId?: string | null;
+  subId: string;
+}): { href: string; external: boolean } {
+  if (input.hasReviewPage) {
+    return { href: `/รีวิว/${input.slug}`, external: false };
+  }
+  const url = buildAffiliateUrl({
+    platform: input.platform,
+    externalId: input.externalId,
+    shopExternalId: input.shopExternalId,
+    subId: input.subId,
+  });
+  // Last-resort fallback: if affiliate URL fails (e.g. missing IDs), still send to Shopee homepage.
+  return {
+    href: url ?? "https://shopee.co.th",
+    external: true,
+  };
+}

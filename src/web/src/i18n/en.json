@@ -56,6 +56,56 @@
     "title": "No reviews yet",
     "desc": "Collecting first batch of data — check back soon."
   },
+  "best": {
+    "title": "Best deals & top-reviewed products",
+    "subtitle": "Today's hottest discounts + most-reviewed picks from real buyers",
+    "deals_h2": "🔥 Hot deals today",
+    "deals_sub": "20%+ off — refreshed every 4 hours from Shopee Thailand",
+    "top_h2": "⭐ Most-reviewed products",
+    "top_sub": "Ranked by score + sales velocity + real buyer reviews"
+  },
+  "search": {
+    "title": "Search products",
+    "placeholder": "Type a product name e.g. iPhone 15, air fryer, bluetooth headphones",
+    "submit": "Search",
+    "no_query": "Type a query above to find what you're looking for.",
+    "no_results": "No products match \"{q}\" — try a different query.",
+    "results_count": "{n} results for \"{q}\"",
+    "loading": "Searching...",
+    "tip": "Tip: brand + model works best, e.g. \"Sony WH-1000XM5\""
+  },
+  "about": {
+    "title": "About PriceTH",
+    "lead": "PriceTH is a free price-comparison tool for Thai shoppers — pulling real Shopee Thailand data automatically every 4 hours.",
+    "h_how_title": "How it works",
+    "h_how": [
+      "We scrape live prices and stock from real Shopee Thailand listings 6 times per day (every 4 hours).",
+      "AI summarizes each product's strengths and weaknesses from real buyer reviews — content is 90% real data, AI ≤10%.",
+      "Products are ranked by rating + sales + discount + data freshness.",
+      "When you click \"View on Shopee\", you go to Shopee with our affiliate link — your price stays the same."
+    ],
+    "h_data_title": "Our data",
+    "h_data": [
+      "Prices and stock: real-time from Shopee API (refreshed every 4 hours)",
+      "Reviews: from real buyers on Shopee — unedited, never paid for",
+      "Price history: every price change tracked, used to flag \"lowest price in 90 days\"",
+      "Security: we don't collect card details or accounts — we don't sell anything ourselves"
+    ],
+    "h_money_title": "How we make money",
+    "h_money": "When you click through to Shopee and buy, we earn a commission from the Shopee Affiliate Program (your price doesn't change). That money pays for the infrastructure and new features. We don't accept advertising or sponsorships — no banners, no pop-ups.",
+    "h_promise_title": "Our promise",
+    "h_promise": [
+      "We don't pay for reviews — every review is from a real buyer",
+      "We don't rank by who pays more — same algorithm for every shop",
+      "We don't collect personal data — no login, no signup",
+      "Disclosure: every Shopee link is an affiliate link — we earn a commission"
+    ]
+  },
+  "categories": {
+    "title": "All categories",
+    "subtitle": "Browse by category — see deals and top picks in each",
+    "products_count": "{n} items"
+  },
   "footer": {
     "products_col": "Products",
     "products_links": ["All categories", "Today's drops", "Top sellers", "Price drop alerts"],

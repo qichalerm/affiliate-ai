@@ -8,6 +8,7 @@ import { getTopProducts, getDealsToday } from "../../lib/queries";
 import { getAllActiveCategories } from "../../lib/queries-categories";
 import { getSiteStats } from "../../lib/queries-stats";
 import { type Lang, getDict, localePath, SUPPORTED_LANGS } from "../../lib/i18n";
+import { bestProductLink } from "../../lib/affiliate-links";
 
 export function getStaticPaths() {
   return SUPPORTED_LANGS.map((lang) => ({ params: { lang } }));
@@ -39,6 +40,22 @@ const topCategories = categories.filter((c) => c.depth <= 1 && c.productCount >=
 const catName = (c: typeof categories[0]): string => {
   return c.nameTh ?? c.slug;
 };
+
+// Pre-compute card links (Astro JSX doesn't allow IIFE inside .map())
+const dealsWithLinks = deals.map((p) => ({
+  p,
+  link: bestProductLink({
+    hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
+    externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `homepage_deals_${lang}`,
+  }),
+}));
+const topProductsWithLinks = topProducts.map((p) => ({
+  p,
+  link: bestProductLink({
+    hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
+    externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `homepage_top_${lang}`,
+  }),
+}));
 ---
 
 <BaseLayout lang={lang}>
@@ -68,10 +85,11 @@ const catName = (c: typeof categories[0]): string => {
         </a>
       </div>
       <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {deals.map((p) => (
+        {dealsWithLinks.map(({ p, link }) => (
           <ProductCardV2
             lang={lang}
-            href={localePath(lang, `/รีวิว/${p.slug}`)}
+            href={link.href}
+            external={link.external}
             name={p.name}
             brand={p.brand}
             primaryImage={p.primaryImage}
@@ -126,10 +144,11 @@ const catName = (c: typeof categories[0]): string => {
         </a>
       </div>
       <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {topProducts.map((p) => (
+        {topProductsWithLinks.map(({ p, link }) => (
           <ProductCardV2
             lang={lang}
-            href={localePath(lang, `/รีวิว/${p.slug}`)}
+            href={link.href}
+            external={link.external}
             name={p.name}
             brand={p.brand}
             primaryImage={p.primaryImage}

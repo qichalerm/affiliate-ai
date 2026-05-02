@@ -1,0 +1,105 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { getAllActiveCategories } from "../../lib/queries-categories";
+import { type Lang, getDict, SUPPORTED_LANGS, interpolate, localePath } from "../../lib/i18n";
+
+export function getStaticPaths() {
+  return SUPPORTED_LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params as { lang: Lang };
+const t = getDict(lang);
+
+let categories: Awaited<ReturnType<typeof getAllActiveCategories>> = [];
+try {
+  categories = await getAllActiveCategories();
+} catch (err) {
+  console.warn("/categories load failed", err);
+}
+
+const topLevel = categories.filter((c) => c.depth <= 1);
+// Group by depth-0 parent
+const groups = new Map<number | null, typeof topLevel>();
+for (const c of topLevel) {
+  const key = c.depth === 0 ? null : c.parentId;
+  const arr = groups.get(key) ?? [];
+  arr.push(c);
+  groups.set(key, arr);
+}
+const roots = topLevel.filter((c) => c.depth === 0);
+---
+
+<BaseLayout lang={lang} title={`${t.categories.title} — ${t.site.brand}`} description={t.categories.subtitle}>
+  <section class="container-page py-10 sm:py-14">
+    <p class="section-eyebrow">{t.nav.categories}</p>
+    <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-ink-900 dark:text-ink-50">
+      {t.categories.title}
+    </h1>
+    <p class="mt-3 text-base text-ink-600 dark:text-ink-400 max-w-2xl">{t.categories.subtitle}</p>
+  </section>
+
+  {topLevel.length === 0 ? (
+    <section class="container-page pb-16">
+      <EmptyState icon="🌱" title={t.empty.title} description={t.empty.desc} />
+    </section>
+  ) : roots.length > 0 ? (
+    <section class="container-page pb-16 space-y-10">
+      {roots.map((root) => {
+        const children = groups.get(root.id) ?? [];
+        return (
+          <div>
+            <div class="flex items-baseline justify-between mb-4">
+              <h2 class="text-xl sm:text-2xl font-bold text-ink-900 dark:text-ink-50">{root.nameTh}</h2>
+              {root.productCount > 0 && (
+                <span class="text-xs text-ink-500">{interpolate(t.categories.products_count, { n: root.productCount })}</span>
+              )}
+            </div>
+            {children.length > 0 ? (
+              <div class="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {children.map((c) => (
+                  <a href={`${localePath(lang, "/หมวด")}/${c.slug}`}
+                     class="card-interactive flex items-center gap-3 p-3.5">
+                    <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400">
+                      <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 4h7v7H3zM14 4h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" stroke="currentColor" stroke-width="2"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-ink-900 dark:text-ink-50 truncate">{c.nameTh}</p>
+                      {c.productCount > 0 && (
+                        <p class="text-[11px] text-ink-500 truncate">{interpolate(t.categories.products_count, { n: c.productCount })}</p>
+                      )}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <a href={`${localePath(lang, "/หมวด")}/${root.slug}`}
+                 class="card-interactive inline-flex items-center gap-2 p-3.5 text-sm font-medium text-brand-600">
+                {root.nameTh} →
+              </a>
+            )}
+          </div>
+        );
+      })}
+    </section>
+  ) : (
+    <section class="container-page pb-16">
+      <div class="grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
+        {topLevel.map((c) => (
+          <a href={`${localePath(lang, "/หมวด")}/${c.slug}`}
+             class="card-interactive flex items-center gap-3 p-3.5">
+            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-400">
+              <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 4h7v7H3zM14 4h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" stroke="currentColor" stroke-width="2"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-ink-900 dark:text-ink-50 truncate">{c.nameTh}</p>
+              {c.productCount > 0 && (
+                <p class="text-[11px] text-ink-500 truncate">{interpolate(t.categories.products_count, { n: c.productCount })}</p>
+              )}
+            </div>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
+</BaseLayout>

@@ -110,7 +110,7 @@ const alternates = SUPPORTED_LANGS.map((l) => {
         <!-- Nav (desktop only) -->
         <nav class="hidden lg:flex items-center gap-5 text-sm font-medium text-ink-700 dark:text-ink-300">
           <a href={localePath(lang, "/best")} class="hover:text-brand-600">{t.nav.deals}</a>
-          <a href={localePath(lang, "/หมวด")} class="hover:text-brand-600">{t.nav.categories}</a>
+          <a href={localePath(lang, "/categories")} class="hover:text-brand-600">{t.nav.categories}</a>
           <a href={localePath(lang, "/about")} class="hover:text-brand-600">{t.nav.about}</a>
         </nav>
 
@@ -215,7 +215,7 @@ const alternates = SUPPORTED_LANGS.map((l) => {
           <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <span>{t.nav.search}</span>
         </a>
-        <a href={localePath(lang, "/หมวด")} class="bottom-nav-item">
+        <a href={localePath(lang, "/categories")} class="bottom-nav-item">
           <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <span>{t.nav.categories}</span>
         </a>

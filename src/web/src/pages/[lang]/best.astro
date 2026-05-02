@@ -1,0 +1,90 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ProductCardV2 from "../../components/ProductCardV2.astro";
+import EmptyState from "../../components/EmptyState.astro";
+import { getTopProducts, getDealsToday } from "../../lib/queries";
+import { type Lang, getDict, SUPPORTED_LANGS } from "../../lib/i18n";
+import { bestProductLink } from "../../lib/affiliate-links";
+
+export function getStaticPaths() {
+  return SUPPORTED_LANGS.map((lang) => ({ params: { lang } }));
+}
+
+const { lang } = Astro.params as { lang: Lang };
+const t = getDict(lang);
+
+let deals: Awaited<ReturnType<typeof getDealsToday>> = [];
+let topProducts: Awaited<ReturnType<typeof getTopProducts>> = [];
+
+try {
+  [deals, topProducts] = await Promise.all([getDealsToday(40), getTopProducts(40)]);
+} catch (err) {
+  console.warn("/best load failed", err);
+}
+---
+
+<BaseLayout lang={lang} title={`${t.best.title} — ${t.site.brand}`} description={t.best.subtitle}>
+  <section class="container-page py-10 sm:py-14">
+    <p class="section-eyebrow">{t.nav.deals}</p>
+    <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-ink-900 dark:text-ink-50 text-balance">
+      {t.best.title}
+    </h1>
+    <p class="mt-3 text-base sm:text-lg text-ink-600 dark:text-ink-400 max-w-2xl">{t.best.subtitle}</p>
+  </section>
+
+  {deals.length > 0 && (
+    <section class="container-page pb-14">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold tracking-tight text-ink-900 dark:text-ink-50">{t.best.deals_h2}</h2>
+        <p class="mt-1 text-sm text-ink-500">{t.best.deals_sub} · {deals.length} {lang === "th" ? "รายการ" : lang === "zh" ? "件" : lang === "ja" ? "件" : "items"}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {deals.map((p) => {
+          const link = bestProductLink({
+            hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
+            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_deals_${lang}`,
+          });
+          return (
+            <ProductCardV2
+              lang={lang} href={link.href} external={link.external}
+              name={p.name} brand={p.brand} primaryImage={p.primaryImage}
+              currentPrice={p.currentPrice} originalPrice={p.originalPrice} discountPercent={p.discountPercent}
+              rating={p.rating} ratingCount={p.ratingCount} soldCount={p.soldCount} isMall={p.isMall}
+            />
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {topProducts.length > 0 && (
+    <section class="container-page pb-16">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold tracking-tight text-ink-900 dark:text-ink-50">{t.best.top_h2}</h2>
+        <p class="mt-1 text-sm text-ink-500">{t.best.top_sub}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {topProducts.map((p) => {
+          const link = bestProductLink({
+            hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
+            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_top_${lang}`,
+          });
+          return (
+            <ProductCardV2
+              lang={lang} href={link.href} external={link.external}
+              name={p.name} brand={p.brand} primaryImage={p.primaryImage}
+              currentPrice={p.currentPrice} originalPrice={p.originalPrice} discountPercent={p.discountPercent}
+              rating={p.rating} ratingCount={p.ratingCount} soldCount={p.soldCount} isMall={p.isMall}
+            />
+          );
+        })}
+      </div>
+    </section>
+  )}
+
+  {deals.length === 0 && topProducts.length === 0 && (
+    <section class="container-page pb-16">
+      <EmptyState icon="🌱" title={t.empty.title} description={t.empty.desc} />
+    </section>
+  )}
+</BaseLayout>
