@@ -30,17 +30,20 @@ interface JobSchedule {
 }
 
 const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
-  { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 7,19 * * *", description: "Scrape trending Shopee products" },
+  { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 8,13,19,22 * * *", description: "Scrape trending Shopee products" },
   { name: "scrapeLazada", cron: "0 1,13 * * *", description: "Scrape trending Lazada products (twice/day)", lazada: true },
   { name: "crossPlatformMatch", cron: "0 4 * * *", description: "Match Shopee ↔ Lazada products", lazada: true },
-  { name: "rescoreProducts", cron: "30 */2 * * *", description: "Re-score products (Layer 8) — every 2h since data is fresher with 6x/day scrape" },
-  { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 7 * * *", description: "Generate review pages (sorted by final_score)" },
+  // Re-score 30 min after each scrape lands — keeps scores fresh without wasting CPU between rounds.
+  { name: "rescoreProducts", cron: "30 8,13,19,22 * * *", description: "Re-score products (Layer 8) — runs 30 min after each scrape" },
+  // Generate review pages 1h after the morning scrape so pipeline runs serially: scrape → score → generate.
+  { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 9 * * *", description: "Generate review pages (sorted by final_score)" },
   { name: "generateComparisons", cron: "30 7 * * *", description: "Generate A vs B comparison pages" },
   { name: "generateBestOf", cron: "0 8 * * 1", description: "Generate best-of lists (Mondays)" },
   { name: "refreshInternalLinks", cron: "0 9 * * 1", description: "Refresh internal links (Mondays)" },
   { name: "pinterestPublish", cron: "0 11,17 * * *", description: "Publish pins to Pinterest (if enabled)" },
   { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
-  { name: "sitemapAndIndex", cron: "0 22 * * *", description: "Rebuild sitemap + submit to Google/Bing" },
+  // Sitemap rebuild runs after the 22:00 scrape so newly added products are indexed.
+  { name: "sitemapAndIndex", cron: "0 23 * * *", description: "Rebuild sitemap + submit to Google/Bing (after last scrape of the day)" },
   { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
   { name: "sourceHealth", cron: "0 * * * *", description: "Per-source health check (hourly)" },
   { name: "generatePriceCompare", cron: "0 6 * * *", description: "Cross-platform price compare pages", lazada: true },
