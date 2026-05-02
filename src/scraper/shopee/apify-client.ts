@@ -16,8 +16,9 @@ import { env } from "../../lib/env.ts";
 import { child } from "../../lib/logger.ts";
 import { errMsg, sleep } from "../../lib/retry.ts";
 import { db, schema } from "../../lib/db.ts";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 import type { ShopeeProduct, ShopeeShop } from "./types.ts";
+import { categoryForKeyword } from "./keyword-category.ts";
 
 const log = child("shopee.apify");
 const APIFY_BASE = "https://api.apify.com/v2";
@@ -228,7 +229,22 @@ export async function searchByKeywordViaApify(
   if (items.length > 0) {
     log.debug({ sampleItemKeys: Object.keys(items[0] ?? {}) }, "apify item shape");
   }
-  const { products, shopsByExternalId } = mapApifyItems(items);
+
+  // Resolve the category from the keyword used for this search.
+  // Looked up once per run (not per item) for performance.
+  let categoryId: number | undefined;
+  const categorySlug = categoryForKeyword(keyword);
+  if (categorySlug) {
+    const cat = await db
+      .select({ id: schema.categories.id })
+      .from(schema.categories)
+      .where(eq(schema.categories.slug, categorySlug))
+      .limit(1);
+    categoryId = cat[0]?.id;
+    log.debug({ keyword, categorySlug, categoryId }, "resolved category");
+  }
+
+  const { products, shopsByExternalId } = mapApifyItems(items, categoryId);
   if (items.length > 0 && products.length === 0) {
     log.warn(
       { itemCount: items.length, sample: JSON.stringify(items[0]).slice(0, 800) },
@@ -267,7 +283,7 @@ function deepSanitize<T>(v: T): T {
   return v;
 }
 
-function mapApifyItems(items: ApifyShopeeItem[]): {
+function mapApifyItems(items: ApifyShopeeItem[], categoryId?: number): {
   products: ShopeeProduct[];
   shopsByExternalId: Map<string, ShopeeShop>;
 } {
@@ -294,6 +310,7 @@ function mapApifyItems(items: ApifyShopeeItem[]): {
     const product: ShopeeProduct = {
       externalId,
       shopExternalId,
+      categoryId,
       name: sanitize(name)!,
       brand: sanitize(it.brand) || undefined,
       description: sanitize(it.description)?.slice(0, 6000),

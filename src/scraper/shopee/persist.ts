@@ -80,7 +80,7 @@ export async function upsertProduct(
     platform: "shopee" as const,
     externalId: product.externalId,
     shopId: shopDbId,
-    categoryId: null, // resolved separately
+    categoryId: product.categoryId ?? null,
     name: product.name,
     slug,
     brand: product.brand,
