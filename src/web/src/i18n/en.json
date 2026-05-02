@@ -1,0 +1,72 @@
+{
+  "lang": "en",
+  "langName": "English",
+  "dir": "ltr",
+  "site": {
+    "brand": "PriceTH",
+    "tagline": "Check prices before you shop. Save every time.",
+    "description": "Compare Shopee Thailand prices with reviews and price history. Updated every 4 hours."
+  },
+  "nav": {
+    "home": "Home",
+    "deals": "Hot deals",
+    "categories": "Categories",
+    "best": "Top products",
+    "about": "About",
+    "search": "Search",
+    "alerts": "Price alerts",
+    "account": "Account"
+  },
+  "hero": {
+    "h1_a": "Check prices before you shop.",
+    "h1_b": "Save every time.",
+    "sub": "Compare Shopee Thailand prices across millions of products.",
+    "sub2": "Updated every 4 hours · Free · No signup",
+    "search_placeholder": "Search e.g. iPhone 16 Pro Max",
+    "popular": "Popular",
+    "popular_chips": ["earbuds", "powerbank", "phone case", "air fryer", "sunscreen"]
+  },
+  "trust": {
+    "products_tracked": "products tracked",
+    "updates_every": "Updated every 4 hours",
+    "last_update": "Last update",
+    "free": "100% free",
+    "free_sub": "No signup, no card needed",
+    "verified": "Shopee Affiliate Partner",
+    "max_discount": "Max discount today"
+  },
+  "sections": {
+    "hot_deals_eyebrow": "Hot deals",
+    "hot_deals_title": "Hot deals today",
+    "hot_deals_sub": "Biggest price drops — real-time from Shopee Thailand",
+    "categories_eyebrow": "Categories",
+    "categories_title": "Popular categories",
+    "top_eyebrow": "Top picks",
+    "top_title": "Most reviewed products",
+    "view_all": "View all"
+  },
+  "card": {
+    "check_price": "View on Shopee",
+    "all_time_low": "Lowest price in 90 days",
+    "updated_ago": "Updated {time} ago",
+    "sold": "sold",
+    "rating_count": "reviews"
+  },
+  "empty": {
+    "title": "No reviews yet",
+    "desc": "Collecting first batch of data — check back soon."
+  },
+  "footer": {
+    "products_col": "Products",
+    "products_links": ["All categories", "Today's drops", "Top sellers", "Price drop alerts"],
+    "service_col": "Service",
+    "service_links": ["How it works", "FAQ", "Contact"],
+    "company_col": "Company",
+    "company_links": ["About", "Careers", "Affiliate disclosure"],
+    "legal_col": "Legal",
+    "legal_links": ["Privacy policy", "Terms of use"],
+    "disclosure": "PriceTH may earn a commission when you click links — your price does not change.",
+    "ai_note": "Some summaries are AI-generated from real reviews and buyer data.",
+    "copyright": "© {year} PriceTH"
+  }
+}

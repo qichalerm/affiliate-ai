@@ -1,0 +1,61 @@
+---
+import type { Lang } from "../lib/i18n";
+import { getDict, localePath } from "../lib/i18n";
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = getDict(lang);
+---
+
+<section class="hero-bg relative overflow-hidden">
+  <div class="container-page py-12 sm:py-20 lg:py-28">
+    <div class="mx-auto max-w-3xl text-center">
+      <!-- Live indicator -->
+      <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink-700 backdrop-blur dark:border-ink-800 dark:bg-ink-900/70 dark:text-ink-300 animate-fade-in">
+        <span class="pulse-dot"></span>
+        <span>{t.trust.updates_every}</span>
+      </div>
+
+      <h1 class="text-display-md sm:text-display-lg text-balance text-ink-900 dark:text-ink-50 animate-slide-up">
+        {t.hero.h1_a}<br/>
+        <span class="text-brand-500">{t.hero.h1_b}</span>
+      </h1>
+
+      <p class="mt-5 text-lg text-ink-600 dark:text-ink-400 sm:text-xl text-balance animate-slide-up" style="animation-delay:.05s">
+        {t.hero.sub}<br class="hidden sm:block"/>
+        <span class="text-ink-500 dark:text-ink-500 text-base sm:text-lg">{t.hero.sub2}</span>
+      </p>
+
+      <!-- Search -->
+      <form action={localePath(lang, "/search")} method="get" class="mt-8 mx-auto max-w-2xl animate-slide-up" style="animation-delay:.1s">
+        <label class="relative block">
+          <span class="absolute inset-y-0 left-0 flex items-center pl-5 text-ink-400">
+            <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <input
+            type="search" name="q" required minlength="2"
+            placeholder={t.hero.search_placeholder}
+            class="block w-full h-14 sm:h-16 rounded-2xl border border-ink-200 bg-white pl-14 pr-32 text-base sm:text-lg text-ink-900 placeholder:text-ink-400 shadow-soft focus:border-brand-500 focus:outline-none focus:shadow-ring dark:border-ink-800 dark:bg-ink-900 dark:text-ink-50"
+          />
+          <button type="submit" class="absolute inset-y-2 right-2 inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white hover:bg-brand-600 transition">
+            <span>{t.nav.search}</span>
+          </button>
+        </label>
+      </form>
+
+      <!-- Popular chips -->
+      <div class="mt-6 flex items-center justify-center flex-wrap gap-2 text-sm animate-slide-up" style="animation-delay:.15s">
+        <span class="text-ink-500 dark:text-ink-500">{t.hero.popular}:</span>
+        {t.hero.popular_chips.map((kw) => (
+          <a href={`${localePath(lang, "/search")}?q=${encodeURIComponent(kw)}`}
+             class="rounded-full border border-ink-200 bg-white px-3 py-1 text-ink-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition dark:border-ink-800 dark:bg-ink-900 dark:text-ink-300 dark:hover:bg-ink-800">
+            {kw}
+          </a>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,88 +1,225 @@
 ---
 import "../styles/globals.css";
+import { type Lang, getDict, localePath, LANG_LABELS, SUPPORTED_LANGS } from "../lib/i18n";
 
 interface Props {
-  title: string;
+  title?: string;
   description?: string;
   ogImage?: string;
   canonical?: string;
   jsonLd?: object;
   noindex?: boolean;
+  lang?: Lang;
 }
 
-const {
-  title,
-  description = "เว็บเปรียบเทียบราคา + รีวิวสินค้าจาก Shopee, Lazada, TikTok Shop ราคา real-time",
-  ogImage,
-  canonical,
-  jsonLd,
-  noindex = false,
-} = Astro.props;
+// Default to Thai for legacy / Thai-only pages (e.g. /รีวิว/*, /หมวด/*).
+const { title, description, ogImage, canonical, jsonLd, noindex = false, lang = "th" } = Astro.props;
+const t = getDict(lang);
 
-const site = Astro.site?.toString().replace(/\/$/, "") ?? "";
+const finalTitle = title ?? `${t.site.brand} — ${t.site.tagline}`;
+const finalDesc = description ?? t.site.description;
+
+const site = Astro.site?.toString().replace(/\/$/, "") ?? "https://price-th.com";
 const canonicalUrl = canonical ?? `${site}${Astro.url.pathname}`;
+
+// Hreflang alternates (helps Google show right language per country)
+const alternates = SUPPORTED_LANGS.map((l) => {
+  const path = Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") || "/";
+  return { lang: l, href: `${site}/${l}${path}` };
+});
 ---
 
 <!doctype html>
-<html lang="th">
+<html lang={lang} class="scroll-smooth">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0b5fff" />
+    <meta name="color-scheme" content="light dark" />
 
-    <title>{title}</title>
-    <meta name="description" content={description} />
+    <title>{finalTitle}</title>
+    <meta name="description" content={finalDesc} />
     <link rel="canonical" href={canonicalUrl} />
+
+    {alternates.map((a) => <link rel="alternate" hreflang={a.lang} href={a.href} />)}
+    <link rel="alternate" hreflang="x-default" href={`${site}/en${Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") || "/"}`} />
 
     {noindex && <meta name="robots" content="noindex,follow" />}
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="PriceTH" />
+    <meta property="og:title" content={finalTitle} />
+    <meta property="og:description" content={finalDesc} />
     <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content={lang === "th" ? "th_TH" : lang === "zh" ? "zh_CN" : lang === "ja" ? "ja_JP" : "en_US"} />
     {ogImage && <meta property="og:image" content={ogImage} />}
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:title" content={finalTitle} />
+    <meta name="twitter:description" content={finalDesc} />
     {ogImage && <meta name="twitter:image" content={ogImage} />}
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="preconnect" href="https://down-th.img.susercontent.com" />
-    <link rel="preconnect" href="https://cf.shopee.co.th" />
+    <link rel="preconnect" href="https://down-th.img.susercontent.com" crossorigin />
+    <link rel="preconnect" href="https://cf.shopee.co.th" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+
+    <!-- Persist user's manual language choice; the edge Worker reads this cookie before redirecting -->
+    <script is:inline define:vars={{ lang }}>
+      try {
+        const m = document.cookie.match(/(^| )lang=([^;]+)/);
+        const saved = m && m[2];
+        if (saved !== lang) {
+          document.cookie = `lang=${lang}; path=/; max-age=31536000; SameSite=Lax`;
+        }
+      } catch (_) {}
+    </script>
   </head>
-  <body>
-    <header class="border-b border-slate-200 dark:border-slate-800">
-      <div class="container-page flex h-14 items-center justify-between">
-        <a href="/" class="text-lg font-bold tracking-tight">
-          <span class="text-brand-600">Deal</span>Finder
+
+  <body class="min-h-screen flex flex-col">
+    <!-- Sticky header -->
+    <header class="sticky top-0 z-30 border-b border-ink-200/70 bg-white/85 backdrop-blur-lg dark:border-ink-800/70 dark:bg-ink-950/85">
+      <div class="container-page flex h-16 items-center gap-3 sm:gap-6">
+        <!-- Logo -->
+        <a href={localePath(lang, "/")} class="flex items-center gap-2 shrink-0">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white shadow-soft">
+            <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 6h2l2 11h11l2-8H7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="20" r="1.4" fill="currentColor"/><circle cx="17" cy="20" r="1.4" fill="currentColor"/></svg>
+          </span>
+          <span class="hidden sm:block text-lg font-bold tracking-tight text-ink-900 dark:text-ink-50">
+            Price<span class="text-brand-500">TH</span>
+          </span>
         </a>
-        <nav class="flex items-center gap-4 text-sm">
-          <a href="/best" class="hover:text-brand-600">รวมดีล</a>
-          <a href="/category" class="hover:text-brand-600">หมวดสินค้า</a>
-          <a href="/about" class="hover:text-brand-600">เกี่ยวกับ</a>
+
+        <!-- Search (grows to fill) -->
+        <form action={localePath(lang, "/search")} method="get" class="flex-1 hidden sm:block">
+          <label class="relative block">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-ink-400">
+              <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <input
+              type="search" name="q" placeholder={t.hero.search_placeholder}
+              class="w-full rounded-xl border border-ink-200 bg-ink-50 pl-10 pr-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:shadow-ring dark:border-ink-800 dark:bg-ink-900 dark:text-ink-50 dark:focus:bg-ink-900"
+            />
+          </label>
+        </form>
+
+        <!-- Nav (desktop only) -->
+        <nav class="hidden lg:flex items-center gap-5 text-sm font-medium text-ink-700 dark:text-ink-300">
+          <a href={localePath(lang, "/best")} class="hover:text-brand-600">{t.nav.deals}</a>
+          <a href={localePath(lang, "/หมวด")} class="hover:text-brand-600">{t.nav.categories}</a>
+          <a href={localePath(lang, "/about")} class="hover:text-brand-600">{t.nav.about}</a>
         </nav>
+
+        <!-- Language switcher -->
+        <div class="relative ml-auto sm:ml-0">
+          <details class="group">
+            <summary class="list-none flex items-center gap-1.5 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm font-medium text-ink-700 cursor-pointer hover:bg-ink-50 dark:border-ink-800 dark:bg-ink-900 dark:text-ink-200 dark:hover:bg-ink-800">
+              <span>{LANG_LABELS[lang].flag}</span>
+              <span class="hidden sm:inline">{LANG_LABELS[lang].name}</span>
+              <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4 text-ink-400"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </summary>
+            <div class="absolute right-0 mt-2 w-44 rounded-xl border border-ink-200 bg-white py-1 shadow-lift z-50 dark:border-ink-800 dark:bg-ink-900">
+              {SUPPORTED_LANGS.map((l) => (
+                <a href={localePath(l, Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") || "/")}
+                   class={`flex items-center gap-3 px-3 py-2 text-sm hover:bg-ink-50 dark:hover:bg-ink-800 ${l === lang ? "font-semibold text-brand-600" : "text-ink-700 dark:text-ink-200"}`}>
+                  <span class="text-base">{LANG_LABELS[l].flag}</span>
+                  <span>{LANG_LABELS[l].name}</span>
+                </a>
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Mobile search bar (below header on small screens) -->
+      <div class="container-page pb-3 sm:hidden">
+        <form action={localePath(lang, "/search")} method="get">
+          <label class="relative block">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-ink-400">
+              <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <input type="search" name="q" placeholder={t.hero.search_placeholder}
+              class="w-full rounded-xl border border-ink-200 bg-ink-50 pl-10 pr-3 py-2.5 text-sm focus:border-brand-500 focus:bg-white focus:outline-none focus:shadow-ring dark:border-ink-800 dark:bg-ink-900 dark:focus:bg-ink-900" />
+          </label>
+        </form>
       </div>
     </header>
 
-    <main class="min-h-[60vh]">
+    <main class="flex-1 pb-20 sm:pb-0">
       <slot />
     </main>
 
-    <footer class="mt-16 border-t border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900">
-      <div class="container-page py-8 text-sm text-slate-600 dark:text-slate-400">
-        <p>
-          <strong>หมายเหตุ:</strong> เว็บไซต์นี้มีลิงก์ affiliate
-          เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
-          ราคาและสต็อกอัพเดทจาก Shopee เป็นระยะ — ตรวจสอบราคาล่าสุดในหน้าร้านก่อนสั่งซื้อทุกครั้ง
-        </p>
-        <p class="mt-2">
-          เนื้อหาบางส่วนสรุปโดย AI จากข้อมูลจริงและรีวิวจากผู้ซื้อ
-        </p>
-        <p class="mt-4">© {new Date().getFullYear()} DealFinder · ติดต่อ: hello@example.com</p>
+    <!-- Footer -->
+    <footer class="border-t border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-950">
+      <div class="container-page py-12">
+        <div class="grid grid-cols-2 gap-8 md:grid-cols-4">
+          <!-- Brand column (spans 2 on mobile) -->
+          <div class="col-span-2 md:col-span-1">
+            <a href={localePath(lang, "/")} class="flex items-center gap-2">
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-500 text-white">
+                <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5"><path d="M3 6h2l2 11h11l2-8H7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="text-lg font-bold tracking-tight text-ink-900 dark:text-ink-50">Price<span class="text-brand-500">TH</span></span>
+            </a>
+            <p class="mt-4 text-sm text-ink-600 dark:text-ink-400 max-w-xs">{t.site.description}</p>
+          </div>
+
+          <div>
+            <h3 class="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.footer.products_col}</h3>
+            <ul class="mt-4 space-y-2.5 text-sm text-ink-600 dark:text-ink-400">
+              {t.footer.products_links.map((link) => <li><a href="#" class="hover:text-brand-600 dark:hover:text-brand-400">{link}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.footer.service_col}</h3>
+            <ul class="mt-4 space-y-2.5 text-sm text-ink-600 dark:text-ink-400">
+              {t.footer.service_links.map((link) => <li><a href="#" class="hover:text-brand-600 dark:hover:text-brand-400">{link}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.footer.company_col}</h3>
+            <ul class="mt-4 space-y-2.5 text-sm text-ink-600 dark:text-ink-400">
+              {t.footer.company_links.map((link) => <li><a href="#" class="hover:text-brand-600 dark:hover:text-brand-400">{link}</a></li>)}
+            </ul>
+          </div>
+        </div>
+
+        <div class="mt-10 border-t border-ink-200 pt-6 dark:border-ink-800">
+          <p class="text-xs text-ink-500 dark:text-ink-500">{t.footer.disclosure}</p>
+          <p class="mt-1 text-xs text-ink-500 dark:text-ink-500">{t.footer.ai_note}</p>
+          <p class="mt-4 text-xs text-ink-500 dark:text-ink-500">
+            {t.footer.copyright.replace("{year}", new Date().getFullYear().toString())} ·
+            <a href={localePath(lang, "/about")} class="hover:text-brand-600">{t.footer.legal_links[0]}</a> ·
+            <a href={localePath(lang, "/about")} class="hover:text-brand-600">{t.footer.legal_links[1]}</a>
+          </p>
+        </div>
       </div>
     </footer>
+
+    <!-- Mobile bottom nav -->
+    <nav class="bottom-nav" aria-label="Bottom navigation">
+      <div class="flex">
+        <a href={localePath(lang, "/")} class="bottom-nav-item" aria-current={Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") === "/" ? "page" : undefined}>
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><path d="M3 12 12 3l9 9v9a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>{t.nav.home}</span>
+        </a>
+        <a href={localePath(lang, "/best")} class="bottom-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><path d="M12 3v3M5 8l-2 1m18-1 2 1M6.6 13H4v8h16v-8h-2.6M9 13a3 3 0 1 1 6 0v3H9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>{t.nav.deals}</span>
+        </a>
+        <a href={localePath(lang, "/search")} class="bottom-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>{t.nav.search}</span>
+        </a>
+        <a href={localePath(lang, "/หมวด")} class="bottom-nav-item">
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><path d="M4 6h16M4 12h16M4 18h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>{t.nav.categories}</span>
+        </a>
+      </div>
+    </nav>
   </body>
 </html>

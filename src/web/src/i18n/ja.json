@@ -1,0 +1,72 @@
+{
+  "lang": "ja",
+  "langName": "日本語",
+  "dir": "ltr",
+  "site": {
+    "brand": "PriceTH",
+    "tagline": "買う前に価格をチェック。毎回節約。",
+    "description": "タイ Shopee の価格をレビュー・価格履歴とともに比較。4時間ごとに更新。"
+  },
+  "nav": {
+    "home": "ホーム",
+    "deals": "セール",
+    "categories": "カテゴリー",
+    "best": "人気商品",
+    "about": "概要",
+    "search": "検索",
+    "alerts": "価格アラート",
+    "account": "アカウント"
+  },
+  "hero": {
+    "h1_a": "買う前に価格をチェック",
+    "h1_b": "毎回節約",
+    "sub": "タイ Shopee の数百万商品から価格を比較",
+    "sub2": "4時間ごとに更新 · 無料 · 登録不要",
+    "search_placeholder": "商品を検索 例: iPhone 16 Pro Max",
+    "popular": "人気",
+    "popular_chips": ["イヤホン", "モバイルバッテリー", "スマホケース", "エアフライヤー", "日焼け止め"]
+  },
+  "trust": {
+    "products_tracked": "件の商品を追跡",
+    "updates_every": "4時間ごとに更新",
+    "last_update": "最終更新",
+    "free": "100% 無料",
+    "free_sub": "登録不要・カード情報の収集なし",
+    "verified": "Shopee アフィリエイトパートナー",
+    "max_discount": "本日の最大割引"
+  },
+  "sections": {
+    "hot_deals_eyebrow": "セール",
+    "hot_deals_title": "本日のホットセール",
+    "hot_deals_sub": "本日の最大値下げ — タイ Shopee リアルタイム",
+    "categories_eyebrow": "カテゴリー",
+    "categories_title": "人気のカテゴリー",
+    "top_eyebrow": "おすすめ",
+    "top_title": "レビュー数の多い商品",
+    "view_all": "すべて表示"
+  },
+  "card": {
+    "check_price": "Shopee で見る",
+    "all_time_low": "90日間の最安値",
+    "updated_ago": "{time}前に更新",
+    "sold": "販売数",
+    "rating_count": "レビュー"
+  },
+  "empty": {
+    "title": "レビューはまだありません",
+    "desc": "初回データを収集中です。しばらくしてからご確認ください。"
+  },
+  "footer": {
+    "products_col": "商品",
+    "products_links": ["全カテゴリー", "本日の値下げ", "人気商品", "価格アラート"],
+    "service_col": "サービス",
+    "service_links": ["使い方", "よくある質問", "お問い合わせ"],
+    "company_col": "会社",
+    "company_links": ["概要", "採用情報", "アフィリエイト開示"],
+    "legal_col": "法的事項",
+    "legal_links": ["プライバシーポリシー", "利用規約"],
+    "disclosure": "PriceTH はリンク経由でコミッションを受け取る場合がありますが、お客様の支払額に変動はありません。",
+    "ai_note": "一部の要約は実際のレビューと購入者データから AI で生成されています。",
+    "copyright": "© {year} PriceTH"
+  }
+}

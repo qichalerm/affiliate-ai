@@ -1,150 +1,67 @@
 ---
-import BaseLayout from "../layouts/BaseLayout.astro";
-import ProductCard from "../components/ProductCard.astro";
-import SubscribeForm from "../components/SubscribeForm.astro";
-import EmptyState from "../components/EmptyState.astro";
-import { getTopProducts, getDealsToday } from "../lib/queries";
-import { getAllActiveCategories } from "../lib/queries-categories";
-
-let topProducts: Awaited<ReturnType<typeof getTopProducts>> = [];
-let deals: Awaited<ReturnType<typeof getDealsToday>> = [];
-let categories: Awaited<ReturnType<typeof getAllActiveCategories>> = [];
-
-try {
-  [topProducts, deals, categories] = await Promise.all([
-    getTopProducts(24),
-    getDealsToday(8),
-    getAllActiveCategories(),
-  ]);
-} catch (err) {
-  console.warn("homepage: failed to load data", err);
-}
-
-// Filter to top-level + with products
-const topCategories = categories.filter((c) => c.depth <= 1 && c.productCount >= 3).slice(0, 12);
+/**
+ * Root entry point — redirects to the user's preferred language.
+ *
+ * Detection order (in priority):
+ *   1. Cloudflare Worker at edge (handles geo + cookie BEFORE this page is even served)
+ *      → see workers/lang-redirect.ts
+ *   2. Fallback (this page): client-side detection via cookie + navigator.language
+ *      → ensures site works even when Worker isn't deployed
+ *
+ * Server emits a static HTML stub with <meta refresh> + <noscript> redirect to /en/
+ * so search engines and JS-disabled browsers always land somewhere sensible.
+ */
 ---
 
-<BaseLayout
-  title="DealFinder — เปรียบเทียบราคา + รีวิวสินค้า Shopee + Lazada"
-  description="รวมดีลและรีวิวสินค้า IT/Gadget จาก Shopee + Lazada อัพเดทราคาทุก 6 ชั่วโมง พร้อมเปรียบเทียบราคาข้ามแพลตฟอร์ม"
->
-  <section class="container-page py-10 sm:py-14">
-    <div class="max-w-3xl">
-      <h1 class="text-3xl font-bold leading-tight sm:text-5xl">
-        หาดีลที่ดีที่สุด <span class="text-brand-600">ก่อน</span> กดซื้อ
-      </h1>
-      <p class="mt-4 text-base text-slate-600 dark:text-slate-400 sm:text-lg">
-        เปรียบเทียบราคา <strong>Shopee + Lazada</strong> ในที่เดียว ·
-        ตรวจสเปก · อ่านรีวิวจริง · ดูประวัติราคา · ระบบอัพเดทราคาทุก 6 ชั่วโมง
-      </p>
-    </div>
-  </section>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PriceTH — Compare Shopee Thailand prices</title>
+    <meta name="description" content="Compare Shopee Thailand prices with reviews and price history. Updated every 4 hours." />
+    <link rel="alternate" hreflang="th" href="https://price-th.com/th/" />
+    <link rel="alternate" hreflang="en" href="https://price-th.com/en/" />
+    <link rel="alternate" hreflang="zh" href="https://price-th.com/zh/" />
+    <link rel="alternate" hreflang="ja" href="https://price-th.com/ja/" />
+    <link rel="alternate" hreflang="x-default" href="https://price-th.com/en/" />
+    <meta name="robots" content="noindex,follow" />
+    <link rel="canonical" href="https://price-th.com/en/" />
 
-  {deals.length > 0 && (
-    <section class="container-page pb-12">
-      <div class="mb-4 flex items-end justify-between">
-        <h2 class="text-2xl font-bold">🔥 ดีลร้อนวันนี้</h2>
-        <a href="/best" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
-      </div>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {deals.map((p) => (
-          <ProductCard
-            slug={p.slug}
-            name={p.name}
-            brand={p.brand}
-            primaryImage={p.primaryImage}
-            currentPrice={p.currentPrice}
-            originalPrice={p.originalPrice}
-            discountPercent={p.discountPercent}
-            rating={p.rating}
-            ratingCount={p.ratingCount}
-            soldCount={p.soldCount}
-            isMall={p.isMall}
-          />
-        ))}
-      </div>
-    </section>
-  )}
+    <!-- Fallback: send unknown / no-JS clients to English after 0s -->
+    <meta http-equiv="refresh" content="0; url=/en/" />
 
-  {topCategories.length > 0 && (
-    <section class="container-page pb-12">
-      <h2 class="mb-4 text-2xl font-bold">หมวดสินค้ายอดนิยม</h2>
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {topCategories.map((c) => (
-          <a
-            href={`/หมวด/${c.slug}`}
-            class="card group block text-center transition hover:-translate-y-0.5 hover:border-brand-500 hover:shadow-md"
-          >
-            <h3 class="text-sm font-semibold group-hover:text-brand-600">{c.nameTh}</h3>
-            {c.productCount > 0 && (
-              <p class="mt-0.5 text-xs text-slate-500">{c.productCount} รายการ</p>
-            )}
-          </a>
-        ))}
-      </div>
-    </section>
-  )}
-
-  {topProducts.length > 0 ? (
-    <section class="container-page pb-16">
-      <div class="mb-4 flex items-end justify-between">
-        <h2 class="text-2xl font-bold">⭐ รีวิวสินค้ายอดนิยม</h2>
-        <a href="/best" class="text-sm text-brand-600 hover:underline">ดูทั้งหมด →</a>
-      </div>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {topProducts.map((p) => (
-          <ProductCard
-            slug={p.slug}
-            name={p.name}
-            brand={p.brand}
-            primaryImage={p.primaryImage}
-            currentPrice={p.currentPrice}
-            originalPrice={p.originalPrice}
-            discountPercent={p.discountPercent}
-            rating={p.rating}
-            ratingCount={p.ratingCount}
-            soldCount={p.soldCount}
-            isMall={p.isMall}
-          />
-        ))}
-      </div>
-    </section>
-  ) : (
-    <section class="container-page pb-16">
-      <EmptyState
-        icon="🌱"
-        title="ยังไม่มีรีวิวสินค้า"
-        description="ระบบกำลังเก็บข้อมูลรอบแรก พบกันใหม่ในไม่ช้า — สมัครรับอีเมลเพื่อให้เราแจ้งเตือนเมื่อมีดีลใหม่"
-      />
-    </section>
-  )}
-
-  <section class="container-page pb-12">
-    <SubscribeForm source="homepage_footer" variant="card" />
-  </section>
-
-  <section class="container-page pb-16">
-    <div class="card bg-gradient-to-br from-brand-50 to-white dark:from-slate-800 dark:to-slate-900">
-      <div class="grid gap-6 sm:grid-cols-3">
-        <div>
-          <p class="text-2xl font-bold text-brand-600">2 แพลตฟอร์ม</p>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Shopee + Lazada เปรียบเทียบราคาในหน้าเดียว
-          </p>
-        </div>
-        <div>
-          <p class="text-2xl font-bold text-brand-600">ทุก 6 ชม.</p>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            ระบบอัพเดทราคาและสต็อกอัตโนมัติ
-          </p>
-        </div>
-        <div>
-          <p class="text-2xl font-bold text-brand-600">รีวิวจริง</p>
-          <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            จากผู้ซื้อจริง — ไม่ใช่บทความที่จ้างเขียน
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-</BaseLayout>
+    <script is:inline>
+      (function () {
+        try {
+          var SUPPORTED = ["th", "en", "zh", "ja"];
+          // 1. Saved choice wins
+          var saved = (document.cookie.match(/(^| )lang=([^;]+)/) || [])[2];
+          if (saved && SUPPORTED.indexOf(saved) > -1) {
+            location.replace("/" + saved + "/");
+            return;
+          }
+          // 2. Browser language → map to supported
+          var nav = (navigator.languages && navigator.languages[0]) || navigator.language || "en";
+          nav = nav.toLowerCase();
+          var lang = "en";
+          if (nav.indexOf("th") === 0) lang = "th";
+          else if (nav.indexOf("zh") === 0) lang = "zh";
+          else if (nav.indexOf("ja") === 0) lang = "ja";
+          // 3. Persist + redirect
+          document.cookie = "lang=" + lang + "; path=/; max-age=31536000; SameSite=Lax";
+          location.replace("/" + lang + "/");
+        } catch (_) {
+          location.replace("/en/");
+        }
+      })();
+    </script>
+  </head>
+  <body style="font-family:system-ui,sans-serif;padding:2rem;text-align:center;color:#475569">
+    <p>Loading PriceTH…</p>
+    <noscript>
+      <p><a href="/en/">Continue to PriceTH (English) →</a></p>
+      <p><a href="/th/">เข้าสู่ PriceTH (ภาษาไทย) →</a></p>
+    </noscript>
+  </body>
+</html>

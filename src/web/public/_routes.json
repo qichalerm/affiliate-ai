@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "description": "Route only the root path through the Pages Function (geo-redirect). Everything else served as static assets.",
+  "include": ["/"],
+  "exclude": []
+}

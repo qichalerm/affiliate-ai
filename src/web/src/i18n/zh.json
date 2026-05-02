@@ -1,0 +1,72 @@
+{
+  "lang": "zh",
+  "langName": "中文",
+  "dir": "ltr",
+  "site": {
+    "brand": "PriceTH",
+    "tagline": "购物前先比价 · 每次都省钱",
+    "description": "比较泰国 Shopee 价格,附评论与价格历史,每 4 小时更新一次。"
+  },
+  "nav": {
+    "home": "首页",
+    "deals": "热门优惠",
+    "categories": "分类",
+    "best": "热门商品",
+    "about": "关于我们",
+    "search": "搜索",
+    "alerts": "价格提醒",
+    "account": "账户"
+  },
+  "hero": {
+    "h1_a": "购物前先比价",
+    "h1_b": "每次都省钱",
+    "sub": "比较泰国 Shopee 数百万件商品的价格",
+    "sub2": "每 4 小时更新 · 免费 · 无需注册",
+    "search_placeholder": "搜索商品,例如 iPhone 16 Pro Max",
+    "popular": "热搜",
+    "popular_chips": ["耳机", "充电宝", "手机壳", "空气炸锅", "防晒霜"]
+  },
+  "trust": {
+    "products_tracked": "件商品已追踪",
+    "updates_every": "每 4 小时更新",
+    "last_update": "最近更新",
+    "free": "100% 免费",
+    "free_sub": "无需注册 · 不收集银行卡信息",
+    "verified": "Shopee 联盟合作伙伴",
+    "max_discount": "今日最大折扣"
+  },
+  "sections": {
+    "hot_deals_eyebrow": "热门优惠",
+    "hot_deals_title": "今日热门优惠",
+    "hot_deals_sub": "最大降价 — 来自泰国 Shopee 实时数据",
+    "categories_eyebrow": "分类",
+    "categories_title": "热门分类",
+    "top_eyebrow": "推荐",
+    "top_title": "评论最多的商品",
+    "view_all": "查看全部"
+  },
+  "card": {
+    "check_price": "在 Shopee 查看",
+    "all_time_low": "90 天内最低价",
+    "updated_ago": "{time}前更新",
+    "sold": "已售",
+    "rating_count": "条评论"
+  },
+  "empty": {
+    "title": "暂无评论",
+    "desc": "正在收集首批数据,请稍后再来。"
+  },
+  "footer": {
+    "products_col": "商品",
+    "products_links": ["所有分类", "今日降价", "热卖商品", "降价提醒"],
+    "service_col": "服务",
+    "service_links": ["使用说明", "常见问题", "联系我们"],
+    "company_col": "公司",
+    "company_links": ["关于我们", "加入我们", "联盟披露"],
+    "legal_col": "法律",
+    "legal_links": ["隐私政策", "使用条款"],
+    "disclosure": "PriceTH 可能从您的点击中获得佣金 — 您支付的价格不会改变。",
+    "ai_note": "部分摘要由 AI 根据真实评论与买家数据生成。",
+    "copyright": "© {year} PriceTH"
+  }
+}
