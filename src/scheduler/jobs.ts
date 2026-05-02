@@ -203,23 +203,34 @@ export async function jobGeneratePages(maxPages = 50): Promise<void> {
 }
 
 /**
- * Spawns `bun run build:pages` in detached mode so the cron job returns quickly
- * while Astro+wrangler runs in the background. Logs success/failure via systemd journal.
+ * Spawns `bun run build:pages` so the cron job returns quickly while
+ * Astro+wrangler runs to completion. Output is piped to a log file
+ * (was previously stdio:'ignore' which silently swallowed errors when
+ * `bun` wasn't on the systemd PATH — easy footgun, fixed).
  */
 async function triggerSiteRebuild(reason: number | string): Promise<void> {
   log.info({ reason }, "▶ triggering site rebuild + deploy");
   const { spawn } = await import("node:child_process");
-  const proc = spawn("bun", ["run", "build:pages"], {
+  const { openSync, mkdirSync } = await import("node:fs");
+
+  // systemd doesn't put /root/.bun/bin on PATH; use absolute path so spawn doesn't ENOENT.
+  const BUN = "/root/.bun/bin/bun";
+  const LOG_DIR = "/root/research-2/logs";
+  try { mkdirSync(LOG_DIR, { recursive: true }); } catch {}
+  const logPath = `${LOG_DIR}/auto-rebuild-${Date.now()}.log`;
+  const out = openSync(logPath, "a");
+
+  const proc = spawn(BUN, ["run", "build:pages"], {
     cwd: "/root/research-2",
     env: process.env,
     detached: true,
-    stdio: "ignore",
+    stdio: ["ignore", out, out],
   });
-  proc.unref(); // allow parent to exit even if child still running
+  proc.unref();
   proc.on("error", (err) => {
-    log.error({ err: errMsg(err) }, "site rebuild spawn failed");
+    log.error({ err: errMsg(err), logPath }, "site rebuild spawn failed");
   });
-  log.info({ pid: proc.pid }, "site rebuild spawned (background)");
+  log.info({ pid: proc.pid, logPath }, "site rebuild spawned (background)");
 }
 
 /* ===================================================================
