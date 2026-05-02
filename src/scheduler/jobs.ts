@@ -322,6 +322,9 @@ export async function jobGenerateComparisons(maxPages = 15): Promise<void> {
     }
   }
   log.info({ success, failed, totalCost: totalCost.toFixed(4) }, "comparisons done");
+
+  // New comparison pages are static — must rebuild to surface them on the live site.
+  if (success > 0) await triggerSiteRebuild(`comparisons:${success}`);
 }
 
 /* ===================================================================
@@ -331,6 +334,9 @@ export async function jobGenerateComparisons(maxPages = 15): Promise<void> {
 export async function jobGenerateBestOf(): Promise<void> {
   const result = await generateAllBestOfPages();
   log.info(result, "best-of pages done");
+
+  // Best-of lists are static pages at /ของดี/{slug} — rebuild so new ones appear.
+  await triggerSiteRebuild("best-of");
 }
 
 /* ===================================================================
@@ -440,6 +446,9 @@ export async function jobSitemapAndIndex(): Promise<void> {
 export async function jobRefreshInternalLinks(): Promise<void> {
   const result = await refreshAllInternalLinks();
   log.info(result, "internal links refresh done");
+
+  // Internal links are baked into content_json of static pages — rebuild to apply.
+  await triggerSiteRebuild("internal-links");
 }
 
 /* ===================================================================
