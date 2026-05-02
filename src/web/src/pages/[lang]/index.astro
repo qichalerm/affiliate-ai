@@ -24,8 +24,8 @@ let stats = { productCount: 0, lastUpdate: null as Date | null, maxDiscountPerce
 
 try {
   [topProducts, deals, categories, stats] = await Promise.all([
-    getTopProducts(12),
-    getDealsToday(8),
+    getTopProducts(24),
+    getDealsToday(24),
     getAllActiveCategories(),
     getSiteStats(),
   ]);

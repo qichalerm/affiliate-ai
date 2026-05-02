@@ -1,6 +1,5 @@
 ---
 import BaseLayout from "../../layouts/BaseLayout.astro";
-import PriceTag from "../../components/PriceTag.astro";
 import StarRating from "../../components/StarRating.astro";
 import PlatformBadge from "../../components/PlatformBadge.astro";
 import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
@@ -44,83 +43,125 @@ const affiliateUrl = buildAffiliateUrl({
   shopExternalId: product.shopExternalId,
   subId,
 });
-const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(product.platform)}`;
+const ctaLabel = `ดูราคาที่ ${platformLabel(product.platform)}`;
+
+function formatBaht(satang: number | null | undefined): string {
+  if (!satang || satang <= 0) return "—";
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(satang / 100);
+}
+
+const discountPct = product.discountPercent ? Math.round(product.discountPercent * 100) : 0;
 ---
 
 <BaseLayout
+  lang="th"
   title={page.title}
   description={page.metaDescription ?? undefined}
   ogImage={page.ogImage ?? product.primaryImage ?? undefined}
   jsonLd={page.schemaJsonLd ?? undefined}
 >
-  <article class="container-page py-8">
-    <nav class="mb-4 text-sm text-slate-500">
-      <a href="/" class="hover:text-brand-600">หน้าแรก</a>
-      <span class="mx-2">/</span>
-      <span>รีวิว</span>
+  <article class="container-page py-6 sm:py-10 pb-28 sm:pb-10">
+    <!-- Breadcrumb -->
+    <nav class="mb-4 flex items-center gap-1.5 text-xs sm:text-sm text-ink-500 overflow-x-auto scrollbar-none whitespace-nowrap">
+      <a href="/th/" class="hover:text-brand-600">หน้าแรก</a>
+      <span class="text-ink-300">/</span>
+      <a href="/th/best/" class="hover:text-brand-600">รีวิว</a>
+      <span class="text-ink-300">/</span>
+      <span class="text-ink-700 dark:text-ink-300 truncate">{product.brand ?? product.name.slice(0, 30)}</span>
     </nav>
 
-    <div class="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <div>
-        <div class="mb-2 flex items-center gap-2">
+    <div class="grid gap-6 sm:gap-8 lg:grid-cols-[1fr_360px]">
+      <!-- Main column -->
+      <div class="min-w-0">
+        <!-- Title block -->
+        <div class="flex items-center gap-2 flex-wrap mb-3">
           <PlatformBadge platform={product.platform} />
           {product.brand && (
-            <span class="text-sm uppercase tracking-wider text-brand-600">{product.brand}</span>
+            <span class="text-xs uppercase tracking-wider font-semibold text-brand-600">{product.brand}</span>
+          )}
+          {discountPct > 0 && (
+            <span class="badge-deal">−{discountPct}%</span>
           )}
         </div>
-        <h1 class="text-2xl font-bold leading-tight sm:text-3xl">{page.h1 ?? product.name}</h1>
 
-        <div class="mt-3 flex flex-wrap items-center gap-4">
+        <h1 class="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-ink-900 dark:text-ink-50 text-balance">
+          {page.h1 ?? product.name}
+        </h1>
+
+        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <StarRating rating={product.rating} count={product.ratingCount} />
           {product.soldCount != null && product.soldCount > 0 && (
-            <span class="text-sm text-slate-500">ขายแล้ว {compactCount(product.soldCount)}</span>
+            <span class="text-ink-500">ขายแล้ว {compactCount(product.soldCount)}</span>
           )}
           {product.isMall && product.platform === "shopee" && (
-            <span class="rounded bg-red-600 px-2 py-0.5 text-xs font-bold text-white">
-              Shopee Mall
-            </span>
+            <span class="rounded bg-deal-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Shopee Mall</span>
           )}
           {product.isMall && product.platform === "lazada" && (
-            <span class="rounded bg-indigo-700 px-2 py-0.5 text-xs font-bold text-white">
-              LazMall
-            </span>
+            <span class="rounded bg-indigo-700 px-2 py-0.5 text-[10px] font-bold uppercase text-white">LazMall</span>
           )}
         </div>
 
+        <!-- Hero image -->
         {product.primaryImage && (
-          <div class="mt-6 overflow-hidden rounded-2xl bg-slate-100 dark:bg-slate-800">
+          <div class="mt-5 overflow-hidden rounded-2xl bg-ink-100 dark:bg-ink-800 aspect-square sm:aspect-[4/3]">
             <img
               src={product.primaryImage}
               alt={product.name}
-              class="aspect-square w-full object-cover"
+              class="h-full w-full object-cover"
               loading="eager"
               fetchpriority="high"
             />
           </div>
         )}
 
-        {content.verdict && (
-          <section class="mt-8 card border-l-4 border-l-brand-500">
-            <h2 class="mb-2 text-lg font-semibold">สรุปก่อนตัดสินใจซื้อ</h2>
-            <p class="prose-th">{content.verdict.text}</p>
+        <!-- Mobile-only quick price + CTA shown right after image -->
+        <div class="lg:hidden mt-4 card p-5 flex items-center justify-between gap-3">
+          <div>
+            <p class="text-[10px] uppercase tracking-wider text-ink-500">ราคา</p>
+            <div class="flex items-baseline gap-2 mt-0.5">
+              <span class="price text-2xl font-bold text-ink-900 dark:text-ink-50">฿{formatBaht(product.currentPrice)}</span>
+              {product.originalPrice && product.currentPrice && product.originalPrice > product.currentPrice && (
+                <span class="price text-xs text-ink-400 line-through">฿{formatBaht(product.originalPrice)}</span>
+              )}
+            </div>
+          </div>
+          {affiliateUrl && (
+            <a href={affiliateUrl} rel="nofollow sponsored noopener" target="_blank"
+               class="btn-primary text-sm shrink-0">
+              {ctaLabel} →
+            </a>
+          )}
+        </div>
 
-            <div class="mt-4 grid gap-3 sm:grid-cols-2">
-              {content.verdict.pros?.length > 0 && (
+        <!-- Verdict -->
+        {content.verdict && (
+          <section class="mt-8 card p-5 sm:p-6 border-l-4 border-l-brand-500">
+            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50">สรุปก่อนตัดสินใจ</h2>
+            <p class="mt-2 prose-th">{content.verdict.text}</p>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+              {content.verdict.pros && content.verdict.pros.length > 0 && (
                 <div>
-                  <h3 class="text-sm font-semibold text-emerald-700 dark:text-emerald-400">ข้อดี</h3>
-                  <ul class="mt-1 space-y-1 text-sm">
+                  <h3 class="text-sm font-bold text-success-700 dark:text-success-400 flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path d="m5 12 5 5 9-11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    ข้อดี
+                  </h3>
+                  <ul class="mt-2 space-y-1.5 text-sm text-ink-700 dark:text-ink-300">
                     {content.verdict.pros.map((p) => (
-                      <li class="flex gap-2"><span>+</span><span>{p}</span></li>
+                      <li class="flex gap-2"><span class="text-success-500 shrink-0 mt-0.5">+</span><span>{p}</span></li>
                     ))}
                   </ul>
                 </div>
               )}
-              {content.verdict.cons?.length > 0 && (
+              {content.verdict.cons && content.verdict.cons.length > 0 && (
                 <div>
-                  <h3 class="text-sm font-semibold text-rose-700 dark:text-rose-400">ข้อจำกัด</h3>
-                  <ul class="mt-1 space-y-1 text-sm">
+                  <h3 class="text-sm font-bold text-deal-600 flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                    ข้อจำกัด
+                  </h3>
+                  <ul class="mt-2 space-y-1.5 text-sm text-ink-700 dark:text-ink-300">
                     {content.verdict.cons.map((c) => (
-                      <li class="flex gap-2"><span>−</span><span>{c}</span></li>
+                      <li class="flex gap-2"><span class="text-deal-600 shrink-0 mt-0.5">−</span><span>{c}</span></li>
                     ))}
                   </ul>
                 </div>
@@ -128,12 +169,12 @@ const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(
             </div>
 
             {(content.verdict.best_for || content.verdict.skip_if) && (
-              <div class="mt-4 grid gap-2 rounded-lg bg-slate-50 p-4 text-sm dark:bg-slate-800/40 sm:grid-cols-2">
+              <div class="mt-5 grid gap-2 rounded-xl bg-ink-50 p-4 text-sm dark:bg-ink-800/40 sm:grid-cols-2">
                 {content.verdict.best_for && (
-                  <p><strong>เหมาะสำหรับ:</strong> {content.verdict.best_for}</p>
+                  <p><strong class="text-ink-900 dark:text-ink-50">เหมาะสำหรับ:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.best_for}</span></p>
                 )}
                 {content.verdict.skip_if && (
-                  <p><strong>ข้ามไปก่อน ถ้า:</strong> {content.verdict.skip_if}</p>
+                  <p><strong class="text-ink-900 dark:text-ink-50">ข้ามไปก่อน ถ้า:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.skip_if}</span></p>
                 )}
               </div>
             )}
@@ -158,13 +199,13 @@ const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(
 
         {content.specs && Object.keys(content.specs).length > 0 && (
           <section class="mt-8">
-            <h2 class="mb-3 text-lg font-semibold">สเปกสำคัญ</h2>
-            <div class="card">
+            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50 mb-3">สเปกสำคัญ</h2>
+            <div class="card p-5 sm:p-6">
               <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                 {Object.entries(content.specs).slice(0, 16).map(([k, v]) => (
-                  <div class="flex justify-between gap-4 border-b border-slate-100 py-1 dark:border-slate-800">
-                    <dt class="text-slate-500">{k}</dt>
-                    <dd class="text-right font-medium text-slate-900 dark:text-slate-100">{v}</dd>
+                  <div class="flex justify-between gap-3 border-b border-ink-100 py-1.5 dark:border-ink-800 min-w-0">
+                    <dt class="text-ink-500 shrink-0">{k}</dt>
+                    <dd class="text-right font-medium text-ink-900 dark:text-ink-50 truncate">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -180,15 +221,17 @@ const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(
 
         {reviews.length > 0 && (
           <section class="mt-8">
-            <h2 class="mb-3 text-lg font-semibold">รีวิวจากผู้ซื้อจริง ({reviews.length})</h2>
+            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50 mb-3">
+              รีวิวจากผู้ซื้อจริง <span class="text-sm font-normal text-ink-500">({reviews.length})</span>
+            </h2>
             <div class="space-y-3">
               {reviews.map((r) => (
-                <div class="card">
-                  <div class="mb-1 flex items-center gap-2 text-sm">
+                <div class="card p-4">
+                  <div class="mb-2 flex items-center gap-2 text-sm">
                     <StarRating rating={r.rating ?? 0} size="sm" />
-                    <span class="text-slate-500">— {r.reviewerNameMasked ?? "ผู้ใช้"}</span>
+                    <span class="text-ink-500">— {r.reviewerNameMasked ?? "ผู้ใช้"}</span>
                   </div>
-                  <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{r.body}</p>
+                  <p class="text-sm leading-relaxed text-ink-700 dark:text-ink-300 break-words">{r.body}</p>
                 </div>
               ))}
             </div>
@@ -196,56 +239,77 @@ const ctaLabel = `ดูราคาล่าสุดที่ ${platformLabel(
         )}
 
         {content.faqs && content.faqs.length > 0 && (
-          <FaqAccordion faqs={content.faqs} />
+          <section class="mt-8">
+            <FaqAccordion faqs={content.faqs} />
+          </section>
         )}
 
         {content.relatedLinks && content.relatedLinks.length > 0 && (
-          <RelatedLinks links={content.relatedLinks} />
+          <section class="mt-8">
+            <RelatedLinks links={content.relatedLinks} />
+          </section>
         )}
 
-        <p class="mt-8 text-xs text-slate-500">
-          * ข้อมูลราคาและรีวิวรวบรวมจาก {platformLabel(product.platform)} เป็นระยะ
-          เนื้อหาสรุปบางส่วนสร้างโดย AI จากข้อมูลจริง
-          เราอาจได้รับค่าคอมเมื่อคุณซื้อผ่านลิงก์ในเนื้อหา
+        <p class="mt-10 text-xs text-ink-500 leading-relaxed">
+          * ข้อมูลราคาและรีวิวรวบรวมจาก {platformLabel(product.platform)} อัปเดตทุก 4 ชั่วโมง
+          เนื้อหาสรุปบางส่วนสร้างโดย AI จากรีวิวผู้ซื้อจริง
+          PriceTH อาจได้รับค่าคอมมิชชั่นเมื่อคุณซื้อผ่านลิงก์ — ราคาที่คุณจ่ายไม่เปลี่ยน
         </p>
       </div>
 
-      <aside class="lg:sticky lg:top-6 lg:self-start">
-        <div class="card">
-          <PriceTag
-            current={product.currentPrice}
-            original={product.originalPrice}
-            discountPercent={product.discountPercent}
-            size="lg"
-          />
-          {product.shopName && (
-            <p class="mt-2 text-sm text-slate-500">
-              ขายโดย <span class="font-medium text-slate-700 dark:text-slate-300">{product.shopName}</span>
-            </p>
-          )}
-          <div class="mt-4">
-            {affiliateUrl ? (
-              <a
-                href={affiliateUrl}
-                rel="nofollow sponsored noopener"
-                target="_blank"
-                class="btn-primary group w-full"
-                data-affiliate-link
-                data-platform={product.platform}
-                data-item-id={product.externalId}
-              >
-                {ctaLabel}
-                <span class="ml-2 transition group-hover:translate-x-0.5">→</span>
-              </a>
-            ) : (
-              <p class="text-sm text-slate-500">ลิงก์ affiliate ไม่พร้อม</p>
+      <!-- Desktop sidebar (sticky) -->
+      <aside class="hidden lg:block lg:sticky lg:top-20 lg:self-start">
+        <div class="card p-6">
+          <p class="text-[10px] uppercase tracking-wider text-ink-500">ราคาปัจจุบัน</p>
+          <div class="mt-1 flex items-baseline gap-2 flex-wrap">
+            <span class="price text-3xl font-bold text-ink-900 dark:text-ink-50">฿{formatBaht(product.currentPrice)}</span>
+            {product.originalPrice && product.currentPrice && product.originalPrice > product.currentPrice && (
+              <>
+                <span class="price text-sm text-ink-400 line-through">฿{formatBaht(product.originalPrice)}</span>
+                {discountPct > 0 && <span class="badge-deal">−{discountPct}%</span>}
+              </>
             )}
           </div>
-          <p class="mt-3 text-center text-xs text-slate-500">
-            ราคาอาจเปลี่ยนแปลง — ตรวจสอบอีกครั้งบนหน้าร้าน
+
+          {product.shopName && (
+            <p class="mt-3 text-sm text-ink-500">
+              ขายโดย <span class="font-medium text-ink-700 dark:text-ink-300">{product.shopName}</span>
+            </p>
+          )}
+
+          {affiliateUrl ? (
+            <a href={affiliateUrl} rel="nofollow sponsored noopener" target="_blank"
+               class="btn-primary-lg w-full mt-5"
+               data-affiliate-link data-platform={product.platform} data-item-id={product.externalId}>
+              {ctaLabel}
+              <span class="ml-1">→</span>
+            </a>
+          ) : (
+            <p class="mt-5 text-sm text-ink-500">ลิงก์ไม่พร้อม</p>
+          )}
+
+          <p class="mt-3 text-center text-[11px] text-ink-500">
+            ราคาอาจเปลี่ยนแปลง — ตรวจอีกครั้งบนหน้าร้าน
           </p>
+
+          <div class="mt-5 pt-5 border-t border-ink-200 dark:border-ink-800 space-y-1.5 text-xs text-ink-500">
+            <p>✓ ราคาอัปเดตทุก 4 ชม.</p>
+            <p>✓ Shopee Affiliate Partner</p>
+            <p>✓ ราคาคุณไม่เปลี่ยน — เราได้ค่าคอม</p>
+          </div>
         </div>
       </aside>
     </div>
   </article>
+
+  <!-- Mobile sticky bottom CTA — sits ABOVE the bottom-nav (which has its own h-14) -->
+  {affiliateUrl && (
+    <div class="lg:hidden fixed bottom-[60px] left-0 right-0 z-30 border-t border-ink-200 bg-white/95 backdrop-blur-lg px-4 py-2.5 dark:border-ink-800 dark:bg-ink-950/95"
+         style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">
+      <a href={affiliateUrl} rel="nofollow sponsored noopener" target="_blank"
+         class="btn-primary-lg w-full text-base">
+        ฿{formatBaht(product.currentPrice)} · {ctaLabel} →
+      </a>
+    </div>
+  )}
 </BaseLayout>

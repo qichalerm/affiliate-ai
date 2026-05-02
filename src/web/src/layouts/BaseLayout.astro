@@ -27,6 +27,18 @@ const alternates = SUPPORTED_LANGS.map((l) => {
   const path = Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") || "/";
   return { lang: l, href: `${site}/${l}${path}` };
 });
+
+// Detect Thai-only paths (review pages, categories, comparisons, etc).
+// These don't have multi-lang versions, so the language switcher should send the
+// user to the localized HOME instead of building a 404 URL like /zh/รีวิว/iphone.
+// Astro emits Thai pathnames URL-encoded (%E0%B8...) at build time, so decode first.
+const THAI_ONLY_PREFIXES = ["/รีวิว", "/หมวด", "/ราคา", "/ของดี", "/เปรียบเทียบ"];
+const decodedPath = (() => {
+  try { return decodeURIComponent(Astro.url.pathname); } catch { return Astro.url.pathname; }
+})();
+const stripped = decodedPath.replace(/^\/(th|en|zh|ja)/, "");
+const isThaiOnlyPath = THAI_ONLY_PREFIXES.some((p) => stripped.startsWith(p));
+const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
 ---
 
 <!doctype html>
@@ -124,7 +136,7 @@ const alternates = SUPPORTED_LANGS.map((l) => {
             </summary>
             <div class="absolute right-0 mt-2 w-44 rounded-xl border border-ink-200 bg-white py-1 shadow-lift z-50 dark:border-ink-800 dark:bg-ink-900">
               {SUPPORTED_LANGS.map((l) => (
-                <a href={localePath(l, Astro.url.pathname.replace(/^\/(th|en|zh|ja)/, "") || "/")}
+                <a href={localePath(l, switcherTargetPath)}
                    class={`flex items-center gap-3 px-3 py-2 text-sm hover:bg-ink-50 dark:hover:bg-ink-800 ${l === lang ? "font-semibold text-brand-600" : "text-ink-700 dark:text-ink-200"}`}>
                   <span class="text-base">{LANG_LABELS[l].flag}</span>
                   <span>{LANG_LABELS[l].name}</span>

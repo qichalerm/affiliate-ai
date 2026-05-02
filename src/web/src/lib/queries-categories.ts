@@ -12,6 +12,8 @@ export interface CategoryRow {
 }
 
 export async function getAllActiveCategories(): Promise<CategoryRow[]> {
+  // productCount = any active product in this category (no longer requires a published
+  // content_page, since most Apify-scraped products link out directly to Shopee).
   return db.execute<CategoryRow>(sql`
     SELECT c.id, c.slug, c.name_th AS "nameTh", c.name_en AS "nameEn",
            c.parent_id AS "parentId", c.depth,
@@ -19,9 +21,6 @@ export async function getAllActiveCategories(): Promise<CategoryRow[]> {
              WHERE p.category_id = c.id
                AND p.is_active = true
                AND p.flag_blacklisted = false
-               AND EXISTS (SELECT 1 FROM content_pages cp
-                            WHERE cp.primary_product_id = p.id
-                              AND cp.status = 'published')
            ) AS "productCount"
       FROM categories c
      WHERE c.is_active = true
@@ -55,31 +54,38 @@ export interface CategoryProduct {
   ratingCount: number | null;
   soldCount: number | null;
   isMall: boolean;
+  externalId: string;
+  shopExternalId: string | null;
+  hasReviewPage: boolean;
 }
 
 export async function getTopProductsInCategory(
   categoryId: number,
   limit = 24,
 ): Promise<CategoryProduct[]> {
+  // Returns ANY active product in the category (was filtered to "with published page",
+  // but most Apify-sourced products don't have pages yet — they fall back to
+  // direct affiliate URLs via bestProductLink).
   return db.execute<CategoryProduct>(sql`
     SELECT p.id, p.slug, p.platform::text AS platform,
            p.name, p.brand, p.primary_image AS "primaryImage",
            p.current_price AS "currentPrice", p.original_price AS "originalPrice",
            p.discount_percent AS "discountPercent",
            p.rating, p.rating_count AS "ratingCount", p.sold_count AS "soldCount",
-           COALESCE(s.is_mall, false) AS "isMall"
+           COALESCE(s.is_mall, false) AS "isMall",
+           p.external_id AS "externalId",
+           s.external_id AS "shopExternalId",
+           EXISTS (SELECT 1 FROM content_pages cp WHERE cp.primary_product_id = p.id AND cp.status='published') AS "hasReviewPage"
       FROM products p
       LEFT JOIN shops s ON s.id = p.shop_id
      WHERE p.category_id = ${categoryId}
        AND p.is_active = true
        AND p.flag_blacklisted = false
-       AND p.rating >= 4.0
-       AND EXISTS (
-         SELECT 1 FROM content_pages cp
-          WHERE cp.primary_product_id = p.id AND cp.status = 'published'
-       )
+       AND p.current_price > 0
      ORDER BY p.final_score DESC NULLS LAST,
-              p.sold_count DESC NULLS LAST
+              p.sold_count DESC NULLS LAST,
+              p.rating_count DESC NULLS LAST,
+              p.rating DESC NULLS LAST
      LIMIT ${limit}
   `);
 }
