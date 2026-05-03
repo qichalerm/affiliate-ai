@@ -1,0 +1,24 @@
+[Unit]
+Description=Affiliate-AI scheduler (cron jobs: scrape, promo hunter, learning, daily report, ...)
+Documentation=https://github.com/qichalerm/affiliate-ai
+After=network.target postgresql.service affiliate-ai-redirect.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/affiliate-ai
+ExecStart=/root/.bun/bin/bun run --env-file=/root/affiliate-ai/.env src/scheduler/index.ts
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+KillMode=process
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/root/affiliate-ai
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
