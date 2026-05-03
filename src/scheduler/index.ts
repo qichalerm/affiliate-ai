@@ -14,7 +14,7 @@ import { env, summarizeCapabilities } from "../lib/env.ts";
 import { logger, child } from "../lib/logger.ts";
 import { closeDb, pingDb } from "../lib/db.ts";
 import { errMsg } from "../lib/retry.ts";
-import { jobScrapeTrending } from "./jobs.ts";
+import { jobScrapeTrending, jobLearningOptimizer } from "./jobs.ts";
 
 const log = child("scheduler");
 
@@ -49,6 +49,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: env.CRON_SCRAPE_PRODUCTS,
     description: "Apify Shopee scrape — multi-niche, 4×/day BKK flash sale times",
     handler: jobScrapeTrending,
+  },
+  {
+    name: "learningOptimizer",
+    cron: "0 3 * * *",
+    description: "M9 Learning — aggregate perf, deactivate losers, write insights (03:00 BKK)",
+    handler: jobLearningOptimizer,
   },
 ];
 

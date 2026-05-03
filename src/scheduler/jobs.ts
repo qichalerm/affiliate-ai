@@ -8,6 +8,7 @@
 
 import { runShopeeScrape, BudgetExceededError } from "../scraper/shopee/runner.ts";
 import { pickKeywords } from "../scraper/niches.ts";
+import { runLearningOptimizer } from "../brain/learning.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -57,4 +58,13 @@ export async function jobScrapeTrending(): Promise<void> {
     { totalSucceeded, totalNew, totalCostUsd: totalCost.toFixed(4) },
     "scrapeTrending done",
   );
+}
+
+/**
+ * Nightly Learning Optimizer (M9). Aggregates yesterday's performance,
+ * deactivates underperforming variants, writes insights for next day.
+ */
+export async function jobLearningOptimizer(): Promise<void> {
+  const result = await runLearningOptimizer({ windowDays: 1 });
+  log.info(result, "learningOptimizer done");
 }

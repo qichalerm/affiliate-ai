@@ -533,6 +533,46 @@ export const clicks = pgTable(
 );
 
 /* ===================================================================
+ * INSIGHTS (Sprint 12 — M9)
+ * Nightly snapshots from the Learning Optimizer. Stored so the Brain
+ * can read "what worked yesterday" without recomputing from scratch.
+ * =================================================================== */
+
+export const insights = pgTable(
+  "insights",
+  {
+    id: serial("id").primaryKey(),
+    snapshotDate: varchar("snapshot_date", { length: 10 }).notNull(), // YYYY-MM-DD
+    /** Free-form insight scope: "channel", "niche", "angle", "global", etc. */
+    scope: varchar("scope", { length: 32 }).notNull(),
+    /** Specific dimension within scope: "facebook", "it_gadget", "deal", etc. */
+    dimension: varchar("dimension", { length: 64 }).notNull(),
+
+    // Aggregate metrics for this (scope, dimension) over the snapshot window
+    impressions: integer("impressions").notNull().default(0),
+    clicks: integer("clicks").notNull().default(0),
+    conversions: integer("conversions").notNull().default(0),
+    revenueSatang: bigint("revenue_satang", { mode: "number" }).notNull().default(0),
+    costUsdMicros: bigint("cost_usd_micros", { mode: "number" }).notNull().default(0),
+
+    // Derived metrics (precomputed for fast UI/decision use)
+    ctr: real("ctr"),                 // clicks / impressions
+    conversionRate: real("conversion_rate"),  // conversions / clicks
+    revenuePerImpression: real("revenue_per_impression"),
+    roiRatio: real("roi_ratio"),      // revenue / cost (>1 = profitable)
+
+    /** Free-form structured payload (top variants, samples, anomalies, ...). */
+    payload: jsonb("payload"),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    dateScopeIdx: index("insights_date_scope_idx").on(t.snapshotDate, t.scope),
+    scopeDimIdx: index("insights_scope_dim_idx").on(t.scope, t.dimension, t.snapshotDate),
+  }),
+);
+
+/* ===================================================================
  * ALERTS (operational issues that need attention)
  * =================================================================== */
 
