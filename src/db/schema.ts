@@ -22,10 +22,7 @@ import { relations, sql } from "drizzle-orm";
 
 export const platformEnum = pgEnum("platform", [
   "shopee",
-  "lazada",
   "tiktok_shop",
-  "jd_central",
-  "robinson",
 ]);
 
 export const contentTypeEnum = pgEnum("content_type", [
@@ -35,7 +32,6 @@ export const contentTypeEnum = pgEnum("content_type", [
   "deal",
   "story",
   "guide",
-  "price_compare",
 ]);
 
 export const contentStatusEnum = pgEnum("content_status", [
@@ -268,30 +264,6 @@ export const productReviews = pgTable(
   (t) => ({
     productIdx: index("product_reviews_product_idx").on(t.productId),
     productExtIdx: uniqueIndex("product_reviews_ext_idx").on(t.productId, t.externalId),
-  }),
-);
-
-/* ===================================================================
- * PRICE COMPARISON (cross-platform)
- * =================================================================== */
-
-export const priceCompare = pgTable(
-  "price_compare",
-  {
-    id: serial("id").primaryKey(),
-    primaryProductId: integer("primary_product_id")
-      .references(() => products.id, { onDelete: "cascade" })
-      .notNull(),
-    matchedProductId: integer("matched_product_id")
-      .references(() => products.id, { onDelete: "cascade" })
-      .notNull(),
-    matchConfidence: real("match_confidence").notNull(), // 0..1
-    matchMethod: varchar("match_method", { length: 32 }), // name | image_hash | barcode
-    capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (t) => ({
-    primaryIdx: index("price_compare_primary_idx").on(t.primaryProductId),
-    pairIdx: uniqueIndex("price_compare_pair_idx").on(t.primaryProductId, t.matchedProductId),
   }),
 );
 

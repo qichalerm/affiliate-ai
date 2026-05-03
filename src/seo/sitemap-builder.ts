@@ -104,28 +104,19 @@ export async function buildSitemap(opts: { outputDir?: string } = {}): Promise<{
           ? `/เปรียบเทียบ/${p.slug}`
           : p.type === "best_of"
             ? `/ของดี/${p.slug}`
-            : p.type === "price_compare"
-              ? `/ราคา/${p.slug}` // legacy single-language path
-              : `/${p.slug}`;
+            : `/${p.slug}`;
 
     const lastmod = new Date(p.updated_at).toISOString();
     const changefreq: UrlEntry["changefreq"] =
-      p.type === "best_of" || p.type === "price_compare" ? "weekly" : "monthly";
+      p.type === "best_of" ? "weekly" : "monthly";
     const priority =
       p.type === "best_of"
         ? 0.8
-        : p.type === "price_compare"
-          ? 0.85
-          : p.type === "comparison"
-            ? 0.7
-            : 0.6;
+        : p.type === "comparison"
+          ? 0.7
+          : 0.6;
 
-    if (p.type === "price_compare") {
-      // Legacy single-language; emit one URL only.
-      entries.push({ loc: suffix, lastmod, changefreq, priority });
-    } else {
-      entries.push(...localizedEntries(suffix, lastmod, changefreq, priority));
-    }
+    entries.push(...localizedEntries(suffix, lastmod, changefreq, priority));
   }
 
   log.info({ totalUrls: entries.length }, "building sitemap");

@@ -21,7 +21,6 @@ interface CountsRow {
   pages_review: number;
   pages_comparison: number;
   pages_bestof: number;
-  pages_price_compare: number;
   total_published: number;
 }
 
@@ -49,7 +48,6 @@ async function main() {
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='review')::int AS pages_review,
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='comparison')::int AS pages_comparison,
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='best_of')::int AS pages_bestof,
-        (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='price_compare')::int AS pages_price_compare,
         (SELECT COUNT(*) FROM content_pages WHERE status='published')::int AS total_published
     `),
     db.execute<HealthRow>(sql`
@@ -81,7 +79,6 @@ async function main() {
   lines.push(`  reviews: ${formatNumber(c.pages_review)}`);
   lines.push(`  compare: ${formatNumber(c.pages_comparison)}`);
   lines.push(`  best-of: ${formatNumber(c.pages_bestof)}`);
-  lines.push(`  prices:  ${formatNumber(c.pages_price_compare)}`);
   lines.push("");
   lines.push("🔧 *Operations (24h)*");
   const successRate = h.scrape_24h_total > 0 ? (h.scrape_24h_success / h.scrape_24h_total) * 100 : 0;
