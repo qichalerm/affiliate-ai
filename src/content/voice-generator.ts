@@ -17,6 +17,7 @@ import { sql } from "drizzle-orm";
 import { writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { spawn } from "node:child_process";
 import { db, schema } from "../lib/db.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
@@ -97,11 +98,23 @@ export async function generateVoice(opts: GenerateVoiceOptions): Promise<VoiceRe
   const generationRunId = runRow!.id;
 
   if (dryRun) {
-    // Placeholder — write empty/silent file marker for FFmpeg pipeline test
-    await writeFile(filePath, Buffer.from([0xFF, 0xFB, 0x90, 0x00])); // tiny MP3-ish header
+    // Generate a real silent MP3 of estimated duration so FFmpeg pipeline works.
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn("ffmpeg", [
+        "-y",
+        "-f", "lavfi",
+        "-i", `anullsrc=channel_layout=mono:sample_rate=22050`,
+        "-t", String(estimatedAudioSec),
+        "-c:a", "libmp3lame",
+        "-b:a", "32k",
+        filePath,
+      ], { stdio: "ignore" });
+      proc.on("close", (code) => code === 0 ? resolve() : reject(new Error(`ffmpeg silent MP3 exit ${code}`)));
+      proc.on("error", reject);
+    });
     log.info(
       { generationRunId, fileName, charCount, estimatedAudioSec },
-      "[DRY-RUN] voice placeholder written",
+      "[DRY-RUN] silent MP3 placeholder written",
     );
     await db
       .update(schema.generationRuns)
