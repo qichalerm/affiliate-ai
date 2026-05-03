@@ -2,6 +2,7 @@
 import PriceTag from "./PriceTag.astro";
 import StarRating from "./StarRating.astro";
 import { compactCount } from "../lib/format";
+import { langFromPath, DEFAULT_LANG, type Lang } from "../lib/i18n";
 
 interface Props {
   slug: string;
@@ -15,8 +16,11 @@ interface Props {
   ratingCount?: number | null;
   soldCount?: number | null;
   isMall?: boolean;
+  /** Keeps the review link in the host page's language; auto-detected when omitted. */
+  lang?: Lang;
 }
 
+const inferredLang = langFromPath(Astro.url.pathname) ?? DEFAULT_LANG;
 const {
   slug,
   name,
@@ -29,11 +33,12 @@ const {
   ratingCount,
   soldCount,
   isMall,
+  lang = inferredLang,
 } = Astro.props;
 ---
 
 <a
-  href={`/รีวิว/${slug}`}
+  href={`/${lang}/รีวิว/${slug}`}
   class="card group block transition hover:-translate-y-0.5 hover:shadow-md"
 >
   <div class="relative mb-3 aspect-square overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">

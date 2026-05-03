@@ -119,7 +119,7 @@ const SHOPEE_AFFILIATE_ID = process.env.SHOPEE_AFFILIATE_ID ?? "";
         return 'https://shopee.co.th/product/' + p.shop + '/' + p.ext + '?' + params.toString();
       }
       function bestLink(p) {
-        if (p.hr) return { href: '/รีวิว/' + p.s, target: '', rel: '' };
+        if (p.hr) return { href: '/' + langCode + '/รีวิว/' + p.s, target: '', rel: '' };
         return { href: buildShopeeUrl(p), target: '_blank', rel: 'nofollow sponsored noopener' };
       }
       function escape(s) {

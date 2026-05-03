@@ -106,6 +106,38 @@
     "subtitle": "เลือกหมวดที่สนใจ — ดูดีลและสินค้ายอดนิยมในหมวดนั้น",
     "products_count": "{n} รายการ"
   },
+  "categoryPage": {
+    "breadcrumb_categories": "หมวดสินค้า",
+    "eyebrow": "หมวดสินค้า",
+    "subcategories": "หมวดย่อย",
+    "curated_lists": "รวมรายการคัดสรร",
+    "popular_products": "สินค้ายอดนิยม",
+    "empty_title": "ยังไม่มีสินค้าในหมวดนี้",
+    "empty_desc": "ระบบกำลังเก็บข้อมูลรอบใหม่ — รออัปเดตในไม่กี่ชั่วโมงข้างหน้า",
+    "title_template": "{name} ยอดนิยม — รวมรีวิวและราคา | PriceTH",
+    "desc_template": "รวมรีวิวสินค้าหมวด {name} จัดอันดับจากยอดขาย คะแนนผู้ใช้ และส่วนลด อัปเดตจาก Shopee ทุก 4 ชั่วโมง"
+  },
+  "reviewPage": {
+    "breadcrumb_reviews": "รีวิว",
+    "view_on_shopee": "ดูราคาที่ Shopee →",
+    "verdict_title": "สรุปสั้น",
+    "pros": "ข้อดี",
+    "cons": "ข้อเสีย",
+    "best_for": "เหมาะกับ",
+    "skip_if": "ข้ามถ้า",
+    "specs": "สเปคสินค้า",
+    "faq": "คำถามที่พบบ่อย",
+    "related": "สินค้าที่เกี่ยวข้อง"
+  },
+  "bestOfPage": {
+    "breadcrumb_best": "ของดี",
+    "rank": "อันดับ"
+  },
+  "comparisonPage": {
+    "breadcrumb_compare": "เปรียบเทียบ",
+    "vs": "เทียบกับ",
+    "winner": "ผู้ชนะ"
+  },
   "footer": {
     "products_col": "สินค้า",
     "products_links": ["หมวดหมู่ทั้งหมด", "ราคาตกวันนี้", "สินค้ายอดฮิต", "Price Drop Alerts"],

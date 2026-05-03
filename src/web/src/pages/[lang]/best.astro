@@ -42,7 +42,7 @@ try {
         {deals.map((p) => {
           const link = bestProductLink({
             hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
-            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_deals_${lang}`,
+            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_deals_${lang}`, lang,
           });
           return (
             <ProductCardV2
@@ -67,7 +67,7 @@ try {
         {topProducts.map((p) => {
           const link = bestProductLink({
             hasReviewPage: p.hasReviewPage, slug: p.slug, platform: p.platform,
-            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_top_${lang}`,
+            externalId: p.externalId, shopExternalId: p.shopExternalId, subId: `best_top_${lang}`, lang,
           });
           return (
             <ProductCardV2

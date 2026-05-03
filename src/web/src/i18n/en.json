@@ -106,6 +106,38 @@
     "subtitle": "Browse by category — see deals and top picks in each",
     "products_count": "{n} items"
   },
+  "categoryPage": {
+    "breadcrumb_categories": "Categories",
+    "eyebrow": "Category",
+    "subcategories": "Subcategories",
+    "curated_lists": "Curated lists",
+    "popular_products": "Top products",
+    "empty_title": "No products in this category yet",
+    "empty_desc": "We're collecting fresh data — check back in a few hours.",
+    "title_template": "{name} — Top picks, reviews & prices | PriceTH",
+    "desc_template": "Top {name} picks ranked by sales, ratings and discounts. Real-time data from Shopee Thailand, refreshed every 4 hours."
+  },
+  "reviewPage": {
+    "breadcrumb_reviews": "Reviews",
+    "view_on_shopee": "View on Shopee →",
+    "verdict_title": "The verdict",
+    "pros": "Pros",
+    "cons": "Cons",
+    "best_for": "Best for",
+    "skip_if": "Skip if",
+    "specs": "Specifications",
+    "faq": "Frequently asked questions",
+    "related": "Related products"
+  },
+  "bestOfPage": {
+    "breadcrumb_best": "Best of",
+    "rank": "Rank"
+  },
+  "comparisonPage": {
+    "breadcrumb_compare": "Compare",
+    "vs": "vs",
+    "winner": "Winner"
+  },
   "footer": {
     "products_col": "Products",
     "products_links": ["All categories", "Today's drops", "Top sellers", "Price drop alerts"],

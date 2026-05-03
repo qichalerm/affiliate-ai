@@ -106,6 +106,38 @@
     "subtitle": "按分类浏览 — 查看每个分类中的优惠和精选",
     "products_count": "{n} 件"
   },
+  "categoryPage": {
+    "breadcrumb_categories": "分类",
+    "eyebrow": "分类",
+    "subcategories": "子分类",
+    "curated_lists": "精选列表",
+    "popular_products": "热门商品",
+    "empty_title": "此分类暂无商品",
+    "empty_desc": "我们正在收集新数据 — 请几小时后再来查看",
+    "title_template": "{name} — 精选评测与价格 | PriceTH",
+    "desc_template": "{name} 商品按销量、评分和折扣排名。来自 Shopee 泰国的实时数据,每 4 小时更新一次。"
+  },
+  "reviewPage": {
+    "breadcrumb_reviews": "评测",
+    "view_on_shopee": "在 Shopee 查看 →",
+    "verdict_title": "总结",
+    "pros": "优点",
+    "cons": "缺点",
+    "best_for": "适合",
+    "skip_if": "不适合",
+    "specs": "规格",
+    "faq": "常见问题",
+    "related": "相关商品"
+  },
+  "bestOfPage": {
+    "breadcrumb_best": "精选",
+    "rank": "排名"
+  },
+  "comparisonPage": {
+    "breadcrumb_compare": "对比",
+    "vs": "对比",
+    "winner": "胜者"
+  },
   "footer": {
     "products_col": "商品",
     "products_links": ["所有分类", "今日降价", "热卖商品", "降价提醒"],

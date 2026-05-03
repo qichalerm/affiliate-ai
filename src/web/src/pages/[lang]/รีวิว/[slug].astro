@@ -1,14 +1,15 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import StarRating from "../../components/StarRating.astro";
-import PlatformBadge from "../../components/PlatformBadge.astro";
-import PriceHistoryChart from "../../components/PriceHistoryChart.astro";
-import CrossPlatformPriceCard from "../../components/CrossPlatformPriceCard.astro";
-import RelatedLinks from "../../components/RelatedLinks.astro";
-import FaqAccordion from "../../components/FaqAccordion.astro";
-import { compactCount } from "../../lib/format";
-import { buildAffiliateUrl, platformLabel } from "../../lib/affiliate-links";
-import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../lib/queries";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import StarRating from "../../../components/StarRating.astro";
+import PlatformBadge from "../../../components/PlatformBadge.astro";
+import PriceHistoryChart from "../../../components/PriceHistoryChart.astro";
+import CrossPlatformPriceCard from "../../../components/CrossPlatformPriceCard.astro";
+import RelatedLinks from "../../../components/RelatedLinks.astro";
+import FaqAccordion from "../../../components/FaqAccordion.astro";
+import { compactCount } from "../../../lib/format";
+import { buildAffiliateUrl, platformLabel } from "../../../lib/affiliate-links";
+import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../../lib/queries";
+import { getDict, SUPPORTED_LANGS, type Lang } from "../../../lib/i18n";
 
 export async function getStaticPaths() {
   let pages: Awaited<ReturnType<typeof getAllPublishedReviewPages>> = [];
@@ -17,12 +18,15 @@ export async function getStaticPaths() {
   } catch (err) {
     console.warn("getStaticPaths: db unavailable, using empty list", err);
   }
-  return pages.map((p) => ({ params: { slug: p.slug } }));
+  return SUPPORTED_LANGS.flatMap((lang) =>
+    pages.map((p) => ({ params: { lang, slug: p.slug } })),
+  );
 }
 
-const { slug } = Astro.params;
-const data = await getReviewPageBySlug(slug!);
-if (!data) return Astro.redirect("/404");
+const { lang, slug } = Astro.params as { lang: Lang; slug: string };
+const t = getDict(lang);
+const data = await getReviewPageBySlug(slug);
+if (!data) return Astro.redirect(`/${lang}/`);
 
 const { page, product, reviews, priceHistory, crossPlatform } = data;
 
@@ -32,18 +36,18 @@ type ContentJson = {
   specs?: Record<string, string>;
   reviewExcerpts?: Array<{ rating: number; body: string; reviewer: string }>;
   faqs?: Array<{ question: string; answer: string }>;
-  relatedLinks?: import("../../lib/queries").RelatedLink[];
+  relatedLinks?: import("../../../lib/queries").RelatedLink[];
 };
 const content = (page.contentJson ?? {}) as ContentJson;
 
-const subId = `web_review_${page.slug.slice(0, 50)}`;
+const subId = `web_review_${page.slug.slice(0, 50)}_${lang}`;
 const affiliateUrl = buildAffiliateUrl({
   platform: product.platform,
   externalId: product.externalId,
   shopExternalId: product.shopExternalId,
   subId,
 });
-const ctaLabel = `ดูราคาที่ ${platformLabel(product.platform)}`;
+const ctaLabel = t.reviewPage.view_on_shopee.replace(" →", "").replace("Shopee", platformLabel(product.platform));
 
 function formatBaht(satang: number | null | undefined): string {
   if (!satang || satang <= 0) return "—";
@@ -54,26 +58,23 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
 ---
 
 <BaseLayout
-  lang="th"
+  lang={lang}
   title={page.title}
   description={page.metaDescription ?? undefined}
   ogImage={page.ogImage ?? product.primaryImage ?? undefined}
   jsonLd={page.schemaJsonLd ?? undefined}
 >
   <article class="container-page py-6 sm:py-10 pb-28 sm:pb-10">
-    <!-- Breadcrumb -->
     <nav class="mb-4 flex items-center gap-1.5 text-xs sm:text-sm text-ink-500 overflow-x-auto scrollbar-none whitespace-nowrap">
-      <a href="/th/" class="hover:text-brand-600">หน้าแรก</a>
+      <a href={`/${lang}/`} class="hover:text-brand-600">{t.nav.home}</a>
       <span class="text-ink-300">/</span>
-      <a href="/th/best/" class="hover:text-brand-600">รีวิว</a>
+      <a href={`/${lang}/best`} class="hover:text-brand-600">{t.reviewPage.breadcrumb_reviews}</a>
       <span class="text-ink-300">/</span>
       <span class="text-ink-700 dark:text-ink-300 truncate">{product.brand ?? product.name.slice(0, 30)}</span>
     </nav>
 
     <div class="grid gap-6 sm:gap-8 lg:grid-cols-[1fr_360px]">
-      <!-- Main column -->
       <div class="min-w-0">
-        <!-- Title block -->
         <div class="flex items-center gap-2 flex-wrap mb-3">
           <PlatformBadge platform={product.platform} />
           {product.brand && (
@@ -91,7 +92,7 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
         <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <StarRating rating={product.rating} count={product.ratingCount} />
           {product.soldCount != null && product.soldCount > 0 && (
-            <span class="text-ink-500">ขายแล้ว {compactCount(product.soldCount)}</span>
+            <span class="text-ink-500">{t.card.sold} {compactCount(product.soldCount)}</span>
           )}
           {product.isMall && product.platform === "shopee" && (
             <span class="rounded bg-deal-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Shopee Mall</span>
@@ -101,7 +102,6 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
           )}
         </div>
 
-        <!-- Hero image -->
         {product.primaryImage && (
           <div class="mt-5 overflow-hidden rounded-2xl bg-ink-100 dark:bg-ink-800 aspect-square sm:aspect-[4/3]">
             <img
@@ -114,10 +114,9 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
           </div>
         )}
 
-        <!-- Mobile-only quick price + CTA shown right after image -->
         <div class="lg:hidden mt-4 card p-5 flex items-center justify-between gap-3">
           <div>
-            <p class="text-[10px] uppercase tracking-wider text-ink-500">ราคา</p>
+            <p class="text-[10px] uppercase tracking-wider text-ink-500">{t.card.check_price}</p>
             <div class="flex items-baseline gap-2 mt-0.5">
               <span class="price text-2xl font-bold text-ink-900 dark:text-ink-50">฿{formatBaht(product.currentPrice)}</span>
               {product.originalPrice && product.currentPrice && product.originalPrice > product.currentPrice && (
@@ -133,10 +132,9 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
           )}
         </div>
 
-        <!-- Verdict -->
         {content.verdict && (
           <section class="mt-8 card p-5 sm:p-6 border-l-4 border-l-brand-500">
-            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50">สรุปก่อนตัดสินใจ</h2>
+            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50">{t.reviewPage.verdict_title}</h2>
             <p class="mt-2 prose-th">{content.verdict.text}</p>
 
             <div class="mt-5 grid gap-4 sm:grid-cols-2">
@@ -144,7 +142,7 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
                 <div>
                   <h3 class="text-sm font-bold text-success-700 dark:text-success-400 flex items-center gap-1.5">
                     <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path d="m5 12 5 5 9-11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    ข้อดี
+                    {t.reviewPage.pros}
                   </h3>
                   <ul class="mt-2 space-y-1.5 text-sm text-ink-700 dark:text-ink-300">
                     {content.verdict.pros.map((p) => (
@@ -157,7 +155,7 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
                 <div>
                   <h3 class="text-sm font-bold text-deal-600 flex items-center gap-1.5">
                     <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4"><path d="M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
-                    ข้อจำกัด
+                    {t.reviewPage.cons}
                   </h3>
                   <ul class="mt-2 space-y-1.5 text-sm text-ink-700 dark:text-ink-300">
                     {content.verdict.cons.map((c) => (
@@ -171,10 +169,10 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
             {(content.verdict.best_for || content.verdict.skip_if) && (
               <div class="mt-5 grid gap-2 rounded-xl bg-ink-50 p-4 text-sm dark:bg-ink-800/40 sm:grid-cols-2">
                 {content.verdict.best_for && (
-                  <p><strong class="text-ink-900 dark:text-ink-50">เหมาะสำหรับ:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.best_for}</span></p>
+                  <p><strong class="text-ink-900 dark:text-ink-50">{t.reviewPage.best_for}:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.best_for}</span></p>
                 )}
                 {content.verdict.skip_if && (
-                  <p><strong class="text-ink-900 dark:text-ink-50">ข้ามไปก่อน ถ้า:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.skip_if}</span></p>
+                  <p><strong class="text-ink-900 dark:text-ink-50">{t.reviewPage.skip_if}:</strong> <span class="text-ink-700 dark:text-ink-300">{content.verdict.skip_if}</span></p>
                 )}
               </div>
             )}
@@ -199,7 +197,7 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
 
         {content.specs && Object.keys(content.specs).length > 0 && (
           <section class="mt-8">
-            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50 mb-3">สเปกสำคัญ</h2>
+            <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50 mb-3">{t.reviewPage.specs}</h2>
             <div class="card p-5 sm:p-6">
               <dl class="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                 {Object.entries(content.specs).slice(0, 16).map(([k, v]) => (
@@ -222,14 +220,14 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
         {reviews.length > 0 && (
           <section class="mt-8">
             <h2 class="text-lg sm:text-xl font-bold text-ink-900 dark:text-ink-50 mb-3">
-              รีวิวจากผู้ซื้อจริง <span class="text-sm font-normal text-ink-500">({reviews.length})</span>
+              {t.card.rating_count} <span class="text-sm font-normal text-ink-500">({reviews.length})</span>
             </h2>
             <div class="space-y-3">
               {reviews.map((r) => (
                 <div class="card p-4">
                   <div class="mb-2 flex items-center gap-2 text-sm">
                     <StarRating rating={r.rating ?? 0} size="sm" />
-                    <span class="text-ink-500">— {r.reviewerNameMasked ?? "ผู้ใช้"}</span>
+                    <span class="text-ink-500">— {r.reviewerNameMasked ?? "—"}</span>
                   </div>
                   <p class="text-sm leading-relaxed text-ink-700 dark:text-ink-300 break-words">{r.body}</p>
                 </div>
@@ -249,18 +247,11 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
             <RelatedLinks links={content.relatedLinks} />
           </section>
         )}
-
-        <p class="mt-10 text-xs text-ink-500 leading-relaxed">
-          * ข้อมูลราคาและรีวิวรวบรวมจาก {platformLabel(product.platform)} อัปเดตทุก 4 ชั่วโมง
-          เนื้อหาสรุปบางส่วนสร้างโดย AI จากรีวิวผู้ซื้อจริง
-          PriceTH อาจได้รับค่าคอมมิชชั่นเมื่อคุณซื้อผ่านลิงก์ — ราคาที่คุณจ่ายไม่เปลี่ยน
-        </p>
       </div>
 
-      <!-- Desktop sidebar (sticky) -->
       <aside class="hidden lg:block lg:sticky lg:top-20 lg:self-start">
         <div class="card p-6">
-          <p class="text-[10px] uppercase tracking-wider text-ink-500">ราคาปัจจุบัน</p>
+          <p class="text-[10px] uppercase tracking-wider text-ink-500">{t.card.check_price}</p>
           <div class="mt-1 flex items-baseline gap-2 flex-wrap">
             <span class="price text-3xl font-bold text-ink-900 dark:text-ink-50">฿{formatBaht(product.currentPrice)}</span>
             {product.originalPrice && product.currentPrice && product.originalPrice > product.currentPrice && (
@@ -271,12 +262,6 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
             )}
           </div>
 
-          {product.shopName && (
-            <p class="mt-3 text-sm text-ink-500">
-              ขายโดย <span class="font-medium text-ink-700 dark:text-ink-300">{product.shopName}</span>
-            </p>
-          )}
-
           {affiliateUrl ? (
             <a href={affiliateUrl} rel="nofollow sponsored noopener" target="_blank"
                class="btn-primary-lg w-full mt-5"
@@ -285,24 +270,13 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
               <span class="ml-1">→</span>
             </a>
           ) : (
-            <p class="mt-5 text-sm text-ink-500">ลิงก์ไม่พร้อม</p>
+            <p class="mt-5 text-sm text-ink-500">—</p>
           )}
-
-          <p class="mt-3 text-center text-[11px] text-ink-500">
-            ราคาอาจเปลี่ยนแปลง — ตรวจอีกครั้งบนหน้าร้าน
-          </p>
-
-          <div class="mt-5 pt-5 border-t border-ink-200 dark:border-ink-800 space-y-1.5 text-xs text-ink-500">
-            <p>✓ ราคาอัปเดตทุก 4 ชม.</p>
-            <p>✓ Shopee Affiliate Partner</p>
-            <p>✓ ราคาคุณไม่เปลี่ยน — เราได้ค่าคอม</p>
-          </div>
         </div>
       </aside>
     </div>
   </article>
 
-  <!-- Mobile sticky bottom CTA — sits ABOVE the bottom-nav (which has its own h-14) -->
   {affiliateUrl && (
     <div class="lg:hidden fixed bottom-[60px] left-0 right-0 z-30 border-t border-ink-200 bg-white/95 backdrop-blur-lg px-4 py-2.5 dark:border-ink-800 dark:bg-ink-950/95"
          style="padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));">

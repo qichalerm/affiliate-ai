@@ -28,17 +28,18 @@ const alternates = SUPPORTED_LANGS.map((l) => {
   return { lang: l, href: `${site}/${l}${path}` };
 });
 
-// Detect Thai-only paths (review pages, categories, comparisons, etc).
-// These don't have multi-lang versions, so the language switcher should send the
-// user to the localized HOME instead of building a 404 URL like /zh/รีวิว/iphone.
+// Build the language-switcher target path by stripping the current /{lang}/ prefix.
+// All dynamic pages are now lang-prefixed too, so simply re-attaching the new lang
+// prefix produces a valid URL — no more "thai-only path" fallback needed.
 // Astro emits Thai pathnames URL-encoded (%E0%B8...) at build time, so decode first.
-const THAI_ONLY_PREFIXES = ["/รีวิว", "/หมวด", "/ราคา", "/ของดี", "/เปรียบเทียบ"];
+// Legacy /ราคา is still a single-language path (Lazada cross-platform — disabled).
+const LEGACY_PREFIXES = ["/ราคา"];
 const decodedPath = (() => {
   try { return decodeURIComponent(Astro.url.pathname); } catch { return Astro.url.pathname; }
 })();
 const stripped = decodedPath.replace(/^\/(th|en|zh|ja)/, "");
-const isThaiOnlyPath = THAI_ONLY_PREFIXES.some((p) => stripped.startsWith(p));
-const switcherTargetPath = isThaiOnlyPath ? "/" : (stripped || "/");
+const isLegacyPath = LEGACY_PREFIXES.some((p) => stripped.startsWith(p));
+const switcherTargetPath = isLegacyPath ? "/" : (stripped || "/");
 ---
 
 <!doctype html>

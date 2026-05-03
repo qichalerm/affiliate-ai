@@ -1,15 +1,16 @@
 ---
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import ProductCardV2 from "../../components/ProductCardV2.astro";
-import EmptyState from "../../components/EmptyState.astro";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import ProductCardV2 from "../../../components/ProductCardV2.astro";
+import EmptyState from "../../../components/EmptyState.astro";
 import {
   getAllActiveCategories,
   getCategoryBySlug,
   getTopProductsInCategory,
   getBestOfPagesInCategory,
   getSubcategories,
-} from "../../lib/queries-categories";
-import { bestProductLink } from "../../lib/affiliate-links";
+} from "../../../lib/queries-categories";
+import { bestProductLink } from "../../../lib/affiliate-links";
+import { getDict, SUPPORTED_LANGS, interpolate, type Lang } from "../../../lib/i18n";
 
 export async function getStaticPaths() {
   let categories: Awaited<ReturnType<typeof getAllActiveCategories>> = [];
@@ -18,16 +19,17 @@ export async function getStaticPaths() {
   } catch (err) {
     console.warn("category getStaticPaths: db unavailable", err);
   }
-  // Build a page for any category with at least one product (was >=4, but Apify
-  // scrapes don't always populate category_id so we'd lose 90% of categories).
-  return categories
-    .filter((c) => c.productCount >= 1)
-    .map((c) => ({ params: { slug: c.slug } }));
+  // Build a page for any category with at least one product, in every supported language.
+  const eligible = categories.filter((c) => c.productCount >= 1);
+  return SUPPORTED_LANGS.flatMap((lang) =>
+    eligible.map((c) => ({ params: { lang, slug: c.slug } })),
+  );
 }
 
-const { slug } = Astro.params;
-const category = await getCategoryBySlug(slug!);
-if (!category) return Astro.redirect("/404");
+const { lang, slug } = Astro.params as { lang: Lang; slug: string };
+const t = getDict(lang);
+const category = await getCategoryBySlug(slug);
+if (!category) return Astro.redirect(`/${lang}/`);
 
 const [products, bestOfPages, subcats] = await Promise.all([
   getTopProductsInCategory(category.id, 60),
@@ -43,36 +45,37 @@ const productsWithLinks = products.map((p) => ({
     platform: p.platform,
     externalId: p.externalId,
     shopExternalId: p.shopExternalId,
-    subId: `cat_${slug}`,
+    subId: `cat_${slug}_${lang}`,
   }),
+  reviewHref: `/${lang}/รีวิว/${p.slug}`,
 }));
 
-const title = `${category.nameTh} ยอดนิยม — รวมรีวิวและราคา | PriceTH`;
-const description = `รวมรีวิวสินค้าหมวด ${category.nameTh} จัดอันดับจากยอดขาย คะแนนผู้ใช้ และส่วนลด อัปเดตจาก Shopee ทุก 4 ชั่วโมง`;
+const title = interpolate(t.categoryPage.title_template, { name: category.nameTh });
+const description = interpolate(t.categoryPage.desc_template, { name: category.nameTh });
 ---
 
-<BaseLayout title={title} description={description} lang="th">
+<BaseLayout title={title} description={description} lang={lang}>
   <article class="container-page py-8 sm:py-12">
     <nav class="mb-4 text-sm text-ink-500">
-      <a href="/th/" class="hover:text-brand-600">หน้าแรก</a>
+      <a href={`/${lang}/`} class="hover:text-brand-600">{t.nav.home}</a>
       <span class="mx-2">/</span>
-      <a href="/th/categories/" class="hover:text-brand-600">หมวดสินค้า</a>
+      <a href={`/${lang}/categories`} class="hover:text-brand-600">{t.categoryPage.breadcrumb_categories}</a>
       <span class="mx-2">/</span>
       <span class="text-ink-700">{category.nameTh}</span>
     </nav>
 
     <header class="mb-8">
-      <p class="section-eyebrow">หมวดสินค้า</p>
+      <p class="section-eyebrow">{t.categoryPage.eyebrow}</p>
       <h1 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-ink-900 dark:text-ink-50">{category.nameTh}</h1>
       <p class="mt-3 text-base text-ink-600 dark:text-ink-400 max-w-2xl">{description}</p>
     </header>
 
     {subcats.length > 0 && (
       <section class="mb-10">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-500">หมวดย่อย</h2>
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-ink-500">{t.categoryPage.subcategories}</h2>
         <div class="flex flex-wrap gap-2">
           {subcats.map((sc) => (
-            <a href={`/หมวด/${sc.slug}`}
+            <a href={`/${lang}/หมวด/${sc.slug}`}
                class="inline-flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3.5 py-1.5 text-sm text-ink-700 transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 dark:border-ink-800 dark:bg-ink-900 dark:text-ink-200">
               {sc.nameTh}
               {sc.productCount > 0 && <span class="text-ink-400 text-xs">({sc.productCount})</span>}
@@ -84,10 +87,10 @@ const description = `รวมรีวิวสินค้าหมวด ${ca
 
     {bestOfPages.length > 0 && (
       <section class="mb-10">
-        <h2 class="mb-4 text-xl font-bold text-ink-900 dark:text-ink-50">รวมรายการคัดสรร</h2>
+        <h2 class="mb-4 text-xl font-bold text-ink-900 dark:text-ink-50">{t.categoryPage.curated_lists}</h2>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {bestOfPages.map((b) => (
-            <a href={`/ของดี/${b.slug}`}
+            <a href={`/${lang}/ของดี/${b.slug}`}
                class="card-interactive p-4">
               <p class="text-[10px] uppercase tracking-wider text-brand-600">{b.variant ?? "best"}</p>
               <h3 class="mt-1 line-clamp-2 text-sm font-semibold leading-snug">{b.title}</h3>
@@ -99,14 +102,14 @@ const description = `รวมรีวิวสินค้าหมวด ${ca
 
     <section>
       <h2 class="mb-5 text-xl font-bold text-ink-900 dark:text-ink-50">
-        สินค้ายอดนิยม
+        {t.categoryPage.popular_products}
         {products.length > 0 && <span class="ml-2 text-sm font-normal text-ink-500">({products.length})</span>}
       </h2>
       {productsWithLinks.length > 0 ? (
         <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
           {productsWithLinks.map(({ p, link }) => (
             <ProductCardV2
-              lang="th"
+              lang={lang}
               href={link.href}
               external={link.external}
               name={p.name}
@@ -123,7 +126,7 @@ const description = `รวมรีวิวสินค้าหมวด ${ca
           ))}
         </div>
       ) : (
-        <EmptyState icon="🌱" title="ยังไม่มีสินค้าในหมวดนี้" description="ระบบกำลังเก็บข้อมูลรอบใหม่ — รออัปเดตในไม่กี่ชั่วโมงข้างหน้า" />
+        <EmptyState icon="🌱" title={t.categoryPage.empty_title} description={t.categoryPage.empty_desc} />
       )}
     </section>
   </article>

@@ -1,0 +1,7 @@
+# Legacy single-language URLs → /th/ equivalent (preserves SEO).
+# Thai path segments must be URL-encoded for Cloudflare's matcher.
+
+/%E0%B8%A3%E0%B8%B5%E0%B8%A7%E0%B8%B4%E0%B8%A7/*           /th/%E0%B8%A3%E0%B8%B5%E0%B8%A7%E0%B8%B4%E0%B8%A7/:splat           301
+/%E0%B8%AB%E0%B8%A1%E0%B8%A7%E0%B8%94/*                    /th/%E0%B8%AB%E0%B8%A1%E0%B8%A7%E0%B8%94/:splat                    301
+/%E0%B9%80%E0%B8%9B%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%9A%E0%B9%80%E0%B8%97%E0%B8%B5%E0%B8%A2%E0%B8%9A/*  /th/%E0%B9%80%E0%B8%9B%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%9A%E0%B9%80%E0%B8%97%E0%B8%B5%E0%B8%A2%E0%B8%9A/:splat  301
+/%E0%B8%82%E0%B8%AD%E0%B8%87%E0%B8%94%E0%B8%B5/*           /th/%E0%B8%82%E0%B8%AD%E0%B8%87%E0%B8%94%E0%B8%B5/:splat           301

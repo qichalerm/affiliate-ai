@@ -1,19 +1,25 @@
 ---
 import type { RelatedLink } from "../lib/queries";
+import type { Lang } from "../lib/i18n";
+import { langFromPath, DEFAULT_LANG } from "../lib/i18n";
 
 interface Props {
   links: RelatedLink[];
   title?: string;
+  /** Used to keep related-link URLs in the same language as the host page. */
+  lang?: Lang;
 }
 
-const { links, title = "บทความที่เกี่ยวข้อง" } = Astro.props;
+// Fall back to detecting language from the current URL when not passed explicitly.
+const inferredLang = langFromPath(Astro.url.pathname) ?? DEFAULT_LANG;
+const { links, title = "บทความที่เกี่ยวข้อง", lang = inferredLang } = Astro.props;
 
 if (!links || links.length === 0) return null;
 
 const TYPE_PREFIX: Record<RelatedLink["type"], string> = {
-  review: "/รีวิว/",
-  comparison: "/เปรียบเทียบ/",
-  best_of: "/ของดี/",
+  review: `/${lang}/รีวิว/`,
+  comparison: `/${lang}/เปรียบเทียบ/`,
+  best_of: `/${lang}/ของดี/`,
 };
 
 const TYPE_LABEL: Record<RelatedLink["type"], string> = {

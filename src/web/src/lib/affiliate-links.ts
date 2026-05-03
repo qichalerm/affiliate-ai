@@ -83,9 +83,12 @@ export function bestProductLink(input: {
   externalId: string;
   shopExternalId?: string | null;
   subId: string;
+  /** UI language — defaults to "th" for legacy callers. Used to build the localized review URL. */
+  lang?: "th" | "en" | "zh" | "ja";
 }): { href: string; external: boolean } {
   if (input.hasReviewPage) {
-    return { href: `/รีวิว/${input.slug}`, external: false };
+    const lang = input.lang ?? "th";
+    return { href: `/${lang}/รีวิว/${input.slug}`, external: false };
   }
   const url = buildAffiliateUrl({
     platform: input.platform,
