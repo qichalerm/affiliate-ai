@@ -19,10 +19,12 @@ export async function getSiteStats(): Promise<SiteStats> {
       max_discount: number | null;
     }>(sql`
       SELECT
-        (SELECT COUNT(*)::int FROM products WHERE is_active = true) AS product_count,
-        (SELECT MAX(last_scraped_at) FROM products) AS last_update,
+        (SELECT COUNT(*)::int FROM products
+          WHERE is_active = true AND flag_blacklisted = false AND current_price > 0) AS product_count,
+        (SELECT MAX(last_scraped_at) FROM products
+          WHERE is_active = true AND flag_blacklisted = false) AS last_update,
         (SELECT MAX(discount_percent) FROM products
-          WHERE is_active = true AND discount_percent IS NOT NULL) AS max_discount
+          WHERE is_active = true AND flag_blacklisted = false AND discount_percent IS NOT NULL) AS max_discount
     `);
     const r = rows[0];
     return {
