@@ -1,0 +1,19 @@
+[Unit]
+Description=cloudflared (Cloudflare Tunnel for api.price-th.com → localhost:3001)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=15
+Type=notify
+# Token is a connector secret — DO NOT commit. Re-install on each new droplet:
+#   1. Get connector token from CF Dashboard (Zero Trust → Tunnels → affiliate-ai-redirect)
+#      OR via API: POST /accounts/{ACCOUNT_ID}/cfd_tunnel/{TUNNEL_ID}/token
+#   2. Run on the droplet: cloudflared service install <TOKEN>
+#      (this rewrites this file with the real token and starts the service)
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate tunnel run --token <PASTE_CONNECTOR_TOKEN_HERE>
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
