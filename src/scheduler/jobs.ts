@@ -220,9 +220,17 @@ async function triggerSiteRebuild(reason: number | string): Promise<void> {
   const logPath = `${LOG_DIR}/auto-rebuild-${Date.now()}.log`;
   const out = openSync(logPath, "a");
 
+  // `bun run build:pages` reads package.json and spawns a shell to execute the
+  // script string (which uses bare `bun`/`bunx`). Inject /root/.bun/bin so that
+  // shell can find bun — otherwise the script fails with ENOENT exit 127.
+  const env = {
+    ...process.env,
+    PATH: `/root/.bun/bin:${process.env.PATH ?? ""}`,
+  };
+
   const proc = spawn(BUN, ["run", "build:pages"], {
     cwd: "/root/research-2",
-    env: process.env,
+    env,
     detached: true,
     stdio: ["ignore", out, out],
   });
