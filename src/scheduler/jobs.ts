@@ -10,6 +10,7 @@ import { runShopeeScrape, BudgetExceededError } from "../scraper/shopee/runner.t
 import { pickKeywords } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";
+import { runPromoTrigger } from "../brain/promo-trigger.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -71,10 +72,21 @@ export async function jobLearningOptimizer(): Promise<void> {
 }
 
 /**
- * Promo Hunter (M6). Scans active products for price/discount signals
- * and writes promo_events rows for the variant generator to fast-track.
+ * Promo Hunter (M6). Scans active products for price/discount signals,
+ * writes promo_events rows, then immediately triggers variant generation
+ * for any pending events. Hunter + trigger run together so freshly-detected
+ * promos turn into content within the same job window.
  */
 export async function jobPromoHunter(): Promise<void> {
-  const result = await runPromoHunter({ windowHours: 24 });
-  log.info(result, "promoHunter done");
+  const huntResult = await runPromoHunter({ windowHours: 24 });
+  log.info(huntResult, "promoHunter done");
+
+  // Chain: trigger variant generation for any pending events
+  // (includes newly-detected ones from this run).
+  try {
+    const triggerResult = await runPromoTrigger({ batchSize: 5 });
+    log.info(triggerResult, "promoTrigger done");
+  } catch (err) {
+    log.error({ err: errMsg(err) }, "promoTrigger failed (hunter results retained)");
+  }
 }
