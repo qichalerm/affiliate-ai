@@ -43,6 +43,13 @@
       "when": 1777825085037,
       "tag": "0005_square_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777825348949,
+      "tag": "0006_dark_cammi",
+      "breakpoints": true
     }
   ]
 }

@@ -177,6 +177,11 @@ export const products = pgTable(
     // Affiliate
     affiliateShortUrl: varchar("affiliate_short_url", { length: 255 }),  // shp.ee/xxx if available
 
+    // Multilingual translations cache (Sprint 13 — M4+)
+    // Shape: { en: { name, description }, zh: {...}, ja: {...} }
+    // Source language = TH (original scrape). Other langs filled lazily.
+    translations: jsonb("translations").$type<Record<string, { name?: string; description?: string }>>(),
+
     // Scoring (V2 — populated by Layer 2 Signal Analyzer)
     demandScore: real("demand_score"),
     profitabilityScore: real("profitability_score"),
