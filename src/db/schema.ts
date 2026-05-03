@@ -295,6 +295,72 @@ export const contentPages = pgTable(
 );
 
 /* ===================================================================
+ * AFFILIATE LINKS (Sprint 1 — M8)
+ * Every trackable short URL we generate. One row per (product × channel × variant).
+ * =================================================================== */
+
+export const affiliateLinks = pgTable(
+  "affiliate_links",
+  {
+    id: serial("id").primaryKey(),
+    shortId: varchar("short_id", { length: 16 }).notNull(),
+    productId: integer("product_id").references(() => products.id, { onDelete: "set null" }),
+    channel: channelEnum("channel").notNull(),
+
+    // Optional grouping for analytics
+    campaign: varchar("campaign", { length: 64 }), // e.g. "morning_post_2026-05-03"
+    variant: varchar("variant", { length: 8 }),    // A/B/C/... for multi-variant tests
+    publishedPostId: integer("published_post_id"),  // FK added in Sprint 4
+
+    // Destination
+    fullUrl: text("full_url").notNull(),
+    shopeeShortUrl: varchar("shopee_short_url", { length: 255 }), // shp.ee/xxx if available
+
+    notes: text("notes"),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+  },
+  (t) => ({
+    shortIdIdx: uniqueIndex("affiliate_links_short_id_idx").on(t.shortId),
+    productChannelIdx: index("affiliate_links_product_channel_idx").on(t.productId, t.channel),
+    campaignIdx: index("affiliate_links_campaign_idx").on(t.campaign),
+  }),
+);
+
+/* ===================================================================
+ * CLICKS (Sprint 1 — M8)
+ * Every redirect request hitting /go/[shortId]. PII is hashed.
+ * =================================================================== */
+
+export const clicks = pgTable(
+  "clicks",
+  {
+    id: serial("id").primaryKey(),
+    affiliateLinkId: integer("affiliate_link_id")
+      .references(() => affiliateLinks.id, { onDelete: "cascade" })
+      .notNull(),
+    shortId: varchar("short_id", { length: 16 }).notNull(),  // denormalized for analytics speed
+
+    // PII — only hashed forms stored
+    ipHash: varchar("ip_hash", { length: 64 }).notNull(),
+    userAgentHash: varchar("user_agent_hash", { length: 64 }).notNull(),
+
+    countryCode: varchar("country_code", { length: 2 }),
+    referrer: text("referrer"),
+    isBot: boolean("is_bot").notNull().default(false),
+    isUnique: boolean("is_unique").notNull().default(true), // first click per (ipHash, linkId, day)
+
+    clickedAt: timestamp("clicked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    linkClickedIdx: index("clicks_link_clicked_idx").on(t.affiliateLinkId, t.clickedAt),
+    shortIdClickedIdx: index("clicks_short_id_clicked_idx").on(t.shortId, t.clickedAt),
+    countryIdx: index("clicks_country_idx").on(t.countryCode),
+  }),
+);
+
+/* ===================================================================
  * ALERTS (operational issues that need attention)
  * =================================================================== */
 
