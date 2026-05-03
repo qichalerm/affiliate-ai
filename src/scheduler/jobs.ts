@@ -13,6 +13,7 @@ import { runPromoHunter } from "../brain/promo-hunter.ts";
 import { runPromoTrigger } from "../brain/promo-trigger.ts";
 import { runEngagementTracker } from "../engagement/tracker.ts";
 import { runSourceHealthCheck } from "../monitoring/source-health.ts";
+import { runDailyReport } from "../monitoring/daily-report.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -71,6 +72,15 @@ export async function jobScrapeTrending(): Promise<void> {
 export async function jobLearningOptimizer(): Promise<void> {
   const result = await runLearningOptimizer({ windowDays: 1 });
   log.info(result, "learningOptimizer done");
+}
+
+/**
+ * Daily Operator Report. Aggregates yesterday's pipeline activity
+ * (scrapes, promos, variants, clicks, alerts, top bandit picks) and
+ * dispatches via stdout + file + optional email.
+ */
+export async function jobDailyReport(): Promise<void> {
+  await runDailyReport();
 }
 
 /**

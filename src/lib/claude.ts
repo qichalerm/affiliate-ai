@@ -45,13 +45,19 @@ export class LlmBudgetExceededError extends Error {
 }
 
 /**
- * Sum of LLM cost spent today (UTC date) — uses scraper_runs as a stand-in
- * for now; later sprints will add a `generation_runs` table for per-call tracking.
+ * Sum of LLM cost spent today (UTC date) from generation_runs.
+ * Used to enforce DAILY_LLM_BUDGET_USD as a soft cap.
  */
 async function todayLlmSpendUsd(): Promise<number> {
-  // For Sprint 3 this returns 0 — generation_runs table comes in Sprint 4.
-  // Returning 0 is safe (budget gate is a soft check; we still log per call).
-  return 0;
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const [row] = await db.execute<{ totalMicros: number; [k: string]: unknown }>(sql`
+    SELECT COALESCE(SUM(cost_usd_micros), 0)::bigint AS "totalMicros"
+    FROM generation_runs
+    WHERE provider = 'anthropic'
+      AND created_at >= ${today.toISOString()}::timestamptz
+  `);
+  return row?.totalMicros ? Number(row.totalMicros) / 1_000_000 : 0;
 }
 
 export interface CompleteOptions {
@@ -117,6 +123,25 @@ export async function complete(opts: CompleteOptions): Promise<CompleteResult> {
     .map((b) => b.text)
     .join("");
 
+  const durationMs = Date.now() - start;
+
+  // Persist per-call cost so daily reports + budget gate work
+  try {
+    await db.insert(schema.generationRuns).values({
+      task: opts.task ?? "claude.complete",
+      provider: "anthropic",
+      model,
+      inputTokens,
+      outputTokens,
+      costUsdMicros: Math.round(costUsd * 1_000_000),
+      durationMs,
+      success: true,
+    });
+  } catch (err) {
+    // Don't fail the call if logging fails — log and continue.
+    log.warn({ err: err instanceof Error ? err.message : String(err) }, "generation_runs insert failed");
+  }
+
   log.debug(
     {
       task: opts.task,
@@ -124,7 +149,7 @@ export async function complete(opts: CompleteOptions): Promise<CompleteResult> {
       inputTokens,
       outputTokens,
       costUsd: costUsd.toFixed(6),
-      durationMs: Date.now() - start,
+      durationMs,
     },
     "claude.complete",
   );

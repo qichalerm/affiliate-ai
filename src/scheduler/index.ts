@@ -20,6 +20,7 @@ import {
   jobPromoHunter,
   jobEngagementTracker,
   jobSourceHealth,
+  jobDailyReport,
 } from "./jobs.ts";
 
 const log = child("scheduler");
@@ -79,6 +80,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "15 * * * *",
     description: "M0 Source Health — detect stale/degraded scrapers (every hour, :15 offset)",
     handler: jobSourceHealth,
+  },
+  {
+    name: "dailyReport",
+    cron: "0 8 * * *",
+    description: "Daily operator report — yesterday's pipeline digest (08:00 BKK)",
+    handler: jobDailyReport,
   },
 ];
 
