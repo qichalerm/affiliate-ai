@@ -1,0 +1,27 @@
+[Unit]
+Description=Affiliate-AI click-tracking redirect server (M8)
+Documentation=https://github.com/qichalerm/affiliate-ai
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/root/affiliate-ai
+# Bun auto-loads .env from cwd; systemd's EnvironmentFile parser mishandles
+# inline `# comment` markers in .env so we let bun handle dotenv parsing.
+ExecStart=/root/.bun/bin/bun run --env-file=/root/affiliate-ai/.env src/web/redirect-server.ts
+Restart=on-failure
+RestartSec=5s
+StandardOutput=journal
+StandardError=journal
+KillMode=process
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/root/affiliate-ai
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

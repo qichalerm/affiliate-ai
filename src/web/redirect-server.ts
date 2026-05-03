@@ -26,6 +26,14 @@ const log = child("redirect-server");
 const PORT = Number.parseInt(process.env.REDIRECT_SERVER_PORT ?? "3001", 10);
 const HOST = process.env.REDIRECT_SERVER_HOST ?? "0.0.0.0";
 
+/**
+ * Optional shared secret. When set, every /go/ request must carry a matching
+ * X-Internal-Auth header — set by the Cloudflare Pages Function that fronts
+ * us. This keeps the public-facing droplet IP from being scraped directly.
+ * If unset, all requests are accepted (useful for local development).
+ */
+const INTERNAL_AUTH_SECRET = process.env.INTERNAL_AUTH_SECRET ?? "";
+
 function getClientIp(req: Request): string {
   // Reverse proxy will set these (nginx, Cloudflare, etc.)
   return (
@@ -49,6 +57,16 @@ const server = Bun.serve({
 
     // Click redirect
     if (url.pathname.startsWith("/go/")) {
+      // Auth check: when secret is configured, only the CF Pages Function
+      // (which sends the matching header) can call us. Direct IP scrapes
+      // get a 401 with no information leaked.
+      if (INTERNAL_AUTH_SECRET) {
+        const provided = req.headers.get("x-internal-auth");
+        if (provided !== INTERNAL_AUTH_SECRET) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+      }
+
       const shortId = url.pathname.slice(4).split("/")[0] ?? "";
       if (!shortId) {
         return new Response("Bad request: missing shortId", { status: 400 });
