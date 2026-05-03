@@ -295,6 +295,92 @@ export const contentPages = pgTable(
 );
 
 /* ===================================================================
+ * GENERATION RUNS (Sprint 4 — M4)
+ * Audit log + cost tracking for every LLM/voice/image/video gen call.
+ * Used by M9 (Learning Optimizer) for budget allocation per task type.
+ * =================================================================== */
+
+export const generationRuns = pgTable(
+  "generation_runs",
+  {
+    id: serial("id").primaryKey(),
+    task: varchar("task", { length: 64 }).notNull(),  // e.g. "variant_caption.facebook"
+    provider: varchar("provider", { length: 32 }).notNull(),  // anthropic | replicate | elevenlabs | ffmpeg
+    model: varchar("model", { length: 64 }),
+    inputTokens: integer("input_tokens"),
+    outputTokens: integer("output_tokens"),
+    costUsdMicros: bigint("cost_usd_micros", { mode: "number" }).notNull().default(0),
+    durationMs: integer("duration_ms"),
+    success: boolean("success").notNull().default(true),
+    errorMsg: text("error_msg"),
+    metadata: jsonb("metadata"),  // e.g. { productId, channel, variant }
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    taskCreatedIdx: index("generation_runs_task_created_idx").on(t.task, t.createdAt),
+    providerCreatedIdx: index("generation_runs_provider_created_idx").on(t.provider, t.createdAt),
+  }),
+);
+
+/* ===================================================================
+ * CONTENT VARIANTS (Sprint 4 — M4)
+ * 3+ variants per (product × channel) for A/B/C testing. One row per
+ * generated caption/script/etc. M3 (Brain) picks which one to publish
+ * via bandit weights; M9 (Learning) updates weights based on outcomes.
+ * =================================================================== */
+
+export const variantAngleEnum = pgEnum("variant_angle", [
+  "deal",          // urgency, discount-focused
+  "story",         // narrative, "I tried this for 30 days"
+  "educational",   // how-to, comparison, buying guide
+  "listicle",      // top 5/10 format
+  "trend",         // tied to current viral topic
+  "brand",         // brand-spotlight
+  "faq",           // Q&A format
+]);
+
+export const contentVariants = pgTable(
+  "content_variants",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+    channel: channelEnum("channel").notNull(),
+    angle: variantAngleEnum("angle").notNull(),
+    variantCode: varchar("variant_code", { length: 8 }).notNull(),  // "A", "B", "C", etc.
+
+    // Generated content
+    caption: text("caption").notNull(),
+    hashtags: jsonb("hashtags").$type<string[]>(),
+    hook: text("hook"),  // first line / opener (for analysis)
+
+    // Generation provenance
+    generationRunId: integer("generation_run_id").references(() => generationRuns.id),
+    llmModel: varchar("llm_model", { length: 64 }),
+
+    // Quality gate result
+    gateApproved: boolean("gate_approved").notNull().default(false),
+    gateIssues: jsonb("gate_issues").$type<string[]>(),
+
+    // Performance (populated by M7 + M9)
+    timesShown: integer("times_shown").notNull().default(0),
+    timesClicked: integer("times_clicked").notNull().default(0),
+    timesConverted: integer("times_converted").notNull().default(0),
+    revenueSatang: bigint("revenue_satang", { mode: "number" }).notNull().default(0),
+
+    // Bandit weight (updated nightly by M9)
+    banditWeight: real("bandit_weight").notNull().default(1.0),
+
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    productChannelIdx: index("content_variants_product_channel_idx").on(t.productId, t.channel),
+    activeIdx: index("content_variants_active_idx").on(t.isActive, t.gateApproved),
+    banditIdx: index("content_variants_bandit_idx").on(t.banditWeight),
+  }),
+);
+
+/* ===================================================================
  * AFFILIATE LINKS (Sprint 1 — M8)
  * Every trackable short URL we generate. One row per (product × channel × variant).
  * =================================================================== */
