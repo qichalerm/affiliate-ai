@@ -28,7 +28,7 @@
  * the dist dir is disposable.
  */
 
-import { mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
+import { mkdirSync, writeFileSync, existsSync, rmSync, copyFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { sql } from "drizzle-orm";
 import { db } from "../lib/db.ts";
@@ -41,6 +41,7 @@ import {
   renderProductPage,
   renderSitemap,
   renderRobots,
+  renderRootRedirect,
   LANGS,
   type Lang,
   type ProductForRender,
@@ -135,13 +136,33 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
 
   let pagesWritten = 0;
 
+  // ── Static assets (V1 theme.css + favicon) ─────────────────────
+  // Copy alongside HTML so all pages share one cacheable stylesheet
+  // (49KB Tailwind bundle compiled by V1 Astro build).
+  const assetDir = new URL("./static/", import.meta.url).pathname;
+  const themeSrc = join(assetDir, "theme.css");
+  if (existsSync(themeSrc)) {
+    if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+    copyFileSync(themeSrc, join(outDir, "theme.css"));
+    pagesWritten++;
+  }
+  const faviconSrc = join(assetDir, "favicon.svg");
+  if (existsSync(faviconSrc)) {
+    copyFileSync(faviconSrc, join(outDir, "favicon.svg"));
+    pagesWritten++;
+  }
+
+  // ── Root redirect: / → /<browser-lang>/ ────────────────────────
+  // Per V1: language-prefixed paths (/th/, /en/, /zh/, /ja/), root just
+  // detects browser lang and redirects. No more "Thai is the default"
+  // since UI now handles all 4 langs symmetrically.
+  writeFile(join(outDir, "index.html"), renderRootRedirect(config.domain));
+  pagesWritten++;
+
   // ── Home page in each language ─────────────────────────────────
   for (const lang of LANGS) {
     const html = renderHomePage({ lang, products: productList, config });
-    const path = lang === "th"
-      ? join(outDir, "index.html")
-      : join(outDir, lang, "index.html");
-    writeFile(path, html);
+    writeFile(join(outDir, lang, "index.html"), html);
     pagesWritten++;
   }
 
@@ -149,10 +170,7 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
   for (const product of productList) {
     for (const lang of LANGS) {
       const html = renderProductPage({ lang, product, config });
-      const path = lang === "th"
-        ? join(outDir, "p", `${product.slug}.html`)
-        : join(outDir, lang, "p", `${product.slug}.html`);
-      writeFile(path, html);
+      writeFile(join(outDir, lang, "p", `${product.slug}.html`), html);
       pagesWritten++;
     }
   }
