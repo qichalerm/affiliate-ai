@@ -251,11 +251,15 @@ async function main() {
         demandScore: 0.65,
         profitabilityScore: 0.55,
         seasonalityBoost: 1.0,
+        // Demo products use fake external_ids (demo_shopee_*, demo_lazada_*) so
+        // affiliate links resolve to 404 on the real platform. Always blacklist
+        // so they never appear on the live site, even if seed-demo is re-run.
+        flagBlacklisted: true,
         raw: { is_demo: true } as Record<string, unknown>,
       })
       .onConflictDoUpdate({
         target: [schema.products.platform, schema.products.externalId],
-        set: { name: p.name, lastScrapedAt: new Date() },
+        set: { name: p.name, lastScrapedAt: new Date(), flagBlacklisted: true },
       })
       .returning({ id: schema.products.id });
 
@@ -324,13 +328,15 @@ async function main() {
         contentJson,
         keywords: [p.name, `${p.brand} ${p.category}`],
         ogImage: p.image,
-        status: "published",
+        // Draft status keeps demo pages out of every WHERE status='published' query
+        // (sitemap, listings, internal-linker), matching the blacklist on products.
+        status: "draft",
         aiContentPercent: 0,
         publishedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: schema.contentPages.slug,
-        set: { contentJson, status: "published" },
+        set: { contentJson, status: "draft" },
       });
 
     pageCount++;
@@ -342,7 +348,10 @@ async function main() {
   console.log(`  - ${productCount} products`);
   console.log(`  - ${pageCount} review pages\n`);
   console.log(`Next: bun run web:dev — see your site immediately\n`);
-  console.log(`Cleanup: DELETE FROM products WHERE raw->>'is_demo' = 'true';`);
+  console.log(`Demo data is hidden from the live site: products are blacklisted, pages are drafts.`);
+  console.log(`Hard cleanup if needed:`);
+  console.log(`  DELETE FROM content_pages WHERE primary_product_id IN (SELECT id FROM products WHERE external_id LIKE 'demo_%');`);
+  console.log(`  DELETE FROM products WHERE external_id LIKE 'demo_%';`);
 
   await closeDb();
 }
