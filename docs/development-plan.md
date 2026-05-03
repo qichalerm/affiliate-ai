@@ -1,403 +1,317 @@
 # Development Plan — Shopee Affiliate AI System
 
-> **Status as of 2026-04-30**: Phase 1 complete (35% of total structure). Phases 2–5 awaiting build.
+> **Status as of 2026-05-03**: Phase 1 LIVE in production — full auto-pipeline (scrape → build → deploy → Telegram broadcast) verified working 24/7. Roadmap rewritten to put marketing-channel automation as the spine of Phase 2-5.
 
 ---
 
 ## TL;DR
 
-- **5 phases** total, **11 architectural layers**
-- **Phase 1 (foundation) = ✅ done** — 67 files, ready to run after `.env` is filled
-- **Phases 2–5 = pending** — ~110 more files
-- **Recommended path**: test Phase 1 in production for 1–2 months, then build Phase 2 with real data signal
-- **All-phases-now path**: 5–8 chat sessions to code-complete (~150–180 files total)
+- **5 phases** total, marketing-channel automation as the priority axis
+- **Phase 1 = ✅ LIVE** — single-channel (Telegram) auto pipeline running
+- **Phase 2 = next** — expand to 5 channels in 1-2 weeks (LINE OA, Email, Twitter, Web)
+- **Phases 3-5** stage in visual channels, intelligence/optimization loop, then video + multi-account scale
+- **Target end-state**: 100% auto across 13+ marketing channels with self-optimizing budget allocation
+- **Total time to Phase 5 complete**: ~3-4 months
+- **Total monthly cost at Phase 5**: ~$200/month (≈฿7,000)
+- **Revenue target Phase 5**: ฿50k-200k/month
 
 ---
 
-## 1. The 5 Phases
+## Phase 1 — Foundation ✅ LIVE
 
-### Phase 1 — Foundation ✅ COMPLETE
+**Goal**: Working pipeline from Shopee → DB → web pages → Telegram broadcast, end-to-end auto.
 
-**Goal**: Working pipeline from Shopee → DB → web pages → Telegram broadcast.
+**Status**: Live since 2026-05-01. End-to-end auto-cycle verified 2026-05-03.
 
-**Layers in this phase**: 1, 2, 3 (web), 5, 6, 11
+**What's running**:
+- Apify Shopee scraper, 4 rounds/day (08:00, 13:00, 19:00, 22:00 BKK) on flash-sale windows
+- Auto-rebuild + Cloudflare Pages deploy after every successful scrape
+- Content generation: review pages, best-of, comparison, internal links (Claude Haiku 4.5)
+- Telegram broadcast: 9 deal posts/day to `@priceth_deals` (welcome + photo set)
+- Sitemap + Bing IndexNow auto-submit nightly
+- Health check every 5 min + daily report 21:00 BKK
+- 300 active products, 100 reviews, 14 best-of, 6 comparison published
+- Sitemap: 122 URLs, submitted to Google Search Console
 
-**What was built (67 files)**:
-- Database schema (16 tables, Drizzle ORM)
-- Shopee scraper using public JSON API (search, browse, detail, reviews, shop)
-- Content generator: Claude Haiku verdict + SEO meta + JSON-LD schema
-- Astro static site: homepage, /best, /รีวิว/[slug], /about, 404, robots.txt
-- Telegram channel broadcaster (auto-pick top deals, 7-day dedupe)
-- Cron scheduler with 7 jobs (croner)
-- Compliance layer: Thai law forbidden-words, AI label, affiliate disclosure
-- Self-healing retry/backoff on every external call
-- 8 CLI scripts for ops (check-env, scrape-once, generate-once, build-pages, ...)
-- systemd service file
-- Full docs (architecture, runbook, env-setup)
+**Cost actual**: ~$30/month (Apify $29 + Anthropic ~$1)
 
-**Expected revenue at end of Phase 1**: ฿1,500–5,000/month
-**Cost**: ~$50–60/month
-**Time investment after build**: 8–12 hr/week × 4 weeks (setup, monitor, fix scraper drift)
+**Marketing channels active: 1** (Telegram)
 
----
-
-### Phase 2 — Scale + Intelligence ⏸ PENDING
-
-**Goal**: Cross-platform comparison + smart product scoring + Shopee mission auto-claim + dashboard.
-
-**Layers added**: 7 (Campaign Optimization), 8 (Product Intelligence)
-
-**Files to add (~30–35)**:
-
-| Module | Files | Purpose |
-|---|---|---|
-| `src/scraper/lazada/` | client, parser, persist, runner | Cross-platform price compare |
-| `src/scraper/shopee-dashboard/` | playwright login, missions scraper | Auto-claim Shopee bonuses |
-| `src/intelligence/` | scoring.ts, trends.ts, campaigns.ts, matcher.ts | Demand × profit × season ranking |
-| `src/publisher/` | pinterest.ts, short-link.ts | Pinterest auto-pin + Bitly tracking |
-| `src/dashboard/` | Next.js + 7 views | Web dashboard |
-| `src/scripts/` | dashboard-dev, intelligence-test | New CLI |
-| `src/web/src/pages/` | /เปรียบเทียบ/[a]-vs-[b].astro, /ดีล/, /หมวด/ | New page types |
-
-**Dashboard views**:
-1. Daily Snapshot (revenue + funnel + alerts)
-2. Revenue Analytics (by channel, niche, product)
-3. Content Performance (per page hit/flop)
-4. Trends & Opportunities (real-time radar)
-5. System Health
-6. Compliance & Risk
-7. Action Center (decisions waiting)
-
-**New credentials needed**:
-- `PINTEREST_ACCESS_TOKEN` (free)
-- `BITLY_TOKEN` (free 1k/mo)
-- `FASTMOSS_API_KEY` ($50/mo, optional but doubles Layer 8 effectiveness)
-- `WEBSHARE_API_KEY` ($30/mo, optional — needed when Shopee blocks IP)
-- `SHOPEE_AFFILIATE_USERNAME/PASSWORD` (for dashboard scraping — your own credentials)
-
-**Expected revenue at end of Phase 2**: ฿10,000–80,000/month
-**Cost increase**: +$60–100/month (~$130 total)
-**Time investment**: 5–8 hr/week × 4 weeks
-
-**Build estimate**: 1–2 chat sessions
+**Outstanding from Phase 1**:
+- 0 Telegram subscribers — user share `t.me/priceth_deals` to seed first 50-100 (no API workaround for this — needs human social proof)
+- 9 commits pending push to GitHub (user supplies token per the GitHub-push-explicit rule)
+- Manual GSC URL submit (10 priority URLs, ~10 min, optional speed boost)
 
 ---
 
-### Phase 3 — Social Distribution ⏸ PENDING
+## Phase 2 — Multi-Channel Activation
 
-**Goal**: Auto-post to TikTok, FB/IG, YouTube. Generate video + voice + images. 1 story → 8 channel formats.
+**Goal**: Expand from 1 → 5 marketing channels using free/no-review APIs.
 
-**Layers added**: 9 (Narrative Content Engine)
+**Time estimate**: 1-2 weeks (most blocked on user actions, not code).
 
-**Files to add (~35–40)**:
+**Tasks**:
 
-| Module | Files | Purpose |
-|---|---|---|
-| `src/narrative/` | story-engine.ts, asset-factory.ts, multi-format.ts, drip-scheduler.ts | Story → multi-format pipeline |
-| `src/voice/` | elevenlabs.ts, voice-clone.ts | Thai voice generation |
-| `src/image/` | flux.ts, midjourney.ts, canva.ts | Image generation |
-| `src/video/` | remotion-templates/, ffmpeg.ts, b-roll-fetcher.ts | Programmatic video |
-| `src/captions/` | submagic.ts | Auto captions |
-| `src/publisher/` | tiktok.ts, meta.ts, youtube.ts, twitter.ts, lemon8.ts (Playwright) | Multi-platform publishing |
-| `src/scripts/` | story-once, video-once, post-test | New CLI |
-| `src/db/schema.ts` | + tables: stories, story_assets, post_queue | Schema additions |
+| # | Task | User action | My action | Time |
+|---|------|-------------|-----------|------|
+| 2.1 | Sign up LINE Official Account | yes | guide | 15 min |
+| 2.2 | Wire LINE OA broadcast (3x/day) | — | code | 1 hr |
+| 2.3 | Sign up Mailgun (free 5000/mo) | yes | guide | 15 min |
+| 2.4 | Email weekly digest (Friday) | — | code (template exists) | 30 min |
+| 2.5 | Twitter dev account + Free tier API | yes | guide | 30 min |
+| 2.6 | Twitter auto post (3 deals/day) | — | wire (publisher exists) | 30 min |
+| 2.7 | Short.io domain setup | yes | guide | 10 min |
+| 2.8 | Telegram subscriber growth | yes (share link) | — | ongoing |
 
-**New credentials needed**:
-- `TIKTOK_ACCESS_TOKEN` (free, **2–4 weeks approval** — apply NOW)
-- `META_PAGE_ACCESS_TOKEN` (free, 3–7 days approval)
-- `YOUTUBE_API_KEY` + OAuth (free, immediate)
-- `ELEVENLABS_API_KEY` ($22/mo)
-- `FLUX_API_KEY` or `REPLICATE_API_TOKEN` (~$30/mo)
-- `SUBMAGIC_API_KEY` ($20/mo)
-- `SUNO_API_KEY` (optional, for BGM)
+**New content formats added** (Claude-gen):
+- Educational posts (วิธีเลือก X, X vs Y comparison guides)
+- FAQ posts (Q&A format)
+- Brand spotlight (single-brand deep-dive)
 
-**Expected revenue at end of Phase 3**: ฿80,000–500,000/month
-**Cost increase**: +$90/month (~$220 total)
-**Time investment**: depends on posting mode
-- Full-auto: 3 hr/week
-- Hybrid (record 20 takes/week of yourself for 5–10s intros): 4–5 hr/week
+**Cost delta**: $0/month (all free tiers)
 
-**Build estimate**: 2–3 chat sessions (video pipeline is most complex part of project)
+**Success metrics**:
+- 100+ Telegram subscribers
+- 50+ LINE friends
+- 100+ email subscribers
+- GSC: 100+ impressions/day
+
+**Channels active end of phase: 5** (Telegram + LINE + Email + Twitter + Web)
 
 ---
 
-### Phase 4 — Performance ML ⏸ PENDING
+## Phase 3 — Visual Channels
 
-**Goal**: System self-tunes. Predicts which content will hit before producing. Auto-rebalances budget across channels.
+**Goal**: Add image-heavy channels (Pinterest, Meta, YouTube) with auto image generation.
 
-**Layers added**: 10 (Performance Intelligence Loop) + Layer 4 closure
+**Time estimate**: 3-4 weeks (waiting on platform approvals).
 
-**Files to add (~20–25)**:
+**Tasks**:
 
-| Module | Files | Purpose |
-|---|---|---|
-| `src/analytics/` | collector.ts, attribution.ts, scoring.ts, anomaly.ts | Per-platform metrics ingestion |
-| `src/ml/` | predictor.ts, training.ts, features.ts | Content success prediction |
-| `src/ab/` | framework.ts, variants.ts | A/B test orchestration |
-| `src/intelligence/` | auto-rebalance.ts, kill-switch.ts | Budget shift + account pause |
-| `src/dashboard/` | + views: ML predictions, A/B tests, attribution | Dashboard updates |
+| # | Task | User action | My action | Wait |
+|---|------|-------------|-----------|------|
+| 3.1 | Pinterest dev account + approval | yes | guide | 1-2 days |
+| 3.2 | Pinterest auto pin (10/day) | — | code (publisher exists) | 1 hr |
+| 3.3 | Meta dev account (FB + IG) | yes | guide | 3-7 days |
+| 3.4 | FB Page + IG Business setup | yes | guide | 30 min |
+| 3.5 | Meta auto post (FB + IG carousels) | — | code | 2-3 hr |
+| 3.6 | YouTube OAuth + Data API | yes | guide | 30 min |
+| 3.7 | YouTube Shorts (still images) | — | code | 1-2 hr |
+| 3.8 | **Image generation pipeline (Flux Pro)** | yes (account) | code | 2 hr |
 
-**ML approach**:
-- LightGBM / XGBoost (no deep learning needed)
-- Features: title, hook, format, length, posting_time, niche, product attrs
-- Retrain every 2 weeks with last 60 days of data
-- Threshold: predicted_score < 60 → skip producing
+**New content formats added**:
+- Visual listicles (top 10 with images) — Pinterest, IG carousel
+- Story-form long posts (300-500 words) — FB
+- Brand spotlight visuals — IG single posts
+- Quote graphics — generated images for embed
 
-**New credentials needed**:
-- `GOOGLE_SERVICE_ACCOUNT_JSON` (for Search Console — free)
-- `SENTRY_DSN` (optional error tracking — free tier)
+**Cost delta**: $25-60/month (Flux ~$25, Mailgun if growing ~$0-35)
 
-**Expected revenue at end of Phase 4**: ฿250,000–1,500,000/month
-**Cost increase**: +$30/month (~$250 total)
-**Time investment**: 1–3 hr/week (system maintains itself)
+**Success metrics**:
+- Pinterest: 1000+ saves/month
+- IG: 500+ followers
+- YT Shorts: 1000+ views/video
+- Total visitors: 1000-3000/day
 
-**Build estimate**: 1–2 chat sessions
-
----
-
-### Phase 5 — Compound + Scale ⏸ PENDING
-
-**Goal**: Add second/third niche. Backlink campaign. Multilingual. Make business sellable as asset.
-
-**No new layers** — extends Phase 1–4 to multiple verticals.
-
-**Files to add (~10–15)**:
-
-| Module | Files | Purpose |
-|---|---|---|
-| `src/intelligence/niche-orchestrator.ts` | Run multiple niches in parallel | |
-| `src/seo/backlink-tracker.ts` | Track guest post placements | |
-| `src/i18n/` | English variants of pages | |
-| `src/exports/` | DB → CSV/JSON for due diligence | |
-| `src/email/` | newsletter.ts, drip campaigns | |
-
-**New credentials needed**:
-- `RESEND_API_KEY` (email — free tier)
-- Additional Shopee Affiliate sub-IDs for niche separation
-
-**Expected revenue at end of Phase 5**: ฿500,000–5,000,000/month (depends on # of niches)
-**Cost increase**: +$50/month per additional niche (~$300 total)
-**Time investment**: 1–2 hr/week
-
-**Build estimate**: 1 chat session
+**Channels active end of phase: 9**
 
 ---
 
-## 2. Layer ↔ Phase Mapping
+## Phase 4 — Intelligence Loop
 
-| Layer | Description | Phase | Status |
-|---|---|---|---|
-| 1 | Data Collection | 1 | ✅ |
-| 2 | Content Generation | 1 | ✅ |
-| 3 | Distribution (web + Telegram) | 1 | ✅ |
-| 3 | Distribution (Pinterest) | 2 | ⏸ |
-| 3 | Distribution (TikTok/FB/IG/YT) | 3 | ⏸ |
-| 4 | Optimization Loop | 4 | ⏸ |
-| 5 | Monitoring & Alert | 1 | ✅ |
-| 6 | Self-Healing | 1 | ✅ |
-| 7 | Campaign Optimization (Shopee missions) | 2 | ⏸ |
-| 8 | Product Intelligence (demand × profit × season) | 2 | ⏸ |
-| 9 | Narrative Content Engine | 3 | ⏸ |
-| 10 | Performance Intelligence + ML | 4 | ⏸ |
-| 11 | Compliance & Policy | 1 | ✅ |
+**Goal**: System learns from real metrics and auto-optimizes content/budget/timing.
+
+**Time estimate**: 5-7 weeks.
+
+**Tasks**:
+
+| # | Task | User action | My action |
+|---|------|-------------|-----------|
+| 4.1 | OAuth refresh-token GSC ingest (bypasses org policy block) | one-time auth click | code OAuth flow |
+| 4.2 | Cloudflare Analytics API ingest | provide CF token | code |
+| 4.3 | Shopee affiliate dashboard scrape (Playwright) | — | code |
+| 4.4 | Per-channel attribution (UTM + SubID end-to-end) | — | code |
+| 4.5 | A/B testing framework (headlines, CTAs) | — | code |
+| 4.6 | Auto-budget allocator per keyword | — | code |
+| 4.7 | Auto post-time optimizer per channel | — | code |
+| 4.8 | Quality gate (toxicity + factuality before send) | — | code |
+| 4.9 | Cost kill-switch + budget caps | — | code |
+
+**Auto decisions every night 03:00 BKK**:
+- High-CTR keyword + low conversion → fix landing page (rewrite verdict)
+- High-impression + low-CTR → A/B test 5 headline variants
+- Trending keyword detected → spawn 10 content pieces immediately
+- Low-converting product → blacklist + remove from broadcast
+- Channel underperforming → reduce frequency / change format
+
+**Cost delta**: +$30/month (extra Anthropic for variant generation)
+
+**Success metrics**:
+- Telegram CTR > 5%
+- Affiliate conversion > 1%
+- Cost per acquisition halved
+- First real revenue: ฿5,000-15,000/month
+
+**Channels active end of phase: 9** (same channels but smarter)
 
 ---
 
-## 3. Timeline Options
+## Phase 5 — Scale & Premium
 
-### Option A: Phase-by-phase (RECOMMENDED) ⭐
+**Goal**: TikTok + auto video generation + voice clone + multi-account farming.
+
+**Time estimate**: 2-3 months (TikTok approval is the long pole).
+
+**Tasks**:
+
+| # | Task | User action | My action |
+|---|------|-------------|-----------|
+| 5.1 | TikTok Content Posting API approval | submit (~30 day review) | guide |
+| 5.2 | Voice clone setup (ElevenLabs) | record 3-min sample | wire |
+| 5.3 | Video generation pipeline (Sora 2 / Kling) | account + billing | code |
+| 5.4 | Auto subtitle (Submagic) | account | code |
+| 5.5 | TikTok auto upload | — | code |
+| 5.6 | **Multi-account farming (3-5 TikTok accs)** | manage accounts | code |
+| 5.7 | LinkedIn (B2B niche, optional) | dev account | guide + wire |
+| 5.8 | Threads (Meta) | uses Meta creds | code |
+| 5.9 | Real-time trending hijack (Twitter trends → content) | — | code |
+
+**New content formats added**:
+- Video reviews 60-90s (auto-gen + voice clone narration)
+- TikTok trend videos (jump on trends within hours)
+- Live commerce hooks (LINE Shopping integration)
+
+**Cost delta**: +$70-120/month (ElevenLabs $22, video gen $50-100 selective)
+
+**Success metrics**:
+- TikTok: 10k-1M views/clip viral potential
+- Revenue: ฿50k-200k/month
+
+**Channels active end of phase: 13+**
+
+---
+
+## Cost & Channel Summary
+
+| Phase | Time to complete | Monthly cost | Channels active | Reach multiplier |
+|-------|------------------|--------------|-----------------|-------------------|
+| 1 ✅ | DONE | $30 | 1 | seed |
+| 2 | 1-2 weeks | $30 | 5 | 10× |
+| 3 | +3-4 weeks | $55-90 | 9 | 50× |
+| 4 | +5-7 weeks | $85-120 | 9 + smart | 100× conversion |
+| 5 | +2-3 months | $155-240 | 13+ | 500× |
+
+**Cumulative time**: ~3-4 months from now to full Phase 5
+**Cumulative cost cap**: ~$240/month (≈฿8,500) at Phase 5 fully running
+
+---
+
+## What Auto-Marketing CANNOT Do (and the workaround)
+
+These channels matter for Thai e-commerce but cannot be legitimately automated:
+
+| Channel | Why blocked | Workaround |
+|---------|-------------|------------|
+| Pantip | No public API + bot detection | I generate post drafts daily; user posts (5 min/day) |
+| Facebook Groups | TOS forbids automation, ban risk | Same — drafts + manual post |
+| Lemon8 | No public API | Same — drafts + manual post |
+| Reddit Thailand | Strict rate limits + small community | Marginal value, deprioritize |
+
+→ Plan to budget 5-10 min/day for user to post 1-2 drafts in 1-2 priority semi-auto channels.
+
+---
+
+## Marketing Channel Matrix (post-Phase 5)
 
 ```
-Now             Phase 1 = ready to run
-Week 1          Fill .env Phase 1, run first scrape, deploy
-Week 2-4        Monitor Phase 1 in production, collect data
-Month 2         Build Phase 2 (in chat session)
-Month 2-3       Run Phase 2, monitor
-Month 3         Build Phase 3 (TikTok approval should be ready)
-Month 3-4       Run Phase 3
-Month 5         Build Phase 4
-Month 6+        Build Phase 5 + scale
+FULLY AUTO (no human in loop):
+  Telegram, LINE OA, Email, Twitter, Pinterest, FB Page, IG Business,
+  YouTube, TikTok, LinkedIn, Threads
+
+SEMI-AUTO (system gens, user posts):
+  Pantip, FB Groups, Lemon8
+
+MANUAL (always human):
+  DM responses, comment engagement, influencer outreach
 ```
 
-**Pros**: Test before adding complexity. Real data informs Phase 2 scoring. SEO has time to compound.
-**Cons**: Total feature set takes 6 months.
+---
 
-### Option B: Build all phases now
+## Critical Path & Dependencies
 
+**Things only the user can unblock:**
+1. Account signup (each platform requires user identity)
+2. OAuth/dev approval submissions (each platform requires user as the developer)
+3. Domain ownership verification (DNS-level)
+4. Telegram subscriber acquisition (no API for "share to Pantip")
+5. Pantip / FB-group manual posting (no automation possible)
+6. GitHub push (per project rule — explicit token each time)
+7. Strategic decisions (niche expansion, budget changes, killing underperformers)
+
+**Things I do autonomously now (per saved feedback):**
+1. Code changes + local commits
+2. Bug fixes during audits/debugging
+3. Run scrapes, content gens, deploys
+4. Restart services, edit .env
+5. Cleanup demo/test data
+6. Tune thresholds, budget, scoring
+
+**Things I always confirm before doing:**
+1. Force-push, drop tables, delete user data
+2. Schema migrations on production data
+3. Cancel subscriptions or change billing
+4. Spend that exceeds set budget caps
+
+---
+
+## Operating Rhythm (post-Phase 2)
+
+**Per scrape cycle (4×/day, all auto)**:
 ```
-Session 2       Build Phase 2 (~30 files)
-Session 3-4     Build Phase 3 (~35-40 files, video complex)
-Session 5       Build Phase 4 (~20-25 files)
-Session 6       Build Phase 5 (~12 files)
-```
-
-**Pros**: Code-complete faster. No context loss between sessions.
-**Cons**: Massive code review surface. Cannot tune Phase 4 ML without Phase 1-3 data. TikTok dependent on approval.
-
-### Option C: Critical Phase 2 only
-
-Build just the high-ROI subset of Phase 2:
-- Pinterest publisher (works immediately)
-- Layer 8 scoring (improves Phase 1 quality)
-- Layer 7 campaign tracker (claims Shopee bonuses automatically)
-
-Skip: Lazada scraper, dashboard (defer).
-
-**Pros**: Phase 1 + 30% of Phase 2 = ROI boost without scope explosion.
-**Cons**: No dashboard, no cross-platform compare yet.
-
----
-
-## 4. Cost Trajectory
-
-| Phase | Monthly cost | Cumulative startup cost | Realistic revenue range |
-|---|---|---|---|
-| 0 (setup) | $0 | $20 (Anthropic credit) | ฿0 |
-| 1 | ~$60 | $40 (domain + first month) | ฿1,500–5,000 |
-| 2 | ~$130 | +$90 service signups | ฿10k–80k |
-| 3 | ~$220 | +$72 first month services | ฿80k–500k |
-| 4 | ~$250 | +$30 | ฿250k–1.5M |
-| 5 | ~$300+ | +$50 per niche | ฿500k–5M+ |
-
-**Break-even point**: ~Month 2 (revenue covers cost)
-**Variance**: HIGH — power-law distribution, not bell curve.
-
----
-
-## 5. Credential Timeline
-
-### Apply IMMEDIATELY (long approval times)
-
-| Service | Approval time | When you'll need it |
-|---|---|---|
-| **TikTok Developer** | 2–4 weeks | Phase 3 |
-| **Meta Developer** (FB+IG) | 3–7 days | Phase 3 |
-| **Shopee Affiliate** | 1–3 days | Phase 1 |
-
-### Sign up when starting Phase 1 (~now)
-
-| Service | Cost | Time |
-|---|---|---|
-| Anthropic Console | Pay $20 to start | 5 min |
-| DigitalOcean Droplet ($6–12/mo, includes self-host Postgres) | $6–12/mo | 10 min |
-| Cloudflare | Free | 10 min |
-| Telegram Bot (`@BotFather`) | Free | 5 min |
-| GitHub | Free | (existing) |
-| Domain (Cloudflare Registrar) | $10/yr | 10 min |
-
-> Database runs on the same Droplet (no separate Neon signup). See [digitalocean-setup.md](digitalocean-setup.md).
-
-### Sign up when starting Phase 2
-
-- Pinterest Developer (free, 1 day)
-- Bitly (free)
-- FastMoss (paid, immediate) — optional but recommended
-- Webshare proxy (paid, immediate) — optional
-
-### Sign up when starting Phase 3
-
-- ElevenLabs ($22/mo)
-- Replicate or Flux Pro (~$30/mo)
-- Submagic ($20/mo)
-- YouTube Data API (free, configure OAuth)
-
----
-
-## 6. Decision Points (look ahead)
-
-### Before Phase 2: should we add Lazada scraping?
-- **Yes if**: cross-platform price comparison is differentiator
-- **No if**: Shopee data alone covers user intent (most people only shop one platform)
-
-### Before Phase 3: full-auto vs hybrid?
-- **Full-auto** (no human face): ROI lower, easier to scale farms
-- **Hybrid** (5–10s human intro/wk): ROI 5–10x but requires you on camera weekly
-- Decide based on willingness to record + niche fit
-
-### Before Phase 4: build dashboard or stay CLI?
-- **Dashboard**: nicer for daily check, slower to build
-- **CLI + Telegram daily report**: 80% of dashboard value at 20% of code
-
-### Before Phase 5: scale niche or scale channels?
-- **Scale niche**: more product categories
-- **Scale channels**: more languages/regions
-- Pick whichever has stronger demand signal in Phase 4 data
-
----
-
-## 7. Risk Register
-
-| Risk | Mitigation built-in |
-|---|---|
-| Shopee changes JSON API | Fallback to Playwright in Phase 2 |
-| Anthropic API quota out | Graceful skip, alert operator |
-| Cloudflare deploy fail | Last-good build remains live |
-| TikTok/Meta refuses dev account | Phase 3 features feature-flagged off |
-| AI content reach declines further | Phase 4 ML detects + auto-rebalances |
-| Google algorithm penalty | 90% real data + price history = defensible |
-| Account ban (any platform) | Multi-channel diversification (max 40% concentration) |
-| Operator disappears for weeks | Self-healing + dry-run + alerts buffer |
-
----
-
-## 8. What to do tomorrow when you return
-
-### Path A: test Phase 1 (recommended)
-
-```bash
-# 1. Fill required vars in .env (see docs/env-setup.md):
-#    DOMAIN_NAME, DATABASE_URL, ANTHROPIC_API_KEY,
-#    SHOPEE_AFFILIATE_ID, TELEGRAM_BOT_TOKEN, TELEGRAM_OPERATOR_CHAT_ID,
-#    CLOUDFLARE_API_TOKEN, GITHUB_TOKEN
-
-cd /root/research-2
-bun install
-cd src/web && bun install && cd ../..
-
-bun run check-env
-bun run db:push
-bun run db:seed
-bun run test-connections
-bun run telegram:test
-
-bun run scrape:once "หูฟังบลูทูธ" 30
-bun run generate:once 10
-bun run build:pages
+:00  Apify scrape 2 keywords × 15 products
+:01  Persist to DB
+:01  triggerSiteRebuild → Astro build → Cloudflare deploy
+:30  Re-score products (Layer 8)
++1h  Generate content for new products (Claude)
++1h  Broadcast top deals to Telegram + LINE + Twitter
 ```
 
-If anything breaks → tell Claude tomorrow, we fix together.
+**Per night (auto)**:
+```
+05:00  Pull GSC + Cloudflare Analytics → DB
+23:00  Sitemap rebuild + IndexNow + GSC ping
+03:00  Cleanup logs (Sundays)
+03:00  Auto-optimize loop (Phase 4+): rebalance budget, A/B verdict, spawn trending content
+```
 
-### Path B: keep building (Phase 2)
-
-Just say: "เริ่ม Phase 2" and Claude resumes with Lazada scraper + Layer 8 scoring + Pinterest + dashboard.
-
-### Path C: ask anything
-
-Architecture questions, deployment help, business strategy — pick up wherever feels useful.
+**Per week (user)**:
+```
+- Check Telegram subscriber count
+- Check GSC top queries → confirm content matches
+- Approve any flagged compliance issues
+- Push pending commits to GitHub
+- Decide on niche/budget changes from data
+```
 
 ---
 
-## 9. Files to read tomorrow to re-orient
+## Memory & Context Hand-off
 
-1. **[README.md](../README.md)** — what was built, quick start
-2. **[docs/architecture.md](architecture.md)** — system design
-3. **[docs/runbook.md](runbook.md)** — daily ops
-4. **[docs/env-setup.md](env-setup.md)** — fill `.env`
-5. **This file** — where we are in the bigger plan
+`MEMORY.md` references:
+- `project_phase1_live.md` — current production snapshot
+- `feedback_autonomous_fix.md` — fix-without-asking permission
+- `feedback_github_push.md` — explicit-push-only rule
+
+Future Claude sessions reading these files will know exactly what's running, what's pending, and how to act on bugs without re-litigating the architecture.
 
 ---
 
-## 10. Status snapshot
+## Open Questions for User to Decide
 
-```
-Phase 1: ████████████████████ 100% ✅
-Phase 2: ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 3: ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 4: ░░░░░░░░░░░░░░░░░░░░   0%
-Phase 5: ░░░░░░░░░░░░░░░░░░░░   0%
+Before starting Phase 2:
+1. Budget cap per month? (suggest $50 cap during Phase 2-3 → $250 cap by Phase 5)
+2. Priority — traffic, conversion, or brand? (changes which channels go first)
+3. Niche — stay IT gadget, or expand to beauty/home/sports? (each new niche = +keywords + +Apify cost)
+4. Manual semi-auto willingness — willing to spend 5-10 min/day on Pantip/FB-group posting?
 
-Overall: ███████░░░░░░░░░░░░░  35%
-```
-
-**Last updated**: 2026-04-30 (end of session 1)
-**Next session**: tomorrow — choose Path A / B / C above
+Answers shape Phase 2-5 priorities. Default if user doesn't decide: "traffic first, IT-gadget only, no manual posting" → conservative path.
