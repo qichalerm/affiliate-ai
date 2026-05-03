@@ -222,6 +222,13 @@ export const productPrices = pgTable(
     productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
     price: bigint("price", { mode: "number" }).notNull(),
     originalPrice: bigint("original_price", { mode: "number" }),
+
+    // Demand signals captured alongside price — lets the promo hunter
+    // detect sold_surge / rating velocity events from this single time-series
+    // instead of needing a separate metrics_snapshots table.
+    soldCount: integer("sold_count"),
+    ratingCount: integer("rating_count"),
+
     capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({

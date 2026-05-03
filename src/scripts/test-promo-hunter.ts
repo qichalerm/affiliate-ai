@@ -41,6 +41,8 @@ async function main() {
   // Seed a price history: 5 historical points around 30000 satang (฿300),
   // then current price drops to 18000 satang (฿180) → a 40% drop, well
   // above the 10% threshold AND lower than every prior point → new_low.
+  // Also seeds sold_count baseline (~+10/day) and a +200 surge in the
+  // last 24h → sold_surge event.
   const HIGH_PRICE = 30_000;
   const NEW_LOW = 18_000;
 
@@ -50,19 +52,26 @@ async function main() {
     await db.insert(schema.productPrices).values({
       productId: pid,
       price: HIGH_PRICE + Math.floor((Math.random() - 0.5) * 1000),  // ±500 jitter
+      soldCount: 1000 - i * 10,  // baseline: ~10/day growth → t-5d=950, t-1d=990
       capturedAt: new Date(now - i * dayMs),
     });
   }
-  // Most recent prior snapshot — 1 hour ago, still at high price
+  // Most recent prior snapshot — just before the surge window — 25h ago
   await db.insert(schema.productPrices).values({
     productId: pid,
     price: HIGH_PRICE,
-    capturedAt: new Date(now - 60 * 60 * 1000),
+    soldCount: 1000,  // baseline holds
+    capturedAt: new Date(now - 25 * 60 * 60 * 1000),
   });
 
-  // Update product to current state (the new low)
+  // Update product to current state (the new low + sold surge)
   await db.update(schema.products)
-    .set({ currentPrice: NEW_LOW, originalPrice: HIGH_PRICE, discountPercent: 0.4 })
+    .set({
+      currentPrice: NEW_LOW,
+      originalPrice: HIGH_PRICE,
+      discountPercent: 0.4,
+      soldCount: 1200,  // +200 in 24h vs baseline ~10/day → ~20× surge
+    })
     .where(eq(schema.products.id, pid));
 
   console.log(`🎯 Seeded: prior floor=฿${(HIGH_PRICE/100).toFixed(0)}, current=฿${(NEW_LOW/100).toFixed(0)} (40% drop)\n`);
@@ -84,8 +93,10 @@ async function main() {
 
   const haveDrop = events1.some(e => e.eventType === "price_drop");
   const haveLow = events1.some(e => e.eventType === "new_low");
+  const haveSurge = events1.some(e => e.eventType === "sold_surge");
   console.log(`\n✓ price_drop detected: ${haveDrop}`);
   console.log(`✓ new_low detected:    ${haveLow}`);
+  console.log(`✓ sold_surge detected: ${haveSurge}`);
 
   // ── Run 2 — cooldown should suppress new events ─────────────────
   console.log("\n🎲 Run 2: should be no-op for this product (cooldown)\n");
@@ -103,7 +114,7 @@ async function main() {
   }
 
   // ── Verdict ─────────────────────────────────────────────────────
-  if (haveDrop && haveLow && events1.length === events2.length) {
+  if (haveDrop && haveLow && haveSurge && events1.length === events2.length) {
     console.log("\n✅ ALL CHECKS PASSED");
   } else {
     console.log("\n❌ FAIL: missing detections or cooldown not enforced");

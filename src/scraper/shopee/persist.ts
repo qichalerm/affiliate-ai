@@ -129,14 +129,16 @@ export async function upsertProduct(
       })
       .where(eq(schema.products.id, existing.id));
 
+    // Always snapshot per scrape — promo hunter needs continuous time-series
+    // for sold_surge detection, not just price-change events.
+    await db.insert(schema.productPrices).values({
+      productId: existing.id,
+      price: product.currentPriceSatang,
+      originalPrice: product.originalPriceSatang ?? null,
+      soldCount: sharedFields.soldCount ?? null,
+      ratingCount: sharedFields.ratingCount ?? null,
+    });
     const priceChanged = existing.currentPrice !== product.currentPriceSatang;
-    if (priceChanged) {
-      await db.insert(schema.productPrices).values({
-        productId: existing.id,
-        price: product.currentPriceSatang,
-        originalPrice: product.originalPriceSatang ?? null,
-      });
-    }
     return { id: existing.id, isNew: false, priceChanged };
   }
 
@@ -167,11 +169,13 @@ export async function upsertProduct(
     })
     .returning({ id: schema.products.id });
 
-  // Initial price record
+  // Initial snapshot
   await db.insert(schema.productPrices).values({
     productId: row!.id,
     price: product.currentPriceSatang,
     originalPrice: product.originalPriceSatang ?? null,
+    soldCount: sharedFields.soldCount ?? null,
+    ratingCount: sharedFields.ratingCount ?? null,
   });
 
   // Auto-create "web" channel affiliate link (M8 integration)

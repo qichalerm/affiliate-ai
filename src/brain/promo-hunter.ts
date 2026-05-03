@@ -64,6 +64,12 @@ interface PriceRow {
   capturedAt: Date;
 }
 
+interface SnapshotRow {
+  price: number;
+  soldCount: number | null;
+  capturedAt: Date;
+}
+
 /**
  * Scan all active products, compare their current state to historical
  * snapshots, and emit promo_events for any that look like rising stars.
@@ -99,10 +105,11 @@ export async function runPromoHunter(opts: { windowHours?: number } = {}): Promi
   for (const p of products as ProductSnapshot[]) {
     if (p.currentPrice == null) continue;
 
-    // Pull historical price points (most recent first)
+    // Pull historical snapshots (most recent first)
     const history = await db
       .select({
         price: schema.productPrices.price,
+        soldCount: schema.productPrices.soldCount,
         capturedAt: schema.productPrices.capturedAt,
       })
       .from(schema.productPrices)
@@ -212,11 +219,34 @@ export async function runPromoHunter(opts: { windowHours?: number } = {}): Promi
     }
 
     // ── sold_surge ────────────────────────────────────────────────
-    // We don't snapshot sold_count over time yet, so sold_surge needs
-    // a dedicated source: detect via raw sold_count ≥ baseline × multiple
-    // is impossible without history. For now, surge is detected against
-    // soldCount30d baseline (already in products table).
-    // Skipped — defer until we add sold-count history.
+    // Compare current sold_count to the value from ~24h ago. If the
+    // delta in this window is ≥ baseline daily growth × SOLD_SURGE_MULTIPLE,
+    // it's a surge. Baseline = average daily delta over last week.
+    if (
+      p.soldCount != null &&
+      history.length >= 3 &&
+      !onCooldown.has("sold_surge")
+    ) {
+      const surge = detectSoldSurge(p.soldCount, history as SnapshotRow[], windowHours);
+      if (surge) {
+        await insertEvent({
+          productId: p.id,
+          eventType: "sold_surge",
+          signalStrength: clamp01(surge.multiple / 5),  // 5x baseline = max strength
+          prevValue: surge.baselinePerWindow,
+          currValue: surge.deltaInWindow,
+          deltaPct: ((surge.deltaInWindow - surge.baselinePerWindow) / Math.max(1, surge.baselinePerWindow)) * 100,
+          windowHours,
+          payload: {
+            currentSoldCount: p.soldCount,
+            multiple: surge.multiple,
+            baselinePerWindow: surge.baselinePerWindow,
+          },
+        });
+        result.byType.sold_surge++;
+        result.eventsDetected++;
+      }
+    }
   }
 
   log.info(
@@ -259,6 +289,61 @@ function clamp01(x: number): number {
   if (x < 0) return 0;
   if (x > 1) return 1;
   return x;
+}
+
+/**
+ * Compare current sold_count to history. Returns surge info if the
+ * sold_count delta within `windowHours` is at least SOLD_SURGE_MULTIPLE
+ * times the baseline daily growth (computed over older history).
+ *
+ * history is ordered most-recent first. Skips snapshots with null
+ * soldCount (older rows pre-Sprint 16 won't have it).
+ */
+function detectSoldSurge(
+  currentSold: number,
+  history: SnapshotRow[],
+  windowHours: number,
+): { multiple: number; baselinePerWindow: number; deltaInWindow: number } | null {
+  const now = Date.now();
+  const windowMs = windowHours * 60 * 60 * 1000;
+  const cutoffWindow = new Date(now - windowMs);
+
+  // Find the snapshot closest to (now - windowHours) for "before" reference
+  const inWindowOrLater = history.filter((h) => h.capturedAt < cutoffWindow && h.soldCount != null);
+  if (inWindowOrLater.length === 0) return null;
+  const beforeWindow = inWindowOrLater[0];  // first one OLDER than cutoff
+
+  const deltaInWindow = currentSold - (beforeWindow.soldCount ?? currentSold);
+  if (deltaInWindow < SOLD_SURGE_MIN_DELTA) return null;
+
+  // Baseline: average daily delta over the next-older period of equal length
+  const baselineEnd = beforeWindow.capturedAt;
+  const baselineStart = new Date(baselineEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const baselineSnaps = history.filter(
+    (h) => h.soldCount != null && h.capturedAt >= baselineStart && h.capturedAt < baselineEnd,
+  );
+  if (baselineSnaps.length === 0) return null;
+
+  // Oldest baseline snap (highest index since most-recent first)
+  const oldestBase = baselineSnaps[baselineSnaps.length - 1];
+  const baselineDelta = (beforeWindow.soldCount ?? 0) - (oldestBase.soldCount ?? 0);
+  const baselineSpanMs = beforeWindow.capturedAt.getTime() - oldestBase.capturedAt.getTime();
+  if (baselineSpanMs <= 0) return null;
+
+  // Normalize: how many sold per equivalent window?
+  const baselinePerWindow = (baselineDelta / baselineSpanMs) * windowMs;
+  if (baselinePerWindow <= 0) {
+    // If the baseline rate is 0 or negative, any positive window delta is
+    // a surge — but require the absolute delta to be meaningful.
+    return deltaInWindow >= SOLD_SURGE_MIN_DELTA * 2
+      ? { multiple: 99, baselinePerWindow: Math.max(1, baselinePerWindow), deltaInWindow }
+      : null;
+  }
+
+  const multiple = deltaInWindow / baselinePerWindow;
+  if (multiple < SOLD_SURGE_MULTIPLE) return null;
+
+  return { multiple, baselinePerWindow, deltaInWindow };
 }
 
 /**
