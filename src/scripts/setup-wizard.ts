@@ -74,8 +74,6 @@ async function main() {
   const required = {
     DATABASE_URL: env.DATABASE_URL && !env.DATABASE_URL.includes("placeholder"),
     ANTHROPIC_API_KEY: !!env.ANTHROPIC_API_KEY,
-    TELEGRAM_BOT_TOKEN: !!env.TELEGRAM_BOT_TOKEN,
-    TELEGRAM_OPERATOR_CHAT_ID: !!env.TELEGRAM_OPERATOR_CHAT_ID,
     SHOPEE_AFFILIATE_ID: !!env.SHOPEE_AFFILIATE_ID,
   };
   let allRequired = true;

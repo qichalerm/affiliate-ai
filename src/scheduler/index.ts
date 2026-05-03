@@ -5,7 +5,6 @@
  *   00:00, 06:00, 12:00, 18:00 — scrape trending
  *   01:00 — generate pages (50/run)
  *   07:00, 13:00, 19:00 — generate pages (smaller batch)
- *   10:00, 16:00, 20:00 — broadcast deals to telegram
  *   21:00 — daily report
  *   every 5min — health check
  *   03:00 (every Sunday) — cleanup
@@ -41,7 +40,6 @@ const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
   { name: "generateBestOf", cron: "0 8 * * 1", description: "Generate best-of lists (Mondays)" },
   { name: "refreshInternalLinks", cron: "0 9 * * 1", description: "Refresh internal links (Mondays)" },
   { name: "pinterestPublish", cron: "0 11,17 * * *", description: "Publish pins to Pinterest (if enabled)" },
-  { name: "broadcastDeals", cron: "0 10,16,20 * * *", description: "Broadcast deals to Telegram channel" },
   // Sitemap rebuild runs after the 22:00 scrape so newly added products are indexed.
   { name: "sitemapAndIndex", cron: "0 23 * * *", description: "Rebuild sitemap + submit to Google/Bing (after last scrape of the day)" },
   { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
@@ -50,7 +48,7 @@ const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
   { name: "twitterPublish", cron: "0 14 * * *", description: "Twitter thread publish (if enabled)" },
   { name: "emailDigest", cron: "0 9 * * 5", description: "Weekly email digest (Friday)" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
-  { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily Telegram report" },
+  { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily report (email)" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
 ];
 

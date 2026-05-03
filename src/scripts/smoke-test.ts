@@ -7,7 +7,6 @@
  * Tests:
  *   - DB connection + schema version check
  *   - Anthropic API reachable (1 token call)
- *   - Telegram bot reachable (no message sent)
  *   - Shopee public API responds (1 search)
  *   - Cloudflare Pages deploy URL responds (HEAD)
  *   - Sitemap exists if running on production
@@ -19,7 +18,6 @@
 import { db, pingDb, closeDb } from "../lib/db.ts";
 import { sql } from "drizzle-orm";
 import { complete } from "../lib/claude.ts";
-import { pingBot } from "../lib/telegram.ts";
 import { searchByKeyword } from "../scraper/shopee/client.ts";
 import { env, can } from "../lib/env.ts";
 import { scanForbidden } from "../compliance/forbidden-words.ts";
@@ -104,20 +102,7 @@ async function main() {
     ),
   );
 
-  // 4. Telegram bot
-  results.push(
-    await runTest(
-      "telegram.bot",
-      async () => {
-        if (!can.alertTelegram()) return { ok: false, detail: "no token" };
-        const r = await pingBot();
-        return { ok: r.ok, detail: r.ok ? `@${r.me}` : r.error };
-      },
-      false,
-    ),
-  );
-
-  // 5. Shopee public API
+  // 4. Shopee public API
   results.push(
     await runTest(
       "shopee.search",

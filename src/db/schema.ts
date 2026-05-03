@@ -205,6 +205,11 @@ export const products = pgTable(
     lastScrapedAt: timestamp("last_scraped_at", { withTimezone: true }).defaultNow().notNull(),
     lastScoredAt: timestamp("last_scored_at", { withTimezone: true }),
     isActive: boolean("is_active").notNull().default(true),
+
+    // Pre-generated Shopee affiliate short link (shp.ee/xxxxx).
+    // When set, all outputs (web, telegram, social) use this link instead of
+    // building a URL — gives proper attribution in Shopee's affiliate dashboard.
+    shopeeShortUrl: varchar("shopee_short_url", { length: 255 }),
   },
   (t) => ({
     platformExtIdx: uniqueIndex("products_platform_ext_idx").on(t.platform, t.externalId),

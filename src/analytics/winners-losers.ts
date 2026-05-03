@@ -85,7 +85,7 @@ export async function getWinnersAndLosers(opts: { limit?: number } = {}): Promis
   return { topGainers, topLosers, newWinners, topRevenue };
 }
 
-export function formatWinnersLosersTelegram(data: WinnersLosers): string {
+export function formatWinnersLosers(data: WinnersLosers): string {
   const SITE = `https://${env.DOMAIN_NAME}`;
   const lines: string[] = [];
   lines.push("📈 *Weekly Winners & Losers*");

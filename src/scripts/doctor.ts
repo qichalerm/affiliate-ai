@@ -40,8 +40,6 @@ async function checkEnv() {
     { name: "DOMAIN_NAME", val: env.DOMAIN_NAME, isPlaceholder: env.DOMAIN_NAME === "yourdomain.com" },
     { name: "DATABASE_URL", val: env.DATABASE_URL, isPlaceholder: env.DATABASE_URL.includes("placeholder") },
     { name: "ANTHROPIC_API_KEY", val: env.ANTHROPIC_API_KEY, isPlaceholder: false },
-    { name: "TELEGRAM_BOT_TOKEN", val: env.TELEGRAM_BOT_TOKEN, isPlaceholder: false },
-    { name: "TELEGRAM_OPERATOR_CHAT_ID", val: env.TELEGRAM_OPERATOR_CHAT_ID, isPlaceholder: false },
     { name: "SHOPEE_AFFILIATE_ID", val: env.SHOPEE_AFFILIATE_ID, isPlaceholder: false },
   ];
   for (const r of required) {

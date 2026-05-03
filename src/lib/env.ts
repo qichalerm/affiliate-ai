@@ -91,12 +91,6 @@ const envSchema = z.object({
   TWITTER_ACCESS_TOKEN: optStr,
   TWITTER_ACCESS_SECRET: optStr,
 
-  // Telegram
-  TELEGRAM_BOT_TOKEN: optStr,
-  TELEGRAM_OPERATOR_CHAT_ID: optStr,
-  TELEGRAM_DEAL_CHANNEL_ID: optStr,
-  TELEGRAM_DEAL_CHANNEL_USERNAME: optStr,
-
   // Monitoring
   SENTRY_DSN: optStr,
   PLAUSIBLE_API_KEY: optStr,
@@ -195,7 +189,6 @@ const envSchema = z.object({
   FEATURE_TIKTOK_AUTO_POST: boolish,
   FEATURE_META_AUTO_POST: boolish,
   FEATURE_PINTEREST_AUTO_POST: boolish,
-  FEATURE_TELEGRAM_BROADCAST: boolish,
   FEATURE_YOUTUBE_AUTO_POST: boolish,
 
   DEBUG_DRY_RUN: boolish,
@@ -236,10 +229,6 @@ export const can = {
   postMeta: () => Boolean(env.META_PAGE_ACCESS_TOKEN) && env.FEATURE_META_AUTO_POST,
   postPinterest: () => Boolean(env.PINTEREST_ACCESS_TOKEN) && env.FEATURE_PINTEREST_AUTO_POST,
   postYouTube: () => Boolean(env.YOUTUBE_API_KEY) && env.FEATURE_YOUTUBE_AUTO_POST,
-  broadcastTelegram: () =>
-    Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_DEAL_CHANNEL_ID) &&
-    env.FEATURE_TELEGRAM_BROADCAST,
-  alertTelegram: () => Boolean(env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_OPERATOR_CHAT_ID),
   generateVoice: () => Boolean(env.ELEVENLABS_API_KEY),
   generateImages: () => Boolean(env.FLUX_API_KEY || env.REPLICATE_API_TOKEN),
   deployCloudflare: () => Boolean(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID),
@@ -259,8 +248,6 @@ export function summarizeCapabilities(): string {
     ["Claude", can.generateContent()],
     ["Shopee.scrape", can.scrapeShopee()],
     ["Shopee.dashboard", can.trackShopeeDashboard()],
-    ["TG.alert", can.alertTelegram()],
-    ["TG.broadcast", can.broadcastTelegram()],
     ["Pinterest", can.postPinterest()],
     ["TikTok", can.postTikTok()],
     ["Meta", can.postMeta()],

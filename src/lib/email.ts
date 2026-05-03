@@ -1,9 +1,9 @@
 /**
- * Resend email client — backup notification channel.
+ * Resend email client — primary operator notification channel.
  *
  * Use cases:
- *   - Critical alerts when Telegram is down
- *   - Daily reports for stakeholders (bcc)
+ *   - Critical/error/warn alerts to operator
+ *   - Daily reports
  *   - Invoice/billing alerts
  *
  * Quota: Resend free 3,000 emails/month — way more than we need.
@@ -71,7 +71,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id?: string; 
 
 /**
  * Send an alert email (operator).
- * Used as backup when Telegram fails or for critical events.
+ * Primary operator notification channel for warn/error/critical events.
  */
 export async function sendAlertEmail(input: {
   severity: "warn" | "error" | "critical";

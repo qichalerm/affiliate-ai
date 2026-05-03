@@ -51,20 +51,6 @@ const checks: Check[] = [
     hint: "Sign up at https://affiliate.shopee.co.th/",
   },
   {
-    name: "TELEGRAM_BOT_TOKEN",
-    present: !!env.TELEGRAM_BOT_TOKEN,
-    required: true,
-    phase: 1,
-    hint: "Talk to @BotFather on Telegram",
-  },
-  {
-    name: "TELEGRAM_OPERATOR_CHAT_ID",
-    present: !!env.TELEGRAM_OPERATOR_CHAT_ID,
-    required: true,
-    phase: 1,
-    hint: "Talk to @userinfobot on Telegram",
-  },
-  {
     name: "CLOUDFLARE_API_TOKEN",
     present: !!env.CLOUDFLARE_API_TOKEN,
     required: true,
@@ -80,13 +66,6 @@ const checks: Check[] = [
   },
 
   // Phase 2
-  {
-    name: "TELEGRAM_DEAL_CHANNEL_ID",
-    present: !!env.TELEGRAM_DEAL_CHANNEL_ID,
-    required: false,
-    phase: 2,
-    hint: "Create a public Telegram channel, add bot as admin",
-  },
   {
     name: "PINTEREST_ACCESS_TOKEN",
     present: !!env.PINTEREST_ACCESS_TOKEN,

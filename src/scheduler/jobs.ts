@@ -5,7 +5,6 @@
 
 import { runShopeeScrape } from "../scraper/shopee/runner.ts";
 import { generateReviewPage } from "../content/generator.ts";
-import { broadcastDealsToChannel } from "../publisher/telegram-channel.ts";
 import { runHealthChecks } from "../monitoring/health.ts";
 import { sendDailyReport } from "../monitoring/daily-report.ts";
 import { runScoring } from "../intelligence/score-runner.ts";
@@ -262,15 +261,6 @@ export async function jobRefreshPrices(maxItems = 100): Promise<void> {
 }
 
 /* ===================================================================
- * 4. Telegram broadcast deals
- * =================================================================== */
-
-export async function jobBroadcastDeals(): Promise<void> {
-  const result = await broadcastDealsToChannel({ limit: 3, minDiscount: 0.25, minRating: 4.3 });
-  log.info(result, "broadcast deals done");
-}
-
-/* ===================================================================
  * 5. Health check
  * =================================================================== */
 
@@ -519,7 +509,6 @@ export const JOBS = {
   scrapeTrending: jobScrapeTrending,
   generatePages: jobGeneratePages,
   refreshPrices: jobRefreshPrices,
-  broadcastDeals: jobBroadcastDeals,
   healthCheck: jobHealthCheck,
   dailyReport: jobDailyReport,
   cleanup: jobCleanup,

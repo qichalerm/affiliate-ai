@@ -1,11 +1,11 @@
 /**
- * Daily report — sent to operator via Telegram each evening.
+ * Daily report — sent to operator via email each evening.
  * Aggregates: revenue, conversions, scrape stats, content generated, alerts.
  */
 
 import { db } from "../lib/db.ts";
 import { sql } from "drizzle-orm";
-import { sendOperator } from "../lib/telegram.ts";
+import { sendAlertEmail } from "../lib/email.ts";
 import { formatBaht, formatNumber } from "../lib/format.ts";
 import { child } from "../lib/logger.ts";
 
@@ -100,7 +100,7 @@ export async function buildDailyReport(): Promise<string> {
   const isMonday = new Date().getDay() === 1;
   if (isMonday) {
     try {
-      const { getWinnersAndLosers, formatWinnersLosersTelegram } = await import(
+      const { getWinnersAndLosers, formatWinnersLosers } = await import(
         "../analytics/winners-losers.ts"
       );
       const wl = await getWinnersAndLosers({ limit: 5 });
@@ -110,7 +110,7 @@ export async function buildDailyReport(): Promise<string> {
         wl.newWinners.length > 0 ||
         wl.topRevenue.length > 0
       ) {
-        lines.push(formatWinnersLosersTelegram(wl));
+        lines.push(formatWinnersLosers(wl));
         lines.push("");
       }
     } catch (err) {
@@ -134,5 +134,9 @@ export async function buildDailyReport(): Promise<string> {
 export async function sendDailyReport(): Promise<void> {
   const report = await buildDailyReport();
   log.info({ length: report.length }, "sending daily report");
-  await sendOperator(report);
+  await sendAlertEmail({
+    severity: "warn",
+    title: "Daily report",
+    body: report,
+  });
 }

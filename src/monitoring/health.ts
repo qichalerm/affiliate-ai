@@ -4,7 +4,6 @@
  */
 
 import { pingDb } from "../lib/db.ts";
-import { pingBot } from "../lib/telegram.ts";
 import { can, env } from "../lib/env.ts";
 import { createAlert } from "./alerts.ts";
 import { child } from "../lib/logger.ts";
@@ -35,12 +34,6 @@ export async function runHealthChecks(): Promise<HealthResult> {
     }
   } catch (err) {
     checks.push({ name: "db.ping", ok: false, detail: String(err) });
-  }
-
-  // Telegram bot
-  if (can.alertTelegram()) {
-    const tg = await pingBot();
-    checks.push({ name: "telegram.bot", ok: tg.ok, detail: tg.me ?? tg.error });
   }
 
   // Anthropic credit (basic — actual quota check requires admin API)

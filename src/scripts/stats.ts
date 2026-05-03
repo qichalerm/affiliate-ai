@@ -1,11 +1,10 @@
 /**
  * `bun run stats` — comprehensive system stats for operator.
- * Prints to stdout AND optionally sends to Telegram.
+ * Prints to stdout.
  */
 
 import { db, closeDb } from "../lib/db.ts";
 import { sql } from "drizzle-orm";
-import { sendOperator } from "../lib/telegram.ts";
 import { allBreakerStatus } from "../lib/circuit-breaker.ts";
 import { formatBaht, formatNumber } from "../lib/format.ts";
 
@@ -35,8 +34,6 @@ interface HealthRow {
 }
 
 async function main() {
-  const sendTelegram = process.argv[2] === "--send";
-
   const [revenue, counts, health] = await Promise.all([
     db.execute<RevenueRow>(sql`
       SELECT
@@ -105,13 +102,7 @@ async function main() {
     }
   }
 
-  const text = lines.join("\n");
-  console.log(text);
-
-  if (sendTelegram) {
-    await sendOperator(text);
-    console.log("\n✓ Sent to Telegram");
-  }
+  console.log(lines.join("\n"));
 
   await closeDb();
 }

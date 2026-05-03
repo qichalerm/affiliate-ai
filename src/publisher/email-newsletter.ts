@@ -201,7 +201,7 @@ export async function sendWeeklyDigest(): Promise<{
   skipped: number;
   failed: number;
 }> {
-  if (!can.alertTelegram() && !env.RESEND_API_KEY) {
+  if (!env.RESEND_API_KEY) {
     log.info("RESEND_API_KEY missing; skip newsletter");
     return { sent: 0, skipped: 0, failed: 0 };
   }

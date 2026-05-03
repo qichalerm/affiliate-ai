@@ -3,7 +3,6 @@
  */
 
 import { pingDb, closeDb } from "../lib/db.ts";
-import { pingBot } from "../lib/telegram.ts";
 import { complete } from "../lib/claude.ts";
 import { can, env } from "../lib/env.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -42,13 +41,6 @@ const tests: Array<() => Promise<TestResult>> = [
       if (!can.generateContent()) return { ok: false, detail: "ANTHROPIC_API_KEY not set" };
       const r = await complete("ตอบสั้นๆ: 1+1 ?", { tier: "fast", maxTokens: 20 });
       return { ok: r.text.length > 0, detail: `model=${r.model}, cost=$${r.costUsd.toFixed(5)}` };
-    }),
-
-  () =>
-    timed("Telegram bot", async () => {
-      if (!can.alertTelegram()) return { ok: false, detail: "no token configured" };
-      const r = await pingBot();
-      return { ok: r.ok, detail: r.ok ? `@${r.me}` : r.error };
     }),
 
   () =>

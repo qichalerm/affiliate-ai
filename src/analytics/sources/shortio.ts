@@ -5,8 +5,8 @@
  * from Short.io statistics API and updates clicks count locally.
  *
  * This complements `clicks` table with raw click counts for links we
- * may not have captured via /go endpoint (e.g. Telegram broadcasts where
- * users click directly on Short.io URL).
+ * may not have captured via /go endpoint (e.g. social posts where users
+ * click directly on the Short.io URL).
  */
 
 import { db, schema } from "../../lib/db.ts";

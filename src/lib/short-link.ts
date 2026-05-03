@@ -7,9 +7,9 @@
  *  - Bypasses some platforms' link expansion that strips affiliate params
  *
  * Used in:
- *  - Telegram broadcasts (Phase 1)
- *  - Pinterest pin URLs (Phase 2)
- *  - TikTok/Meta captions (Phase 3)
+ *  - Pinterest pin URLs
+ *  - TikTok/Meta/IG captions
+ *  - Web outbound affiliate links
  */
 
 import { env, can } from "./env.ts";

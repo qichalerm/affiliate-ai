@@ -1,10 +1,9 @@
 /**
- * Alert helpers — write to alerts table + push to Telegram.
+ * Alert helpers — write to alerts table + push to email (operator notification).
  */
 
 import { eq } from "drizzle-orm";
 import { db, schema } from "../lib/db.ts";
-import { sendOperator } from "../lib/telegram.ts";
 import { sendAlertEmail } from "../lib/email.ts";
 import { child } from "../lib/logger.ts";
 
@@ -20,7 +19,7 @@ export interface CreateAlertInput {
   metadata?: Record<string, unknown>;
   requiresUserAction?: boolean;
   /** Suppress operator notification (for noisy events). */
-  silentTelegram?: boolean;
+  silent?: boolean;
 }
 
 export async function createAlert(input: CreateAlertInput): Promise<number> {
@@ -38,30 +37,8 @@ export async function createAlert(input: CreateAlertInput): Promise<number> {
 
   log.info({ id: row.id, code: input.code, severity: input.severity }, input.title);
 
-  // Notify operator (Telegram primary) for warn+ unless silenced
-  let telegramOk = false;
-  if (!input.silentTelegram && input.severity !== "info") {
-    const icon = input.severity === "critical" ? "🚨" : input.severity === "error" ? "❌" : "⚠️";
-    const lines = [`${icon} *${input.title}*`];
-    if (input.body) lines.push("", input.body);
-    if (input.requiresUserAction) lines.push("", "_ต้องการการตัดสินใจของคุณ_");
-    try {
-      await sendOperator(lines.join("\n"));
-      telegramOk = true;
-      await db
-        .update(schema.alerts)
-        .set({ deliveredAt: new Date() })
-        .where(eq(schema.alerts.id, row.id));
-    } catch (err) {
-      log.warn({ err }, "failed to deliver alert via telegram");
-    }
-  }
-
-  // Email backup channel for severity ≥ error OR if Telegram failed
-  if (
-    !input.silentTelegram &&
-    (input.severity === "error" || input.severity === "critical" || (!telegramOk && input.severity !== "info"))
-  ) {
+  // Email operator for warn+ unless silenced
+  if (!input.silent && input.severity !== "info") {
     try {
       await sendAlertEmail({
         severity: input.severity === "critical" ? "critical" : input.severity === "error" ? "error" : "warn",
@@ -69,6 +46,10 @@ export async function createAlert(input: CreateAlertInput): Promise<number> {
         body: input.body ?? "(no details)",
         metadata: input.metadata,
       });
+      await db
+        .update(schema.alerts)
+        .set({ deliveredAt: new Date() })
+        .where(eq(schema.alerts.id, row.id));
     } catch (err) {
       log.warn({ err }, "failed to deliver alert via email");
     }
