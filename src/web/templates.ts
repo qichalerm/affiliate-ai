@@ -83,7 +83,7 @@ const I18N: Record<Lang, {
   th: {
     htmlLang: "th-TH",
     ogLocale: "th_TH",
-    liveBadge: "อัปเดตทุก 6 ชั่วโมง",
+    liveBadge: "อัปเดตวันละ 4 ครั้ง",
     heroLine1: "เช็คราคาก่อนช้อป",
     heroLine2: "ประหยัดได้ทุกครั้ง",
     heroSub1: "เปรียบเทียบราคา Shopee จากสินค้านับล้านรายการ",
@@ -121,7 +121,7 @@ const I18N: Record<Lang, {
   en: {
     htmlLang: "en",
     ogLocale: "en_US",
-    liveBadge: "Updated every 6 hours",
+    liveBadge: "Updated 4 times daily",
     heroLine1: "Check prices before you shop.",
     heroLine2: "Save every time.",
     heroSub1: "Compare millions of products from Shopee Thailand",
@@ -159,7 +159,7 @@ const I18N: Record<Lang, {
   zh: {
     htmlLang: "zh-CN",
     ogLocale: "zh_CN",
-    liveBadge: "每 6 小时更新",
+    liveBadge: "每日 4 次更新",
     heroLine1: "购物前查价",
     heroLine2: "次次省钱",
     heroSub1: "比较 Shopee 泰国百万商品价格",
@@ -197,7 +197,7 @@ const I18N: Record<Lang, {
   ja: {
     htmlLang: "ja",
     ogLocale: "ja_JP",
-    liveBadge: "6 時間ごとに更新",
+    liveBadge: "1日 4 回更新",
     heroLine1: "買う前に価格チェック",
     heroLine2: "毎回お得に",
     heroSub1: "Shopee タイの何百万もの商品の価格を比較",
@@ -287,6 +287,43 @@ function pageUrl(lang: Lang, path: string): string {
 
 function productPath(lang: Lang, slug: string): string {
   return pageUrl(lang, `/p/${slug}`);
+}
+
+/**
+ * "Updated 3 minutes ago" / "อัปเดต 3 นาทีที่แล้ว" — render the relative
+ * delta from now to a past ISO timestamp in each supported language.
+ * Used by hero pulse-dot badge so the home page proves freshness without
+ * stating a fixed cadence ("every 6 hours") that doesn't match the cron.
+ */
+function relativeTime(iso: string, lang: Lang): string {
+  const t = new Date(iso).getTime();
+  const diffMs = Date.now() - t;
+  const mins = Math.max(0, Math.round(diffMs / 60000));
+
+  if (mins < 1) {
+    return lang === "th" ? "เพิ่งอัปเดต"
+         : lang === "zh" ? "刚刚更新"
+         : lang === "ja" ? "更新したばかり"
+         : "Just updated";
+  }
+  if (mins < 60) {
+    return lang === "th" ? `อัปเดต ${mins} นาทีที่แล้ว`
+         : lang === "zh" ? `${mins} 分钟前更新`
+         : lang === "ja" ? `${mins} 分前に更新`
+         : `Updated ${mins}m ago`;
+  }
+  const hours = Math.round(mins / 60);
+  if (hours < 24) {
+    return lang === "th" ? `อัปเดต ${hours} ชั่วโมงที่แล้ว`
+         : lang === "zh" ? `${hours} 小时前更新`
+         : lang === "ja" ? `${hours} 時間前に更新`
+         : `Updated ${hours}h ago`;
+  }
+  const days = Math.round(hours / 24);
+  return lang === "th" ? `อัปเดต ${days} วันที่แล้ว`
+       : lang === "zh" ? `${days} 天前更新`
+       : lang === "ja" ? `${days} 日前に更新`
+       : `Updated ${days}d ago`;
 }
 
 function abbreviateCount(n: number, lang: Lang): string {
@@ -450,18 +487,23 @@ function siteFooter(lang: Lang, _config: SiteConfig): string {
  * Hero
  * ---------------------------------------------------------------------------*/
 
-function heroSection(lang: Lang): string {
+function heroSection(lang: Lang, lastUpdatedAt?: string): string {
   const i = I18N[lang];
   const chipsHtml = i.popularChips.map((c) =>
     `<a href="${pageUrl(lang, `/search?q=${encodeURIComponent(c.q)}`)}" class="rounded-full border border-ink-200 bg-white px-3 py-1 text-ink-700 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 transition dark:border-ink-800 dark:bg-ink-900 dark:text-ink-300 dark:hover:bg-ink-800">${escapeHtml(c.label)}</a>`
   ).join("");
+
+  // Show real "Updated 12m ago" from last successful scrape, falling
+  // back to the static "4 times daily" label only if we have no
+  // timestamp (first deploy / DB just initialized).
+  const liveText = lastUpdatedAt ? relativeTime(lastUpdatedAt, lang) : i.liveBadge;
 
   return `<section class="hero-bg relative overflow-hidden">
   <div class="container-page py-12 sm:py-20 lg:py-28">
     <div class="mx-auto max-w-3xl text-center">
       <div class="mb-6 inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/70 px-3 py-1 text-xs font-medium text-ink-700 backdrop-blur dark:border-ink-800 dark:bg-ink-900/70 dark:text-ink-300 animate-fade-in">
         <span class="pulse-dot"></span>
-        <span>${escapeHtml(i.liveBadge)}</span>
+        <span>${escapeHtml(liveText)} · ${escapeHtml(i.liveBadge)}</span>
       </div>
       <h1 class="text-display-md sm:text-display-lg text-balance text-ink-900 dark:text-ink-50 animate-slide-up">
         ${escapeHtml(i.heroLine1)}<br>
@@ -637,7 +679,7 @@ export function renderHomePage(args: {
 <body class="min-h-screen flex flex-col">
 ${siteHeader(args.lang, path, args.config.name)}
 <main class="flex-1 pb-20 sm:pb-0">
-  ${heroSection(args.lang)}
+  ${heroSection(args.lang, args.config.lastUpdatedAt)}
   ${productGridSection({ lang: args.lang, id: "deals", title: i.hotDealsTitle, subtitle: i.hotDealsSubtitle, products: hotDeals })}
   ${categoriesSection(args.lang)}
   ${productGridSection({ lang: args.lang, id: "reviewed", title: i.reviewedTitle, subtitle: i.reviewedSubtitle, products: reviewed })}
