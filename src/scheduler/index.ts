@@ -14,6 +14,7 @@ import { env, summarizeCapabilities } from "../lib/env.ts";
 import { logger, child } from "../lib/logger.ts";
 import { closeDb, pingDb } from "../lib/db.ts";
 import { errMsg } from "../lib/retry.ts";
+import { jobScrapeTrending } from "./jobs.ts";
 
 const log = child("scheduler");
 
@@ -25,24 +26,29 @@ interface JobSchedule {
 }
 
 /* -----------------------------------------------------------------------------
- * Sprint 0 jobs — only health check for now.
- * Sprints 1+ append jobs here as modules come online.
+ * Active jobs:
+ *   Sprint 0: healthCheck
+ *   Sprint 2: scrapeTrending (Apify Shopee, multi-niche, 4×/day)
  * ---------------------------------------------------------------------------*/
 
 async function jobHealthCheck(): Promise<void> {
   const dbOk = await pingDb();
   log.info({ dbOk }, "health check");
-  if (!dbOk) {
-    log.error("DB unreachable — alert would fire here in Sprint 1+");
-  }
+  if (!dbOk) log.error("DB unreachable");
 }
 
 const SCHEDULES: JobSchedule[] = [
   {
     name: "healthCheck",
     cron: "*/5 * * * *",
-    description: "DB ping + capability check (every 5 min)",
+    description: "DB ping (every 5 min)",
     handler: jobHealthCheck,
+  },
+  {
+    name: "scrapeTrending",
+    cron: env.CRON_SCRAPE_PRODUCTS,
+    description: "Apify Shopee scrape — multi-niche, 4×/day BKK flash sale times",
+    handler: jobScrapeTrending,
   },
 ];
 

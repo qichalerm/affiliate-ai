@@ -9,6 +9,7 @@
     "scheduler:once": "RUN_ONCE=true bun run src/scheduler/index.ts",
     "redirect": "bun run src/web/redirect-server.ts",
     "test:link": "bun run src/scripts/test-link.ts",
+    "scrape:once": "bun run src/scripts/scrape-once.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
