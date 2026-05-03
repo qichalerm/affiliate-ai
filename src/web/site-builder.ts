@@ -105,6 +105,19 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
   `);
 
   const productList = products as unknown as ProductForRender[];
+
+  // Pre-process products BEFORE any render so home + detail pages
+  // agree on the slug (was a bug: safeSlug was applied per-product
+  // inside the detail loop, so home cards linked to the un-truncated
+  // slug while files were written under the truncated one — every
+  // home click landed on a 404 / SPA-fallback to the home page).
+  // Also overwrite affiliate_short_url with our own /go/<shortId>
+  // tracking URL so the product page CTA actually works.
+  for (const p of productList) {
+    p.slug = safeSlug(p.slug, p.id);
+  }
+  await attachWebAffiliateUrls(productList);
+
   log.info({ products: productList.length }, "products fetched");
 
   if (opts.clean !== false && existsSync(outDir)) {
@@ -124,12 +137,7 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
   }
 
   // ── Product detail pages ───────────────────────────────────────
-  // Truncate slug for the on-disk filename to keep below filesystem
-  // path limits (255 bytes for ext4). The HTML still references the
-  // full slug — ENAMETOOLONG only affects what we write to disk.
-  // Rewrite product.slug to the safe form so internal hrefs stay consistent.
   for (const product of productList) {
-    product.slug = safeSlug(product.slug, product.id);
     for (const lang of LANGS) {
       const html = renderProductPage({ lang, product, config });
       const path = lang === "th"
@@ -166,6 +174,37 @@ function writeFile(path: string, body: string): void {
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
   writeFileSync(path, body, "utf8");
+}
+
+/**
+ * Replace each product's `affiliateShortUrl` with our own /go/<shortId>
+ * tracking link from affiliate_links (channel='web'). The DB column
+ * `products.affiliate_short_url` is reserved for Shopee's own shp.ee/xxx
+ * shortener (rarely populated) — the M8 click tracker writes its own
+ * row in affiliate_links per product on first scrape. The web CTA needs
+ * the latter so clicks attribute back to us, not to Shopee directly.
+ */
+async function attachWebAffiliateUrls(products: ProductForRender[]): Promise<void> {
+  if (products.length === 0) return;
+  const ids = products.map((p) => p.id);
+
+  type LinkRow = { productId: number; shortId: string; [k: string]: unknown };
+  // Pick the most recent web link per product (ORDER BY id DESC then DISTINCT ON)
+  const rows = await db.execute<LinkRow>(sql`
+    SELECT DISTINCT ON (product_id)
+      product_id AS "productId", short_id AS "shortId"
+    FROM affiliate_links
+    WHERE channel = 'web' AND product_id = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})
+    ORDER BY product_id, id DESC
+  `);
+
+  const map = new Map(rows.map((r) => [r.productId, r.shortId]));
+  for (const p of products) {
+    const shortId = map.get(p.id);
+    if (shortId) {
+      p.affiliateShortUrl = `https://${env.SITE_DOMAIN}/go/${shortId}`;
+    }
+  }
 }
 
 /**
