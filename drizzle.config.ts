@@ -1,21 +1,13 @@
-import { defineConfig } from "drizzle-kit";
-import { config } from "dotenv";
+import "dotenv/config";
+import type { Config } from "drizzle-kit";
 
-config({ path: ".env" });
-
-export default defineConfig({
+export default {
   schema: "./src/db/schema.ts",
   out: "./src/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgresql://placeholder",
+    url: process.env.DATABASE_URL ?? "",
   },
   verbose: true,
   strict: true,
-  // Idempotent migrations: prefer drizzle-kit migrate over push for production
-  // For dev, db:push is still fine
-  migrations: {
-    table: "drizzle_migrations",
-    schema: "public",
-  },
-});
+} satisfies Config;

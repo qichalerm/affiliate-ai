@@ -1,42 +1,40 @@
-import { child } from "./logger.ts";
-
-const log = child("retry");
+/**
+ * Retry helpers — exponential backoff with jitter.
+ * Used for any external API call (Apify, Anthropic, social platforms, ...).
+ */
 
 export interface RetryOptions {
+  /** Total attempts including first try. */
   attempts?: number;
+  /** Base delay before first retry, ms. */
   baseDelayMs?: number;
+  /** Max delay between attempts, ms. */
   maxDelayMs?: number;
-  onAttempt?: (attempt: number, error: unknown) => void;
-  shouldRetry?: (error: unknown) => boolean;
+  /** Called before each retry — return false to abort. */
+  shouldRetry?: (err: unknown, attempt: number) => boolean;
 }
 
-/**
- * Retry an async operation with exponential backoff + jitter.
- */
 export async function retry<T>(fn: () => Promise<T>, opts: RetryOptions = {}): Promise<T> {
   const attempts = opts.attempts ?? 3;
-  const baseDelay = opts.baseDelayMs ?? 500;
-  const maxDelay = opts.maxDelayMs ?? 30_000;
+  const baseDelayMs = opts.baseDelayMs ?? 500;
+  const maxDelayMs = opts.maxDelayMs ?? 30_000;
   const shouldRetry = opts.shouldRetry ?? (() => true);
 
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt++) {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
     try {
       return await fn();
     } catch (err) {
-      lastError = err;
-      if (!shouldRetry(err) || attempt === attempts) {
-        throw err;
-      }
-      const exp = Math.min(maxDelay, baseDelay * 2 ** (attempt - 1));
-      const jitter = Math.random() * exp * 0.3;
-      const delay = Math.floor(exp + jitter);
-      opts.onAttempt?.(attempt, err);
-      log.debug({ attempt, delay, err: errMsg(err) }, "retrying");
-      await sleep(delay);
+      lastErr = err;
+      if (i === attempts - 1) break;
+      if (!shouldRetry(err, i + 1)) break;
+
+      const exp = Math.min(baseDelayMs * 2 ** i, maxDelayMs);
+      const jittered = exp / 2 + Math.random() * (exp / 2);
+      await sleep(jittered);
     }
   }
-  throw lastError;
+  throw lastErr;
 }
 
 export function sleep(ms: number): Promise<void> {
@@ -45,5 +43,10 @@ export function sleep(ms: number): Promise<void> {
 
 export function errMsg(err: unknown): string {
   if (err instanceof Error) return err.message;
-  return String(err);
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
 }

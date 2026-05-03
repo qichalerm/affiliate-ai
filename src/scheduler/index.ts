@@ -1,98 +1,93 @@
 /**
  * Cron scheduler — long-running process that triggers jobs on schedule.
  *
- * Schedule (Asia/Bangkok):
- *   00:00, 06:00, 12:00, 18:00 — scrape trending
- *   01:00 — generate pages (50/run)
- *   07:00, 13:00, 19:00 — generate pages (smaller batch)
- *   21:00 — daily report
- *   every 5min — health check
- *   03:00 (every Sunday) — cleanup
+ * Sprint 0: skeleton only — health check every 5 min.
+ * Sprint 1: + click tracking ingest
+ * Sprint 2: + Apify scrape
+ * Sprint 4-12: + content gen, publishers, brain, learning, etc.
  *
- * Override via env CRON_* vars.
+ * Override cron via env CRON_* vars.
  */
 
 import { Cron } from "croner";
-import { JOBS, type JobName } from "./jobs.ts";
-import { env } from "../lib/env.ts";
-import { child, logger } from "../lib/logger.ts";
+import { env, summarizeCapabilities } from "../lib/env.ts";
+import { logger, child } from "../lib/logger.ts";
+import { closeDb, pingDb } from "../lib/db.ts";
 import { errMsg } from "../lib/retry.ts";
-import { closeDb } from "../lib/db.ts";
-import { initSentry, wrapJob, flushSentry, captureError } from "../lib/sentry.ts";
 
 const log = child("scheduler");
 
 interface JobSchedule {
-  name: JobName;
+  name: string;
   cron: string;
   description: string;
+  handler: () => Promise<void>;
+}
+
+/* -----------------------------------------------------------------------------
+ * Sprint 0 jobs — only health check for now.
+ * Sprints 1+ append jobs here as modules come online.
+ * ---------------------------------------------------------------------------*/
+
+async function jobHealthCheck(): Promise<void> {
+  const dbOk = await pingDb();
+  log.info({ dbOk }, "health check");
+  if (!dbOk) {
+    log.error("DB unreachable — alert would fire here in Sprint 1+");
+  }
 }
 
 const SCHEDULES: JobSchedule[] = [
-  { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 8,13,19,22 * * *", description: "Scrape trending Shopee products" },
-  // Re-score 30 min after each scrape lands — keeps scores fresh without wasting CPU between rounds.
-  { name: "rescoreProducts", cron: "30 8,13,19,22 * * *", description: "Re-score products (Layer 8) — runs 30 min after each scrape" },
-  // Generate review pages 1h after the morning scrape so pipeline runs serially: scrape → score → generate.
-  { name: "generatePages", cron: env.CRON_GENERATE_PAGES ?? "0 9 * * *", description: "Generate review pages (sorted by final_score)" },
-  { name: "generateComparisons", cron: "30 7 * * *", description: "Generate A vs B comparison pages" },
-  { name: "generateBestOf", cron: "0 8 * * 1", description: "Generate best-of lists (Mondays)" },
-  { name: "refreshInternalLinks", cron: "0 9 * * 1", description: "Refresh internal links (Mondays)" },
-  // Sitemap rebuild runs after the 22:00 scrape so newly added products are indexed.
-  { name: "sitemapAndIndex", cron: "0 23 * * *", description: "Rebuild sitemap + submit to Google/Bing (after last scrape of the day)" },
-  { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
-  { name: "sourceHealth", cron: "0 * * * *", description: "Per-source health check (hourly)" },
-  { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
-  { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily report (email)" },
-  { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
+  {
+    name: "healthCheck",
+    cron: "*/5 * * * *",
+    description: "DB ping + capability check (every 5 min)",
+    handler: jobHealthCheck,
+  },
 ];
 
-const TZ = env.TIMEZONE;
+/* -----------------------------------------------------------------------------
+ * Boot + lifecycle
+ * ---------------------------------------------------------------------------*/
 
+const TZ = env.TIMEZONE;
 const activeJobs: Cron[] = [];
 
-async function runJob(name: JobName): Promise<void> {
+async function runJob(name: string, handler: () => Promise<void>): Promise<void> {
   const start = Date.now();
   log.info({ job: name }, "▶ start");
-  const wrapped = wrapJob(name, JOBS[name]);
   try {
-    await wrapped();
+    await handler();
     log.info({ job: name, durationMs: Date.now() - start }, "✓ done");
   } catch (err) {
     log.error({ job: name, err: errMsg(err), durationMs: Date.now() - start }, "✗ failed");
-    captureError(err, { tags: { job: name } });
   }
 }
 
 function startScheduler(): void {
-  initSentry();
   log.info({ tz: TZ, jobs: SCHEDULES.length }, "scheduler starting");
+  log.info({ caps: summarizeCapabilities() }, "capabilities");
 
   for (const sched of SCHEDULES) {
     const job = new Cron(
       sched.cron,
       { name: sched.name, timezone: TZ, protect: true, catch: true },
-      () => runJob(sched.name),
+      () => runJob(sched.name, sched.handler),
     );
     activeJobs.push(job);
     const next = job.nextRun();
     log.info(
-      {
-        job: sched.name,
-        cron: sched.cron,
-        next: next?.toISOString(),
-      },
-      `${sched.description}`,
+      { job: sched.name, cron: sched.cron, next: next?.toISOString() },
+      sched.description,
     );
   }
 }
 
 async function shutdown(signal: string): Promise<void> {
   log.warn({ signal }, "shutdown signal received");
-  for (const j of activeJobs) j.stop();
-  await flushSentry(2000);
+  for (const job of activeJobs) job.stop();
   await closeDb();
-  // Allow log flush
-  await new Promise<void>((res) => setTimeout(res, 200));
+  await new Promise((res) => setTimeout(res, 200));
   process.exit(0);
 }
 
@@ -105,8 +100,23 @@ process.on("unhandledRejection", (reason) => {
   logger.error({ reason }, "unhandledRejection");
 });
 
-startScheduler();
-log.info("scheduler running — Ctrl+C to stop");
+/* -----------------------------------------------------------------------------
+ * Mode: long-running scheduler OR one-shot run
+ * ---------------------------------------------------------------------------*/
 
-// Keep alive
-setInterval(() => {}, 1 << 30);
+const runOnce = process.env.RUN_ONCE === "true";
+
+if (runOnce) {
+  // CI / smoke test — run each job once then exit
+  log.info("RUN_ONCE=true → executing all jobs once then exiting");
+  for (const sched of SCHEDULES) {
+    await runJob(sched.name, sched.handler);
+  }
+  await closeDb();
+  process.exit(0);
+} else {
+  startScheduler();
+  log.info("scheduler running — Ctrl+C to stop");
+  // Keep process alive
+  setInterval(() => {}, 1 << 30);
+}

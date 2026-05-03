@@ -1,35 +1,29 @@
 {
   "compilerOptions": {
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "ESNext",
+    "moduleDetection": "force",
     "moduleResolution": "bundler",
-    "lib": ["ESNext", "DOM"],
-    "types": ["bun-types"],
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+
+    "jsx": "react-jsx",
+    "allowJs": true,
+
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "noImplicitOverride": true,
-    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noPropertyAccessFromIndexSignature": false,
     "noFallthroughCasesInSwitch": true,
+
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false,
-    "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@db/*": ["src/db/*"],
-      "@lib/*": ["src/lib/*"],
-      "@scraper/*": ["src/scraper/*"],
-      "@content/*": ["src/content/*"],
-      "@compliance/*": ["src/compliance/*"],
-      "@publisher/*": ["src/publisher/*"]
-    }
+    "types": ["bun"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "drizzle.config.ts"],
-  "exclude": ["node_modules", "src/web", "dist", "build"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", ".astro"]
 }
