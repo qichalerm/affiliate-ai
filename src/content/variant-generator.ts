@@ -113,9 +113,10 @@ export async function generateVariants(
     }
   }
 
-  // Get/create one affiliate link for this (product, channel) combo
-  // — all variants share the same shortId (we track variant via DB, not URL)
-  const link = await createAffiliateLink({
+  // We'll create one affiliate link PER variant so clicks attribute
+  // back to the specific variant (used by bandit feedback in M3/M9).
+  // The first link is created as a "placeholder" — overwritten in the loop.
+  const placeholderLink = await createAffiliateLink({
     productId: product.id,
     channel: opts.channel,
     campaign: `variant_gen_${new Date().toISOString().slice(0, 10)}`,
@@ -137,6 +138,17 @@ export async function generateVariants(
   for (let i = 0; i < angles.length; i++) {
     const angle = angles[i]!;
     const variantCode = String.fromCharCode(65 + i); // A, B, C, ...
+
+    // Each variant gets its OWN affiliate link so clicks attribute back
+    // to the specific variant for bandit feedback.
+    const link = i === 0
+      ? placeholderLink
+      : await createAffiliateLink({
+          productId: product.id,
+          channel: opts.channel,
+          campaign: `variant_gen_${new Date().toISOString().slice(0, 10)}`,
+          variant: variantCode,
+        });
 
     try {
       const { system, user } = buildVariantPrompt({
@@ -175,18 +187,29 @@ export async function generateVariants(
       result.totalCostUsd += gateResult.llmCostUsd;
 
       // Persist (regardless of approval — failed ones useful for analysis)
-      await db.insert(schema.contentVariants).values({
-        productId: product.id,
-        channel: opts.channel,
-        angle,
-        variantCode,
-        caption: gateResult.finalText, // may be auto-fixed (e.g. disclosure appended)
-        hashtags: parsed.hashtags ?? [],
-        hook: parsed.hook ?? null,
-        llmModel: llmRes.model,
-        gateApproved: gateResult.approved,
-        gateIssues: gateResult.approved ? [] : gateResult.issues,
-      });
+      const [variantRow] = await db
+        .insert(schema.contentVariants)
+        .values({
+          productId: product.id,
+          channel: opts.channel,
+          angle,
+          variantCode,
+          caption: gateResult.finalText, // may be auto-fixed (e.g. disclosure appended)
+          hashtags: parsed.hashtags ?? [],
+          hook: parsed.hook ?? null,
+          llmModel: llmRes.model,
+          gateApproved: gateResult.approved,
+          gateIssues: gateResult.approved ? [] : gateResult.issues,
+        })
+        .returning({ id: schema.contentVariants.id });
+
+      // Backfill the affiliate link with the variant id for click attribution
+      if (variantRow?.id) {
+        await db
+          .update(schema.affiliateLinks)
+          .set({ contentVariantId: variantRow.id })
+          .where(eq(schema.affiliateLinks.id, link.affiliateLinkId));
+      }
 
       result.generated++;
       if (gateResult.approved) result.approved++;

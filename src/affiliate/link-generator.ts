@@ -31,6 +31,8 @@ export interface CreateAffiliateLinkOpts {
   channel: typeof schema.channelEnum.enumValues[number];
   campaign?: string;
   variant?: string;
+  /** FK to content_variants (M3 bandit feedback wires click → variant via this). */
+  contentVariantId?: number;
   publishedPostId?: number;
   /** Override expiry (default: never expires). */
   expiresAt?: Date;
@@ -142,6 +144,7 @@ export async function createAffiliateLink(
           channel: opts.channel,
           campaign: opts.campaign ?? null,
           variant: opts.variant ?? null,
+          contentVariantId: opts.contentVariantId ?? null,
           publishedPostId: opts.publishedPostId ?? null,
           fullUrl,
           shopeeShortUrl: product.affiliateShortUrl ?? null,

@@ -480,6 +480,8 @@ export const affiliateLinks = pgTable(
     // Optional grouping for analytics
     campaign: varchar("campaign", { length: 64 }), // e.g. "morning_post_2026-05-03"
     variant: varchar("variant", { length: 8 }),    // A/B/C/... for multi-variant tests
+    contentVariantId: integer("content_variant_id")
+      .references(() => contentVariants.id, { onDelete: "set null" }),  // links click → specific variant
     publishedPostId: integer("published_post_id"),  // FK added in Sprint 4
 
     // Destination

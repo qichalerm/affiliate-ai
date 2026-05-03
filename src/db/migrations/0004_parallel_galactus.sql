@@ -1,0 +1,2 @@
+ALTER TABLE "affiliate_links" ADD COLUMN "content_variant_id" integer;--> statement-breakpoint
+ALTER TABLE "affiliate_links" ADD CONSTRAINT "affiliate_links_content_variant_id_content_variants_id_fk" FOREIGN KEY ("content_variant_id") REFERENCES "public"."content_variants"("id") ON DELETE set null ON UPDATE no action;

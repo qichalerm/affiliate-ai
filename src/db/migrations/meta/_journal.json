@@ -29,6 +29,13 @@
       "when": 1777823014999,
       "tag": "0003_clear_havok",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1777824746326,
+      "tag": "0004_parallel_galactus",
+      "breakpoints": true
     }
   ]
 }

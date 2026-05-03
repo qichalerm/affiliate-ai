@@ -2,7 +2,10 @@
  * Variant picker — selects which approved variant to publish for a (product × channel).
  *
  * Sprint 5 stub: weighted-random pick using bandit_weight (default 1.0 for all).
- * Sprint 9+ Brain replaces this with proper Thompson Sampling.
+ * Sprint 11 Brain (M3): now wraps Thompson Sampling — Beta posteriors over CTR.
+ *
+ * To DISABLE Thompson and force uniform weighted pick (e.g. for diagnostics),
+ * set FEATURE_AI_BRAIN=false in env. Default ON now that bandit code exists.
  *
  * Why a separate module: every publisher (FB/IG/TikTok/Shopee Video) calls
  * pickVariant() the same way, so when M3 lands the picker upgrade benefits all.
@@ -10,7 +13,9 @@
 
 import { and, desc, eq } from "drizzle-orm";
 import { db, schema } from "../lib/db.ts";
+import { env } from "../lib/env.ts";
 import type { Platform } from "../quality/platform-rules.ts";
+import { pickVariantBandit } from "../brain/bandit.ts";
 
 export interface PickedVariant {
   id: number;
@@ -24,14 +29,34 @@ export interface PickedVariant {
 /**
  * Pick one approved+active variant for (product × channel).
  *
- * Algorithm v0 (Sprint 5):
- *   1. Filter: gateApproved=true, isActive=true
- *   2. Weighted-random pick by bandit_weight (default = 1.0 → uniform)
- *   3. Return the picked variant
+ * Default: Thompson Sampling via Brain (M3).
+ * Fallback: weighted-random by bandit_weight when FEATURE_AI_BRAIN=false.
  *
  * Returns null if no eligible variant exists — caller should generate first.
  */
 export async function pickVariant(
+  productId: number,
+  channel: Platform,
+): Promise<PickedVariant | null> {
+  // Brain v1: Thompson Sampling
+  if (env.FEATURE_AI_BRAIN !== false) {
+    const banditPick = await pickVariantBandit(productId, channel);
+    if (!banditPick) return null;
+    return {
+      id: banditPick.contentVariantId,
+      caption: banditPick.caption,
+      hashtags: banditPick.hashtags,
+      hook: banditPick.hook,
+      angle: banditPick.angle,
+      variantCode: banditPick.variantCode,
+    };
+  }
+
+  // Fallback (Sprint 5 simple weighted-random)
+  return pickVariantWeighted(productId, channel);
+}
+
+async function pickVariantWeighted(
   productId: number,
   channel: Platform,
 ): Promise<PickedVariant | null> {

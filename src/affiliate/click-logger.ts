@@ -12,6 +12,7 @@ import { and, eq, gte, sql } from "drizzle-orm";
 import { db, schema } from "../lib/db.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
+import { bumpVariantClick } from "../brain/bandit.ts";
 
 const log = child("affiliate.click-log");
 
@@ -98,6 +99,17 @@ export async function logClick(input: LogClickInput): Promise<number | null> {
         isUnique,
       })
       .returning({ id: schema.clicks.id });
+
+    // Brain feedback: bump bandit counters for the variant (if link knows its variant)
+    if (!isBot && isUnique) {
+      const link = await db.query.affiliateLinks.findFirst({
+        where: eq(schema.affiliateLinks.id, input.affiliateLinkId),
+        columns: { contentVariantId: true },
+      });
+      if (link?.contentVariantId) {
+        await bumpVariantClick(link.contentVariantId);
+      }
+    }
 
     return row?.id ?? null;
   } catch (err) {
