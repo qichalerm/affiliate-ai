@@ -52,7 +52,10 @@ export interface PromoTriggerResult {
 export async function runPromoTrigger(opts: { batchSize?: number } = {}): Promise<PromoTriggerResult> {
   const batchSize = opts.batchSize ?? 5;
 
-  const events = await pendingPromoEvents({ limit: batchSize });
+  // Pull more than batch size — we'll dedupe by productId so multiple
+  // events for the same product (price_drop + new_low + discount_jump
+  // commonly fire together) only trigger one variant generation.
+  const events = await pendingPromoEvents({ limit: batchSize * 4 });
   log.info({ pending: events.length, batchSize }, "promo trigger start");
 
   const result: PromoTriggerResult = {
@@ -68,19 +71,38 @@ export async function runPromoTrigger(opts: { batchSize?: number } = {}): Promis
     return result;
   }
 
+  // Group events by productId, preserving signal-strength order from pending query.
+  // Each product is processed once; ALL its pending events get marked triggered
+  // so we don't re-process the same product on the next tick.
+  const byProduct = new Map<number, typeof events>();
+  for (const e of events) {
+    const list = byProduct.get(e.productId) ?? [];
+    list.push(e);
+    byProduct.set(e.productId, list);
+  }
+
+  // Cap product count to batch size (events.length already limited by query)
+  const productsToProcess = Array.from(byProduct.entries()).slice(0, batchSize);
+
   const triggeredIds: number[] = [];
 
-  for (const event of events) {
+  for (const [productId, productEvents] of productsToProcess) {
+    const strongest = productEvents[0];  // highest signal_strength first
     log.info(
-      { eventId: event.id, productId: event.productId, type: event.eventType, strength: event.signalStrength.toFixed(2) },
-      "processing promo event",
+      {
+        productId,
+        primaryEvent: strongest.eventType,
+        strength: strongest.signalStrength.toFixed(2),
+        coalesced: productEvents.length,
+      },
+      "processing product (coalesced events)",
     );
 
     let eventOk = true;
     for (const channel of TRIGGER_CHANNELS) {
       try {
         const r = await generateVariants({
-          productId: event.productId,
+          productId,
           channel,
           force: true,
         });
@@ -89,17 +111,18 @@ export async function runPromoTrigger(opts: { batchSize?: number } = {}): Promis
         result.totalCostUsd += r.totalCostUsd;
       } catch (err) {
         log.error(
-          { eventId: event.id, productId: event.productId, channel, err: errMsg(err) },
-          "variant gen failed for promo event",
+          { productId, channel, err: errMsg(err) },
+          "variant gen failed for product",
         );
         eventOk = false;
       }
     }
 
     if (eventOk) {
-      triggeredIds.push(event.id);
-      result.eventsProcessed++;
-      result.byEventType[event.eventType]++;
+      // Mark ALL of this product's pending events as triggered
+      for (const e of productEvents) triggeredIds.push(e.id);
+      result.eventsProcessed += productEvents.length;
+      for (const e of productEvents) result.byEventType[e.eventType]++;
     }
   }
 

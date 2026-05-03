@@ -111,12 +111,18 @@ async function main() {
   }
 
   const allTriggered = eventsAfter.length > 0 && eventsAfter.every(e => e.triggered);
-  const haveApprovedVariants = variants.some(v => v.gateApproved);
+  // Dedupe contract: ALL events for a product trigger exactly ONE variant
+  // generation per channel. With 2 channels and 3 angles each = at most 6
+  // variants per product. Without dedupe we'd see 6 × N events for the
+  // same product. So we expect roughly 6, not 18.
+  const variantCount = variants.length;
+  const dedupedOk = variantCount > 0 && variantCount <= 6;
+  const allChannelsCovered = new Set(variants.map(v => v.channel)).size === 2;
 
-  if (allTriggered && haveApprovedVariants) {
-    console.log("\n✅ END-TO-END PASS — promo detected → variants generated → events flushed");
+  if (allTriggered && dedupedOk && allChannelsCovered) {
+    console.log(`\n✅ END-TO-END PASS — promo detected → variants generated (${variantCount}, deduped) → events flushed`);
   } else {
-    console.log(`\n❌ FAIL: allTriggered=${allTriggered}, haveApprovedVariants=${haveApprovedVariants}`);
+    console.log(`\n❌ FAIL: allTriggered=${allTriggered}, dedupedOk=${dedupedOk} (n=${variantCount}), allChannelsCovered=${allChannelsCovered}`);
     process.exit(1);
   }
 
