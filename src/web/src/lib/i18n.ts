@@ -59,3 +59,17 @@ export function localePath(lang: Lang, path: string): string {
 export function interpolate(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_m, k) => String(vars[k] ?? ""));
 }
+
+/**
+ * Pick the right localized name for a record that has nameTh + nameEn.
+ * Thai → nameTh; everyone else → nameEn (fallback nameTh if name_en is null).
+ * ZH/JA categories don't have their own column yet, so they share the EN label
+ * (still better than showing Thai script to a Chinese / Japanese visitor).
+ */
+export function localizedName(
+  record: { nameTh: string; nameEn?: string | null },
+  lang: Lang,
+): string {
+  if (lang === "th") return record.nameTh;
+  return record.nameEn ?? record.nameTh;
+}

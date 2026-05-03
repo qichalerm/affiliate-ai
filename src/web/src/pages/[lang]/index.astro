@@ -7,7 +7,7 @@ import EmptyState from "../../components/EmptyState.astro";
 import { getTopProducts, getDealsToday } from "../../lib/queries";
 import { getAllActiveCategories } from "../../lib/queries-categories";
 import { getSiteStats } from "../../lib/queries-stats";
-import { type Lang, getDict, localePath, SUPPORTED_LANGS } from "../../lib/i18n";
+import { type Lang, getDict, localePath, SUPPORTED_LANGS, localizedName } from "../../lib/i18n";
 import { bestProductLink } from "../../lib/affiliate-links";
 
 export function getStaticPaths() {
@@ -36,10 +36,8 @@ try {
 // Top-level categories with content
 const topCategories = categories.filter((c) => c.depth <= 1 && c.productCount >= 1).slice(0, 12);
 
-// Build category name lookup based on lang (TH master, fallback to TH)
-const catName = (c: typeof categories[0]): string => {
-  return c.nameTh ?? c.slug;
-};
+// Build category name lookup based on lang (Thai keeps Thai; everyone else gets English).
+const catName = (c: typeof categories[0]): string => localizedName(c, lang);
 
 // Pre-compute card links (Astro JSX doesn't allow IIFE inside .map())
 const dealsWithLinks = deals.map((p) => ({
