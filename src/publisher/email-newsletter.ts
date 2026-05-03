@@ -134,7 +134,7 @@ export async function buildWeeklyDigest(): Promise<{
           </p>
           ${
             d.shortUrl
-              ? `<a href="${d.shortUrl}" style="display: inline-block; background: #ea580c; color: white; padding: 8px 14px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">ดูราคาที่ ${d.platform === "shopee" ? "Shopee" : "Lazada"} →</a>`
+              ? `<a href="${d.shortUrl}" style="display: inline-block; background: #ea580c; color: white; padding: 8px 14px; border-radius: 4px; text-decoration: none; font-size: 12px; font-weight: 600;">ดูราคาที่ ${d.platform === "shopee" ? "Shopee" : "TikTok Shop"} →</a>`
               : ""
           }
         </td>

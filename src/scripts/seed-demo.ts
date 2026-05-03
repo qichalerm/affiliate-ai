@@ -7,7 +7,7 @@
  *   - Demo: showing investors/partners
  *
  * Generates:
- *   - 1 demo shop per platform (Shopee + Lazada)
+ *   - 1 demo Shopee shop
  *   - 20 products (mixed gadgets) with realistic prices, ratings, reviews
  *   - 20 review pages (with hand-crafted "verdict" — no LLM cost)
  *   - 5 best-of pages
@@ -166,14 +166,14 @@ const DEMO_REVIEWS = [
   "แบตหมดเร็วกว่าที่บอก จริงๆ ได้ราว 6-7 ชม. ไม่ใช่ 9 แต่ยังถือว่า ok",
 ];
 
-async function seedShop(platform: "shopee" | "lazada"): Promise<number> {
-  const externalId = platform === "shopee" ? "demo_shop_shopee" : "demo_shop_lazada";
+async function seedShop(platform: "shopee"): Promise<number> {
+  const externalId = "demo_shop_shopee";
   const [shop] = await db
     .insert(schema.shops)
     .values({
       platform,
       externalId,
-      name: `${platform === "shopee" ? "Shopee" : "Lazada"} Demo Store`,
+      name: "Shopee Demo Store",
       isMall: true,
       isPreferred: true,
       rating: 4.8,
@@ -185,7 +185,7 @@ async function seedShop(platform: "shopee" | "lazada"): Promise<number> {
     })
     .onConflictDoUpdate({
       target: [schema.shops.platform, schema.shops.externalId],
-      set: { name: `${platform === "shopee" ? "Shopee" : "Lazada"} Demo Store` },
+      set: { name: "Shopee Demo Store" },
     })
     .returning({ id: schema.shops.id });
   return shop.id;
@@ -204,8 +204,7 @@ async function main() {
 
   // Shops
   const shopeeShopId = await seedShop("shopee");
-  const lazadaShopId = await seedShop("lazada");
-  console.log(`✓ Demo shops: shopee=${shopeeShopId}, lazada=${lazadaShopId}`);
+  console.log(`✓ Demo shops: shopee=${shopeeShopId}`);
 
   // Products + pages
   let productCount = 0;
@@ -213,8 +212,8 @@ async function main() {
 
   for (let i = 0; i < DEMO_PRODUCTS.length; i++) {
     const p = DEMO_PRODUCTS[i]!;
-    const platform = i % 3 === 2 ? "lazada" : "shopee";
-    const shopId = platform === "shopee" ? shopeeShopId : lazadaShopId;
+    const platform = "shopee";
+    const shopId = shopeeShopId;
     const externalId = `demo_${platform}_${i}`;
     const slug = productSlug(p.name, externalId, p.brand);
     const categoryId = catBySlug.get(p.category) ?? null;
@@ -222,7 +221,7 @@ async function main() {
     const [productRow] = await db
       .insert(schema.products)
       .values({
-        platform: platform as "shopee" | "lazada",
+        platform: "shopee",
         externalId,
         shopId,
         categoryId,
@@ -251,7 +250,7 @@ async function main() {
         demandScore: 0.65,
         profitabilityScore: 0.55,
         seasonalityBoost: 1.0,
-        // Demo products use fake external_ids (demo_shopee_*, demo_lazada_*) so
+        // Demo products use fake external_ids (demo_shopee_*) so
         // affiliate links resolve to 404 on the real platform. Always blacklist
         // so they never appear on the live site, even if seed-demo is re-run.
         flagBlacklisted: true,
@@ -305,7 +304,7 @@ async function main() {
       faqs: [
         {
           question: `${p.name} ราคาเท่าไหร่?`,
-          answer: `ปัจจุบันราคา ${(p.price / 100).toLocaleString("th-TH")} บาท บนแพลตฟอร์ม ${platform === "shopee" ? "Shopee" : "Lazada"} ${p.original_price ? `ลดจาก ${(p.original_price / 100).toLocaleString("th-TH")} บาท` : ""}`,
+          answer: `ปัจจุบันราคา ${(p.price / 100).toLocaleString("th-TH")} บาท บนแพลตฟอร์ม Shopee ${p.original_price ? `ลดจาก ${(p.original_price / 100).toLocaleString("th-TH")} บาท` : ""}`,
         },
         {
           question: `${p.brand} ${p.name.split(" ")[1] ?? ""} เหมาะกับใคร?`,
@@ -344,7 +343,7 @@ async function main() {
   }
 
   console.log(`\n\n✓ Demo data seeded:`);
-  console.log(`  - 2 shops (Shopee + Lazada Mall)`);
+  console.log(`  - 1 shop (Shopee Demo)`);
   console.log(`  - ${productCount} products`);
   console.log(`  - ${pageCount} review pages\n`);
   console.log(`Next: bun run web:dev — see your site immediately\n`);

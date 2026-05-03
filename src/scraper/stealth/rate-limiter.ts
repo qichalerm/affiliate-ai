@@ -2,7 +2,7 @@
  * Per-target rate limiter — keeps scrapers polite.
  *
  * Strategy:
- *  - Token bucket per host (Shopee, Lazada, etc.)
+ *  - Token bucket per host (Shopee, etc.)
  *  - Background refill (continuous)
  *  - Configurable burst + sustained rates
  *  - Look "human": adds randomized jitter, occasional longer pauses
@@ -48,12 +48,6 @@ const CONFIGS: Record<string, BucketConfig> = {
     sustainedRps: 0.05,   // ~3 req/min
     minIntervalMs: 8000,
     humanPauseProb: 0.30,
-  },
-  lazada: {
-    burstMax: 4,
-    sustainedRps: 0.3,
-    minIntervalMs: 2000,
-    humanPauseProb: 0.10,
   },
   tiktok_api: {
     burstMax: 8,

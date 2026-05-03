@@ -18,7 +18,6 @@ interface RevenueRow {
 interface CountsRow {
   products: number;
   shopee: number;
-  lazada: number;
   pages_review: number;
   pages_comparison: number;
   pages_bestof: number;
@@ -47,7 +46,6 @@ async function main() {
       SELECT
         (SELECT COUNT(*) FROM products WHERE is_active = true)::int AS products,
         (SELECT COUNT(*) FROM products WHERE is_active = true AND platform = 'shopee')::int AS shopee,
-        (SELECT COUNT(*) FROM products WHERE is_active = true AND platform = 'lazada')::int AS lazada,
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='review')::int AS pages_review,
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='comparison')::int AS pages_comparison,
         (SELECT COUNT(*) FROM content_pages WHERE status='published' AND type='best_of')::int AS pages_bestof,
@@ -78,7 +76,7 @@ async function main() {
   lines.push(`30d:  ${formatBaht(Number(r.revenue_30d))}`);
   lines.push("");
   lines.push("📦 *Inventory*");
-  lines.push(`Products: ${formatNumber(c.products)} (Shopee: ${formatNumber(c.shopee)}, Lazada: ${formatNumber(c.lazada)})`);
+  lines.push(`Products: ${formatNumber(c.products)} (Shopee: ${formatNumber(c.shopee)})`);
   lines.push(`Pages: ${formatNumber(c.total_published)}`);
   lines.push(`  reviews: ${formatNumber(c.pages_review)}`);
   lines.push(`  compare: ${formatNumber(c.pages_comparison)}`);

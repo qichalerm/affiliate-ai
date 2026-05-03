@@ -9,7 +9,7 @@ import { sql } from "drizzle-orm";
 export interface ProductRow {
   id: number;
   slug: string;
-  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+  platform: "shopee" | "tiktok_shop";
   name: string;
   brand: string | null;
   primaryImage: string | null;
@@ -34,7 +34,7 @@ export interface ProductRow {
 
 export interface CrossPlatformMatch {
   matchedProductId: number;
-  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+  platform: "shopee" | "tiktok_shop";
   name: string;
   brand: string | null;
   externalId: string;
@@ -146,34 +146,7 @@ export async function getReviewPageBySlug(slug: string): Promise<{
      LIMIT 200
   `);
 
-  const crossPlatform = await getCrossPlatformMatches(product.id);
-
-  return { page, product, reviews, priceHistory, crossPlatform };
-}
-
-/**
- * Get matched products on other platforms (for cross-platform price compare card).
- */
-export async function getCrossPlatformMatches(productId: number): Promise<CrossPlatformMatch[]> {
-  return db.execute<CrossPlatformMatch>(sql`
-    SELECT pc.matched_product_id AS "matchedProductId",
-           p.platform::text AS platform,
-           p.name, p.brand,
-           p.external_id AS "externalId",
-           s.external_id AS "shopExternalId",
-           p.current_price AS "currentPrice",
-           p.rating,
-           pc.match_confidence AS "matchConfidence"
-      FROM price_compare pc
-      JOIN products p ON p.id = pc.matched_product_id
-      LEFT JOIN shops s ON s.id = p.shop_id
-     WHERE pc.primary_product_id = ${productId}
-       AND p.is_active = true
-       AND p.flag_blacklisted = false
-       AND pc.match_confidence >= 0.7
-     ORDER BY pc.match_confidence DESC, p.current_price ASC
-     LIMIT 5
-  `);
+  return { page, product, reviews, priceHistory, crossPlatform: [] };
 }
 
 export async function getTopProducts(limit = 24): Promise<ProductRow[]> {

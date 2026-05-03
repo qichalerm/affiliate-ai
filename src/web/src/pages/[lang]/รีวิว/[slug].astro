@@ -3,7 +3,6 @@ import BaseLayout from "../../../layouts/BaseLayout.astro";
 import StarRating from "../../../components/StarRating.astro";
 import PlatformBadge from "../../../components/PlatformBadge.astro";
 import PriceHistoryChart from "../../../components/PriceHistoryChart.astro";
-import CrossPlatformPriceCard from "../../../components/CrossPlatformPriceCard.astro";
 import RelatedLinks from "../../../components/RelatedLinks.astro";
 import FaqAccordion from "../../../components/FaqAccordion.astro";
 import { compactCount } from "../../../lib/format";
@@ -28,7 +27,7 @@ const t = getDict(lang);
 const data = await getReviewPageBySlug(slug);
 if (!data) return Astro.redirect(`/${lang}/`);
 
-const { page, product, reviews, priceHistory, crossPlatform } = data;
+const { page, product, reviews, priceHistory } = data;
 
 type ContentJson = {
   hero?: Record<string, unknown>;
@@ -116,9 +115,6 @@ const localizedH1 =
           {product.isMall && product.platform === "shopee" && (
             <span class="rounded bg-deal-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white">Shopee Mall</span>
           )}
-          {product.isMall && product.platform === "lazada" && (
-            <span class="rounded bg-indigo-700 px-2 py-0.5 text-[10px] font-bold uppercase text-white">LazMall</span>
-          )}
         </div>
 
         {product.primaryImage && (
@@ -195,22 +191,6 @@ const localizedH1 =
                 )}
               </div>
             )}
-          </section>
-        )}
-
-        {crossPlatform.length > 0 && (
-          <section class="mt-8">
-            <CrossPlatformPriceCard
-              primary={{
-                platform: product.platform,
-                currentPrice: product.currentPrice,
-                rating: product.rating,
-                externalId: product.externalId,
-                shopExternalId: product.shopExternalId,
-                pageSlug: page.slug,
-              }}
-              matches={crossPlatform}
-            />
           </section>
         )}
 

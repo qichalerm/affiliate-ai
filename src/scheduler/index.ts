@@ -28,10 +28,8 @@ interface JobSchedule {
   description: string;
 }
 
-const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
+const SCHEDULES: JobSchedule[] = [
   { name: "scrapeTrending", cron: env.CRON_SCRAPE_PRODUCTS ?? "0 8,13,19,22 * * *", description: "Scrape trending Shopee products" },
-  { name: "scrapeLazada", cron: "0 1,13 * * *", description: "Scrape trending Lazada products (twice/day)", lazada: true },
-  { name: "crossPlatformMatch", cron: "0 4 * * *", description: "Match Shopee ↔ Lazada products", lazada: true },
   // Re-score 30 min after each scrape lands — keeps scores fresh without wasting CPU between rounds.
   { name: "rescoreProducts", cron: "30 8,13,19,22 * * *", description: "Re-score products (Layer 8) — runs 30 min after each scrape" },
   // Generate review pages 1h after the morning scrape so pipeline runs serially: scrape → score → generate.
@@ -44,18 +42,12 @@ const ALL_SCHEDULES: (JobSchedule & { lazada?: boolean })[] = [
   { name: "sitemapAndIndex", cron: "0 23 * * *", description: "Rebuild sitemap + submit to Google/Bing (after last scrape of the day)" },
   { name: "analyticsIngest", cron: "0 5 * * *", description: "Pull GSC + CF Analytics + Short.io stats" },
   { name: "sourceHealth", cron: "0 * * * *", description: "Per-source health check (hourly)" },
-  { name: "generatePriceCompare", cron: "0 6 * * *", description: "Cross-platform price compare pages", lazada: true },
   { name: "twitterPublish", cron: "0 14 * * *", description: "Twitter thread publish (if enabled)" },
   { name: "emailDigest", cron: "0 9 * * 5", description: "Weekly email digest (Friday)" },
   { name: "healthCheck", cron: env.CRON_HEALTH_CHECK ?? "*/5 * * * *", description: "System health check" },
   { name: "dailyReport", cron: env.CRON_DAILY_REPORT ?? "0 21 * * *", description: "Send daily report (email)" },
   { name: "cleanup", cron: "0 3 * * 0", description: "Weekly cleanup of old logs" },
 ];
-
-// Filter out Lazada-dependent jobs when FEATURE_LAZADA_ENABLED is false (default).
-const SCHEDULES: JobSchedule[] = ALL_SCHEDULES.filter(
-  (s) => env.FEATURE_LAZADA_ENABLED || !s.lazada,
-);
 
 const TZ = env.TIMEZONE;
 

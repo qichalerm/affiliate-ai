@@ -49,7 +49,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
 export interface CategoryProduct {
   id: number;
   slug: string;
-  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+  platform: "shopee" | "tiktok_shop";
   name: string;
   brand: string | null;
   primaryImage: string | null;

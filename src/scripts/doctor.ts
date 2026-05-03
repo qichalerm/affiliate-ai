@@ -151,10 +151,9 @@ async function checkDb() {
 }
 
 async function checkContent() {
-  const products = await db.execute<{ count: number; shopee: number; lazada: number }>(sql`
+  const products = await db.execute<{ count: number; shopee: number }>(sql`
     SELECT COUNT(*)::int AS count,
-           COUNT(*) FILTER (WHERE platform = 'shopee')::int AS shopee,
-           COUNT(*) FILTER (WHERE platform = 'lazada')::int AS lazada
+           COUNT(*) FILTER (WHERE platform = 'shopee')::int AS shopee
       FROM products WHERE is_active = true
   `);
   const p = products[0]!;
@@ -172,17 +171,8 @@ async function checkContent() {
   record({
     category: "content",
     status: "ok",
-    title: `${p.count} products (Shopee: ${p.shopee}, Lazada: ${p.lazada})`,
+    title: `${p.count} products (Shopee: ${p.shopee})`,
   });
-
-  if (p.lazada === 0) {
-    record({
-      category: "content",
-      status: "info",
-      title: "No Lazada products",
-      fix: "Enable: bun run scrape:lazada 'wireless earbuds' 2",
-    });
-  }
 
   // Pages by type
   const pages = await db.execute<{

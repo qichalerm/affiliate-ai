@@ -5,7 +5,7 @@ import type { ContentPageRow } from "./queries";
 interface ComparisonProductInner {
   id: number;
   slug: string;
-  platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+  platform: "shopee" | "tiktok_shop";
   name: string;
   brand: string | null;
   priceSatang: number | null;
@@ -111,7 +111,7 @@ export async function getProductSlugs(
     number,
     {
       slug: string;
-      platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+      platform: "shopee" | "tiktok_shop";
       externalId: string;
       shopExternalId: string | null;
     }
@@ -121,7 +121,7 @@ export async function getProductSlugs(
   const rows = await db.execute<{
     id: number;
     slug: string;
-    platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+    platform: "shopee" | "tiktok_shop";
     externalId: string;
     shopExternalId: string | null;
   }>(sql`
@@ -135,7 +135,7 @@ export async function getProductSlugs(
     number,
     {
       slug: string;
-      platform: "shopee" | "lazada" | "tiktok_shop" | "jd_central" | "robinson";
+      platform: "shopee" | "tiktok_shop";
       externalId: string;
       shopExternalId: string | null;
     }

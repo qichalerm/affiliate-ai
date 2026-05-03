@@ -32,7 +32,7 @@ const alternates = SUPPORTED_LANGS.map((l) => {
 // All dynamic pages are now lang-prefixed too, so simply re-attaching the new lang
 // prefix produces a valid URL — no more "thai-only path" fallback needed.
 // Astro emits Thai pathnames URL-encoded (%E0%B8...) at build time, so decode first.
-// Legacy /ราคา is still a single-language path (Lazada cross-platform — disabled).
+// Legacy /ราคา is still a single-language path (deprecated).
 const LEGACY_PREFIXES = ["/ราคา"];
 const decodedPath = (() => {
   try { return decodeURIComponent(Astro.url.pathname); } catch { return Astro.url.pathname; }

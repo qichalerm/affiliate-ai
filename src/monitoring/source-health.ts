@@ -33,7 +33,6 @@ export async function runSourceHealth(): Promise<HealthSignal[]> {
   const signals: HealthSignal[] = [];
 
   signals.push(await checkScraperSuccess("shopee"));
-  signals.push(await checkScraperSuccess("lazada"));
   signals.push(await checkLlmDailyBudget());
   signals.push(await checkIngestionFreshness());
   signals.push(await checkDbLatency());

@@ -109,7 +109,7 @@ const envSchema = z.object({
   PROXY_USERNAME: optStr,
   PROXY_PASSWORD: optStr,
 
-  // IPRoyal residential proxy (for Lazada and other non-protected sites)
+  // IPRoyal residential proxy (for non-protected sites)
   IPROYAL_HOST: z.string().default("geo.iproyal.com"),
   IPROYAL_PORT: z.coerce.number().int().positive().default(12321),
   IPROYAL_LOGIN: optStr,
@@ -154,8 +154,6 @@ const envSchema = z.object({
     .enum(["it_gadget", "beauty", "home", "sports", "mom_baby"])
     .default("it_gadget"),
   SECONDARY_NICHE: optStr,
-  /** Enable Lazada scraper + cross-platform jobs. Off by default — Apify Shopee-only is the supported MVP path. */
-  FEATURE_LAZADA_ENABLED: boolish,
   /** Per-run scrape sizing — kept conservative to fit APIFY_DAILY_BUDGET_USD. */
   SCRAPE_KEYWORDS_PER_RUN: z.coerce.number().int().positive().default(3),
   SCRAPE_PRODUCTS_PER_KEYWORD: z.coerce.number().int().positive().default(20),
@@ -183,8 +181,6 @@ const envSchema = z.object({
   FEATURE_LAYER_9_NARRATIVE: boolish,
   FEATURE_LAYER_10_PERFORMANCE_INTEL: boolish,
   FEATURE_LAYER_11_COMPLIANCE: boolish,
-  FEATURE_LAZADA_SCRAPE: boolish,
-  FEATURE_CROSS_PLATFORM_MATCH: boolish,
   FEATURE_SITEMAP_AUTO_SUBMIT: boolish,
   FEATURE_TIKTOK_AUTO_POST: boolish,
   FEATURE_META_AUTO_POST: boolish,

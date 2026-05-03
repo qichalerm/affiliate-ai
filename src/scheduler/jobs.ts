@@ -14,15 +14,12 @@ import {
 } from "../content/comparison-generator.ts";
 import { generateAllBestOfPages } from "../content/best-of-generator.ts";
 import { publishPinsForTopProducts } from "../publisher/pinterest.ts";
-import { runLazadaScrape } from "../scraper/lazada/runner.ts";
-import { runCrossPlatformMatcher } from "../intelligence/cross-platform-matcher.ts";
 import { buildSitemap } from "../seo/sitemap-builder.ts";
 import { submitToIndexNow } from "../seo/indexnow.ts";
 import { batchNotifyGoogle } from "../seo/google-indexing.ts";
 import { refreshAllInternalLinks } from "../seo/internal-linker.ts";
 import { runAnalyticsIngest } from "../analytics/runner.ts";
 import { runSourceHealth } from "../monitoring/source-health.ts";
-import { generateAllPriceComparePages } from "../content/price-compare-generator.ts";
 import { publishThreadsForTopProducts } from "../publisher/twitter.ts";
 import { sendWeeklyDigest } from "../publisher/email-newsletter.ts";
 import { db, schema } from "../lib/db.ts";
@@ -347,60 +344,6 @@ export async function jobPinterestPublish(): Promise<void> {
 }
 
 /* ===================================================================
- * 12. Lazada scrape (Wave 3)
- * =================================================================== */
-
-const NICHE_KEYWORDS_LAZADA: Record<string, string[]> = {
-  it_gadget: [
-    "wireless earbuds",
-    "gaming mouse",
-    "mechanical keyboard",
-    "powerbank",
-    "phone case",
-    "type c cable",
-    "bluetooth speaker",
-    "laptop stand",
-  ],
-  beauty: ["serum", "sunscreen", "lipstick", "face mask"],
-  home: ["air fryer", "coffee machine", "rice cooker", "vacuum cleaner"],
-  sports: ["dumbbell", "yoga mat", "running shoes"],
-  mom_baby: ["diaper", "milk powder", "baby bottle", "stroller"],
-};
-
-export async function jobScrapeLazada(): Promise<void> {
-  const keywords = NICHE_KEYWORDS_LAZADA[env.PRIMARY_NICHE] ?? NICHE_KEYWORDS_LAZADA.it_gadget;
-  const picks = keywords
-    .map((k) => [Math.random(), k] as const)
-    .sort(([a], [b]) => a - b)
-    .slice(0, 2) // smaller batch — Lazada is more sensitive
-    .map(([, k]) => k);
-
-  log.info({ picks }, "scraping lazada keywords");
-  for (const kw of picks) {
-    try {
-      await runLazadaScrape({ keyword: kw, maxPages: 2, maxProducts: 30 });
-    } catch (err) {
-      log.error({ kw, err: errMsg(err) }, "lazada scrape failed");
-      await createAlert({
-        severity: "warn",
-        code: "scrape.lazada_failed",
-        title: `Lazada scrape failed: ${kw}`,
-        body: errMsg(err),
-      });
-    }
-  }
-}
-
-/* ===================================================================
- * 13. Cross-platform matcher (Shopee ↔ Lazada)
- * =================================================================== */
-
-export async function jobCrossPlatformMatch(): Promise<void> {
-  const result = await runCrossPlatformMatcher({ minScore: 0.4, limit: 500 });
-  log.info(result, "cross-platform match done");
-}
-
-/* ===================================================================
  * 14. Sitemap rebuild + IndexNow + Google Indexing API
  * =================================================================== */
 
@@ -475,15 +418,6 @@ export async function jobSourceHealth(): Promise<void> {
 }
 
 /* ===================================================================
- * 18. Cross-platform price compare pages
- * =================================================================== */
-
-export async function jobGeneratePriceCompare(): Promise<void> {
-  const result = await generateAllPriceComparePages({ limit: 30 });
-  log.info(result, "price-compare pages done");
-}
-
-/* ===================================================================
  * 19. Twitter/X threads
  * =================================================================== */
 
@@ -516,13 +450,10 @@ export const JOBS = {
   generateComparisons: jobGenerateComparisons,
   generateBestOf: jobGenerateBestOf,
   pinterestPublish: jobPinterestPublish,
-  scrapeLazada: jobScrapeLazada,
-  crossPlatformMatch: jobCrossPlatformMatch,
   sitemapAndIndex: jobSitemapAndIndex,
   refreshInternalLinks: jobRefreshInternalLinks,
   analyticsIngest: jobAnalyticsIngest,
   sourceHealth: jobSourceHealth,
-  generatePriceCompare: jobGeneratePriceCompare,
   twitterPublish: jobTwitterPublish,
   emailDigest: jobEmailDigest,
 } as const;

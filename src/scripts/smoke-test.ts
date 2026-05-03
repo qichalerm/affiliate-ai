@@ -153,7 +153,7 @@ async function main() {
     await runTest(
       "adapters.urls",
       async () => {
-        const platforms = ["shopee", "lazada", "tiktok_shop", "robinson"] as const;
+        const platforms = ["shopee", "tiktok_shop"] as const;
         const built = platforms.map((p) =>
           buildAffiliateUrl({
             platform: p,
