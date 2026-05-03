@@ -36,7 +36,6 @@ const DEFAULT_CONFIG: BreakerConfig = {
 const SERVICE_CONFIGS: Record<string, BreakerConfig> = {
   anthropic: { failureThreshold: 5, windowMs: 120_000, cooldownMs: 30_000 },
   shopee: { failureThreshold: 8, windowMs: 60_000, cooldownMs: 300_000 }, // 5min cooldown if fully tripped
-  pinterest: { failureThreshold: 5, windowMs: 120_000, cooldownMs: 60_000 },
   tiktok: { failureThreshold: 4, windowMs: 60_000, cooldownMs: 120_000 },
   meta: { failureThreshold: 5, windowMs: 60_000, cooldownMs: 120_000 },
   shortio: { failureThreshold: 8, windowMs: 60_000, cooldownMs: 30_000 },

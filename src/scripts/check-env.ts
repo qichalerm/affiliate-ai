@@ -67,13 +67,6 @@ const checks: Check[] = [
 
   // Phase 2
   {
-    name: "PINTEREST_ACCESS_TOKEN",
-    present: !!env.PINTEREST_ACCESS_TOKEN,
-    required: false,
-    phase: 2,
-    hint: "https://developers.pinterest.com",
-  },
-  {
     name: "ELEVENLABS_API_KEY",
     present: !!env.ELEVENLABS_API_KEY,
     required: false,

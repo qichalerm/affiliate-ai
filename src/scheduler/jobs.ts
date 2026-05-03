@@ -13,15 +13,12 @@ import {
   findComparisonCandidates,
 } from "../content/comparison-generator.ts";
 import { generateAllBestOfPages } from "../content/best-of-generator.ts";
-import { publishPinsForTopProducts } from "../publisher/pinterest.ts";
 import { buildSitemap } from "../seo/sitemap-builder.ts";
 import { submitToIndexNow } from "../seo/indexnow.ts";
 import { batchNotifyGoogle } from "../seo/google-indexing.ts";
 import { refreshAllInternalLinks } from "../seo/internal-linker.ts";
 import { runAnalyticsIngest } from "../analytics/runner.ts";
 import { runSourceHealth } from "../monitoring/source-health.ts";
-import { publishThreadsForTopProducts } from "../publisher/twitter.ts";
-import { sendWeeklyDigest } from "../publisher/email-newsletter.ts";
 import { db, schema } from "../lib/db.ts";
 import { sql, eq, isNull, lt, and } from "drizzle-orm";
 import { child } from "../lib/logger.ts";
@@ -335,15 +332,6 @@ export async function jobGenerateBestOf(): Promise<void> {
 }
 
 /* ===================================================================
- * 11. Pinterest publishing (only when feature flag + token present)
- * =================================================================== */
-
-export async function jobPinterestPublish(): Promise<void> {
-  const result = await publishPinsForTopProducts({ limit: 20 });
-  log.info(result, "pinterest publish done");
-}
-
-/* ===================================================================
  * 14. Sitemap rebuild + IndexNow + Google Indexing API
  * =================================================================== */
 
@@ -418,24 +406,6 @@ export async function jobSourceHealth(): Promise<void> {
 }
 
 /* ===================================================================
- * 19. Twitter/X threads
- * =================================================================== */
-
-export async function jobTwitterPublish(): Promise<void> {
-  const result = await publishThreadsForTopProducts({ limit: 3 });
-  log.info(result, "twitter publish done");
-}
-
-/* ===================================================================
- * 20. Email weekly digest
- * =================================================================== */
-
-export async function jobEmailDigest(): Promise<void> {
-  const result = await sendWeeklyDigest();
-  log.info(result, "email digest sent");
-}
-
-/* ===================================================================
  * Job registry
  * =================================================================== */
 
@@ -449,13 +419,10 @@ export const JOBS = {
   rescoreProducts: jobRescoreProducts,
   generateComparisons: jobGenerateComparisons,
   generateBestOf: jobGenerateBestOf,
-  pinterestPublish: jobPinterestPublish,
   sitemapAndIndex: jobSitemapAndIndex,
   refreshInternalLinks: jobRefreshInternalLinks,
   analyticsIngest: jobAnalyticsIngest,
   sourceHealth: jobSourceHealth,
-  twitterPublish: jobTwitterPublish,
-  emailDigest: jobEmailDigest,
 } as const;
 
 export type JobName = keyof typeof JOBS;

@@ -21,7 +21,7 @@ export interface CheckContentInput {
   isAiGenerated: boolean;
   productCategory?: string;
   /** What channel is this for? Different platforms have different rules. */
-  channel?: "web" | "tiktok" | "facebook" | "instagram" | "youtube" | "pinterest";
+  channel?: "web" | "tiktok" | "facebook" | "instagram";
 }
 
 export interface CheckContentOutput {
@@ -122,9 +122,7 @@ function needsAiLabel(channel: string): boolean {
     case "tiktok":
     case "instagram":
     case "facebook":
-    case "youtube":
       return true;
-    case "pinterest":
     case "web":
       return false;
     default:

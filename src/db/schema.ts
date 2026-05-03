@@ -47,13 +47,7 @@ export const channelEnum = pgEnum("channel", [
   "tiktok",
   "facebook",
   "instagram",
-  "youtube",
-  "pinterest",
-  "twitter",
-  "telegram",
-  "email",
-  "lemon8",
-  "threads",
+  "telegram",   // historical only — published_posts has rows from removed Telegram channel
 ]);
 
 export const trendVelocityEnum = pgEnum("trend_velocity", [
@@ -725,51 +719,6 @@ export const scrapeAccounts = pgTable(
   },
   (t) => ({
     activeIdx: index("scrape_accounts_active_idx").on(t.isActive, t.cooldownUntil),
-  }),
-);
-
-/* ===================================================================
- * EMAIL SUBSCRIBERS + SENDS (Phase 2 wave 8 — newsletter)
- * =================================================================== */
-
-export const emailSubscribers = pgTable(
-  "email_subscribers",
-  {
-    id: serial("id").primaryKey(),
-    email: varchar("email", { length: 255 }).notNull().unique(),
-    niche: varchar("niche", { length: 32 }),
-    source: varchar("source", { length: 64 }),
-    consentedAt: timestamp("consented_at", { withTimezone: true }).defaultNow(),
-    unsubscribedAt: timestamp("unsubscribed_at", { withTimezone: true }),
-    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
-    confirmationToken: varchar("confirmation_token", { length: 64 }),
-    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
-    lastOpenedAt: timestamp("last_opened_at", { withTimezone: true }),
-    openCount: integer("open_count").notNull().default(0),
-    clickCount: integer("click_count").notNull().default(0),
-  },
-  (t) => ({
-    activeIdx: index("email_subscribers_active_idx").on(t.unsubscribedAt),
-  }),
-);
-
-export const emailSends = pgTable(
-  "email_sends",
-  {
-    id: serial("id").primaryKey(),
-    subscriberId: integer("subscriber_id")
-      .references(() => emailSubscribers.id, { onDelete: "cascade" })
-      .notNull(),
-    campaign: varchar("campaign", { length: 128 }).notNull(),
-    subject: varchar("subject", { length: 255 }).notNull(),
-    resendId: varchar("resend_id", { length: 128 }),
-    sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
-    openedAt: timestamp("opened_at", { withTimezone: true }),
-    clickedAt: timestamp("clicked_at", { withTimezone: true }),
-  },
-  (t) => ({
-    subscriberIdx: index("email_sends_subscriber_idx").on(t.subscriberId),
-    campaignIdx: index("email_sends_campaign_idx").on(t.campaign, t.sentAt),
   }),
 );
 

@@ -82,19 +82,11 @@ const envSchema = z.object({
   META_PAGE_ID: optStr,
   META_PAGE_ACCESS_TOKEN: optStr,
   META_INSTAGRAM_BUSINESS_ID: optStr,
-  YOUTUBE_API_KEY: optStr,
-  YOUTUBE_CHANNEL_ID: optStr,
-  PINTEREST_ACCESS_TOKEN: optStr,
-  PINTEREST_BOARD_IDS: optStr,
-  TWITTER_API_KEY: optStr,
-  TWITTER_API_SECRET: optStr,
-  TWITTER_ACCESS_TOKEN: optStr,
-  TWITTER_ACCESS_SECRET: optStr,
 
   // Monitoring
   SENTRY_DSN: optStr,
   PLAUSIBLE_API_KEY: optStr,
-  RESEND_API_KEY: optStr,
+  RESEND_API_KEY: optStr,            // for system alerts to operator (not marketing)
   EMAIL_FROM: optStr,
 
   // Trends / data
@@ -184,8 +176,6 @@ const envSchema = z.object({
   FEATURE_SITEMAP_AUTO_SUBMIT: boolish,
   FEATURE_TIKTOK_AUTO_POST: boolish,
   FEATURE_META_AUTO_POST: boolish,
-  FEATURE_PINTEREST_AUTO_POST: boolish,
-  FEATURE_YOUTUBE_AUTO_POST: boolish,
 
   DEBUG_DRY_RUN: boolish,
   DEBUG_VERBOSE_LOGGING: boolish,
@@ -223,8 +213,6 @@ export const can = {
     Boolean(env.SHOPEE_AFFILIATE_USERNAME && env.SHOPEE_AFFILIATE_PASSWORD),
   postTikTok: () => Boolean(env.TIKTOK_ACCESS_TOKEN) && env.FEATURE_TIKTOK_AUTO_POST,
   postMeta: () => Boolean(env.META_PAGE_ACCESS_TOKEN) && env.FEATURE_META_AUTO_POST,
-  postPinterest: () => Boolean(env.PINTEREST_ACCESS_TOKEN) && env.FEATURE_PINTEREST_AUTO_POST,
-  postYouTube: () => Boolean(env.YOUTUBE_API_KEY) && env.FEATURE_YOUTUBE_AUTO_POST,
   generateVoice: () => Boolean(env.ELEVENLABS_API_KEY),
   generateImages: () => Boolean(env.FLUX_API_KEY || env.REPLICATE_API_TOKEN),
   deployCloudflare: () => Boolean(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID),
@@ -244,10 +232,8 @@ export function summarizeCapabilities(): string {
     ["Claude", can.generateContent()],
     ["Shopee.scrape", can.scrapeShopee()],
     ["Shopee.dashboard", can.trackShopeeDashboard()],
-    ["Pinterest", can.postPinterest()],
     ["TikTok", can.postTikTok()],
     ["Meta", can.postMeta()],
-    ["YouTube", can.postYouTube()],
     ["Voice", can.generateVoice()],
     ["Images", can.generateImages()],
     ["CF.deploy", can.deployCloudflare()],

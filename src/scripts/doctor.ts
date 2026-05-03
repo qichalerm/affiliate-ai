@@ -86,7 +86,7 @@ async function checkEnv() {
       category: "env",
       status: "info",
       title: "Email disabled",
-      fix: "Set RESEND_API_KEY for newsletter + email alerts (free 3k/mo)",
+      fix: "Set RESEND_API_KEY for system alert emails (free 3k/mo)",
     });
   }
   if (!env.WEBSHARE_API_KEY) {
