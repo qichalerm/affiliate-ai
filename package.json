@@ -10,6 +10,7 @@
     "redirect": "bun run src/web/redirect-server.ts",
     "test:link": "bun run src/scripts/test-link.ts",
     "scrape:once": "bun run src/scripts/scrape-once.ts",
+    "test:gate": "bun run src/scripts/test-quality-gate.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",
