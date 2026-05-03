@@ -9,8 +9,14 @@
  */
 
 import { spawn } from "node:child_process";
+import { dirname } from "node:path";
 import { env, can } from "../lib/env.ts";
 import { closeDb } from "../lib/db.ts";
+
+// Resolve absolute paths so spawn works under systemd, where /root/.bun/bin
+// is not on PATH. process.execPath is the bun binary running this script.
+const BUN = process.execPath;
+const BUNX = `${dirname(process.execPath)}/bunx`;
 
 function runCmd(cmd: string, args: string[], cwd?: string): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -22,7 +28,7 @@ function runCmd(cmd: string, args: string[], cwd?: string): Promise<number> {
 
 async function main() {
   console.log("=== Building Astro static site ===\n");
-  const buildCode = await runCmd("bun", ["run", "build"], "src/web");
+  const buildCode = await runCmd(BUN, ["run", "build"], "src/web");
   if (buildCode !== 0) {
     console.error(`Astro build failed with code ${buildCode}`);
     process.exit(buildCode);
@@ -33,7 +39,7 @@ async function main() {
   if (can.deployCloudflare() && env.CLOUDFLARE_PAGES_PROJECT) {
     console.log("=== Deploying to Cloudflare Pages ===\n");
     const deployCode = await runCmd(
-      "bunx",
+      BUNX,
       [
         "wrangler",
         "pages",
