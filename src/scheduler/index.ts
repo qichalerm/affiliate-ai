@@ -14,7 +14,12 @@ import { env, summarizeCapabilities } from "../lib/env.ts";
 import { logger, child } from "../lib/logger.ts";
 import { closeDb, pingDb } from "../lib/db.ts";
 import { errMsg } from "../lib/retry.ts";
-import { jobScrapeTrending, jobLearningOptimizer, jobPromoHunter } from "./jobs.ts";
+import {
+  jobScrapeTrending,
+  jobLearningOptimizer,
+  jobPromoHunter,
+  jobEngagementTracker,
+} from "./jobs.ts";
 
 const log = child("scheduler");
 
@@ -61,6 +66,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "*/30 * * * *",
     description: "M6 Promo Hunter — detect price drops / discount jumps every 30 min",
     handler: jobPromoHunter,
+  },
+  {
+    name: "engagementTracker",
+    cron: "0 */2 * * *",
+    description: "M7 Engagement Tracker — poll FB/IG/TikTok analytics every 2 hours",
+    handler: jobEngagementTracker,
   },
 ];
 

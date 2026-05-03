@@ -11,6 +11,7 @@ import { pickKeywords } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";
 import { runPromoTrigger } from "../brain/promo-trigger.ts";
+import { runEngagementTracker } from "../engagement/tracker.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -69,6 +70,17 @@ export async function jobScrapeTrending(): Promise<void> {
 export async function jobLearningOptimizer(): Promise<void> {
   const result = await runLearningOptimizer({ windowDays: 1 });
   log.info(result, "learningOptimizer done");
+}
+
+/**
+ * Engagement Tracker (M7). For each recent published post, fetch
+ * platform analytics and snapshot into post_metrics. No-op for posts
+ * whose channel doesn't have a token yet (FB/IG depend on META, TikTok
+ * on its own token).
+ */
+export async function jobEngagementTracker(): Promise<void> {
+  const result = await runEngagementTracker();
+  log.info(result, "engagementTracker done");
 }
 
 /**
