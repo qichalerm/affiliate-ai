@@ -75,12 +75,21 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
   const start = Date.now();
   const outDir = opts.outDir ?? DEFAULT_OUT;
   const maxProducts = opts.maxProducts ?? 200;
+
+  // Most-recent scrape time → drives the "Updated 3h ago" indicator
+  // shown across the chrome (header/hero trust bar/footer pulse dot).
+  const [latestScrape] = await db.execute<{ lastScrapedAt: string; [k: string]: unknown }>(sql`
+    SELECT MAX(last_scraped_at) AS "lastScrapedAt" FROM products WHERE is_active = true
+  `);
+
   const config: SiteConfig = {
     domain: opts.config?.domain ?? DEFAULT_DOMAIN,
     name: opts.config?.name ?? DEFAULT_NAME,
+    lastUpdatedAt: latestScrape?.lastScrapedAt ?? undefined,
+    sources: ["Shopee"],
   };
 
-  log.info({ outDir, maxProducts, domain: config.domain }, "site build start");
+  log.info({ outDir, maxProducts, domain: config.domain, lastUpdated: config.lastUpdatedAt }, "site build start");
 
   // Pull eligible products (active, not blacklisted, has price).
   // Sort by final_score desc fallback to first_seen_at desc — best-of first.
