@@ -22,6 +22,8 @@ import {
   jobSourceHealth,
   jobDailyReport,
   jobBackfillTranslations,
+  jobScrapeTikTokShop,
+  jobShopeeVideoDigest,
 } from "./jobs.ts";
 
 const log = child("scheduler");
@@ -93,6 +95,18 @@ const SCHEDULES: JobSchedule[] = [
     cron: "*/45 * * * *",
     description: "Translate products missing EN/ZH/JA (limit 20/run, idempotent)",
     handler: jobBackfillTranslations,
+  },
+  {
+    name: "scrapeTikTokShop",
+    cron: "30 9,15,21 * * *",
+    description: "Scrape TikTok Shop 3x/day (no-op until TIKTOK_SHOP_ACTOR_ID set)",
+    handler: jobScrapeTikTokShop,
+  },
+  {
+    name: "shopeeVideoDigest",
+    cron: "0 10 * * *",
+    description: "Email operator the day's Shopee Video upload backlog (10:00 BKK)",
+    handler: jobShopeeVideoDigest,
   },
 ];
 

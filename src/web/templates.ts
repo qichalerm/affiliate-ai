@@ -38,7 +38,11 @@ export interface ProductForRender {
   soldCount: number | null;
   affiliateShortUrl: string | null;
   translations: Record<string, { name?: string; description?: string }> | null;
-  niche: string | null;         // V2 Sprint 24 — for category pages + search filter
+  niche: string | null;
+  /** Price history for sparkline chart on detail page (set by site-builder). */
+  priceHistory?: Array<{ price: number; capturedAt: string }>;
+  /** Related products (same niche) — set by site-builder. */
+  related?: ProductForRender[];
 }
 
 export interface SiteConfig {
@@ -79,6 +83,31 @@ const I18N: Record<Lang, {
   productCount: string;
   loading: string;
   noProducts: string;
+  brand: string;
+  rating: string;
+  source: string;
+  // Sprint 26 detail-page additions
+  detailBreadcrumbHome: string;
+  detailDescriptionTitle: string;
+  detailSpecsTitle: string;
+  detailPriceHistoryTitle: string;
+  detailPriceHistorySubtitle: string;
+  detailRelatedTitle: string;
+  detailRelatedSubtitle: string;
+  trustFreeTitle: string;
+  trustFreeSub: string;
+  trustVerifiedTitle: string;
+  trustVerifiedSub: string;
+  trustLiveTitle: string;
+  trustLiveSub: string;
+  trustNoSignupTitle: string;
+  trustNoSignupSub: string;
+  detailPriceCurrent: string;
+  detailPriceLowest: string;
+  detailPriceHighest: string;
+  detailSavings: string;
+  detailFirstSeen: string;
+  detailFallbackNote: string;
 }> = {
   th: {
     htmlLang: "th-TH",
@@ -117,6 +146,30 @@ const I18N: Record<Lang, {
     productCount: "สินค้า",
     loading: "กำลังโหลด...",
     noProducts: "ยังไม่มีสินค้าในภาษานี้ — กำลังแปล...",
+    brand: "แบรนด์",
+    rating: "คะแนน",
+    source: "แหล่งที่มา",
+    detailBreadcrumbHome: "หน้าแรก",
+    detailDescriptionTitle: "รายละเอียดสินค้า",
+    detailSpecsTitle: "ข้อมูลสินค้า",
+    detailPriceHistoryTitle: "ประวัติราคา",
+    detailPriceHistorySubtitle: "ราคาที่ผ่านมาจาก Shopee",
+    detailRelatedTitle: "สินค้าที่คล้ายกัน",
+    detailRelatedSubtitle: "จากหมวดหมู่เดียวกัน",
+    trustFreeTitle: "ฟรี 100%",
+    trustFreeSub: "ไม่มีค่าสมัคร · ไม่เก็บข้อมูลบัตร",
+    trustVerifiedTitle: "ตรวจสอบจริง",
+    trustVerifiedSub: "ดึงข้อมูลตรงจาก Shopee",
+    trustLiveTitle: "อัปเดตเสมอ",
+    trustLiveSub: "ราคาใหม่ทุก 6 ชั่วโมง",
+    trustNoSignupTitle: "ไม่ต้องสมัคร",
+    trustNoSignupSub: "เปิดเว็บก็ใช้ได้เลย",
+    detailPriceCurrent: "ราคาปัจจุบัน",
+    detailPriceLowest: "ต่ำสุด",
+    detailPriceHighest: "สูงสุด",
+    detailSavings: "ประหยัด",
+    detailFirstSeen: "พบครั้งแรก",
+    detailFallbackNote: "(ชื่อสินค้ายังเป็นภาษาไทย — กำลังแปล)",
   },
   en: {
     htmlLang: "en",
@@ -155,6 +208,30 @@ const I18N: Record<Lang, {
     productCount: "products",
     loading: "Loading...",
     noProducts: "No products in this language yet — translating...",
+    brand: "Brand",
+    rating: "Rating",
+    source: "Source",
+    detailBreadcrumbHome: "Home",
+    detailDescriptionTitle: "Product Details",
+    detailSpecsTitle: "Specifications",
+    detailPriceHistoryTitle: "Price History",
+    detailPriceHistorySubtitle: "Past prices from Shopee",
+    detailRelatedTitle: "Related Products",
+    detailRelatedSubtitle: "From the same category",
+    trustFreeTitle: "100% Free",
+    trustFreeSub: "No signup · No card data stored",
+    trustVerifiedTitle: "Verified Real",
+    trustVerifiedSub: "Pulled directly from Shopee",
+    trustLiveTitle: "Always Fresh",
+    trustLiveSub: "New prices every 6 hours",
+    trustNoSignupTitle: "No Signup",
+    trustNoSignupSub: "Just open and use",
+    detailPriceCurrent: "Current price",
+    detailPriceLowest: "Lowest",
+    detailPriceHighest: "Highest",
+    detailSavings: "You save",
+    detailFirstSeen: "First seen",
+    detailFallbackNote: "(Title still in Thai — translating)",
   },
   zh: {
     htmlLang: "zh-CN",
@@ -193,6 +270,30 @@ const I18N: Record<Lang, {
     productCount: "件商品",
     loading: "加载中...",
     noProducts: "尚无该语言的商品 — 正在翻译...",
+    brand: "品牌",
+    rating: "评分",
+    source: "来源",
+    detailBreadcrumbHome: "首页",
+    detailDescriptionTitle: "商品详情",
+    detailSpecsTitle: "规格参数",
+    detailPriceHistoryTitle: "价格历史",
+    detailPriceHistorySubtitle: "Shopee 历史价格",
+    detailRelatedTitle: "相关商品",
+    detailRelatedSubtitle: "来自同一分类",
+    trustFreeTitle: "100% 免费",
+    trustFreeSub: "无需注册 · 不存储卡数据",
+    trustVerifiedTitle: "真实验证",
+    trustVerifiedSub: "数据直接来源 Shopee",
+    trustLiveTitle: "始终最新",
+    trustLiveSub: "每 6 小时更新价格",
+    trustNoSignupTitle: "无需注册",
+    trustNoSignupSub: "打开即可使用",
+    detailPriceCurrent: "当前价格",
+    detailPriceLowest: "最低",
+    detailPriceHighest: "最高",
+    detailSavings: "节省",
+    detailFirstSeen: "首次发现",
+    detailFallbackNote: "(标题仍为泰文 — 正在翻译)",
   },
   ja: {
     htmlLang: "ja",
@@ -231,6 +332,30 @@ const I18N: Record<Lang, {
     productCount: "商品",
     loading: "読み込み中...",
     noProducts: "この言語の商品はまだありません — 翻訳中...",
+    brand: "ブランド",
+    rating: "評価",
+    source: "出典",
+    detailBreadcrumbHome: "ホーム",
+    detailDescriptionTitle: "商品詳細",
+    detailSpecsTitle: "仕様",
+    detailPriceHistoryTitle: "価格履歴",
+    detailPriceHistorySubtitle: "Shopee の過去価格",
+    detailRelatedTitle: "関連商品",
+    detailRelatedSubtitle: "同じカテゴリから",
+    trustFreeTitle: "100% 無料",
+    trustFreeSub: "登録不要 · カード情報保存なし",
+    trustVerifiedTitle: "本物確認済み",
+    trustVerifiedSub: "Shopee から直接取得",
+    trustLiveTitle: "常に最新",
+    trustLiveSub: "6 時間ごとに価格更新",
+    trustNoSignupTitle: "登録不要",
+    trustNoSignupSub: "開くだけで使える",
+    detailPriceCurrent: "現在価格",
+    detailPriceLowest: "最安",
+    detailPriceHighest: "最高",
+    detailSavings: "お得",
+    detailFirstSeen: "初回検出",
+    detailFallbackNote: "(タイトルはタイ語のまま — 翻訳中)",
   },
 };
 
@@ -334,22 +459,37 @@ function abbreviateCount(n: number, lang: Lang): string {
 }
 
 /**
- * Get the localized name + description for a product. Returns null if
- * no translation exists for this lang (caller should skip the product).
- * Thai is always considered "translated" since it's the source.
+ * Get the localized name + description for a product. ALWAYS returns
+ * something — falls back to Thai source if no translation exists yet.
+ *
+ * Earlier strict-skip behaviour (returning null) caused /en/, /zh/,
+ * /ja/ pages to show only ~8 products when 300/501 weren't translated
+ * yet — effectively breaking the site for non-Thai users between
+ * scrape (which adds new untranslated products) and the next backfill
+ * cron tick (~45 min later). User-visible bug.
+ *
+ * Now we always render a card. The translation-backfill cron stays
+ * the same — it just becomes "make this page nicer" rather than
+ * "make this page show anything at all".
  */
 export function localizedProductOrNull(
   p: ProductForRender,
   lang: Lang,
-): { name: string; description: string | null } | null {
+): { name: string; description: string | null; isTranslated: boolean } {
   if (lang === "th") {
-    return { name: p.name, description: p.description };
+    return { name: p.name, description: p.description, isTranslated: true };
   }
   const t = p.translations?.[lang];
-  if (!t?.name?.trim()) return null;  // skip — no translation yet
+  if (!t?.name?.trim()) {
+    // Fallback to Thai source so the user sees SOMETHING. Card is
+    // still useful (image, price, rating) — the only "wrong" thing
+    // is the title language.
+    return { name: p.name, description: p.description, isTranslated: false };
+  }
   return {
     name: t.name.trim(),
-    description: t.description?.trim() ?? null,
+    description: t.description?.trim() ?? p.description,
+    isTranslated: true,
   };
 }
 
@@ -539,9 +679,13 @@ function heroSection(lang: Lang, lastUpdatedAt?: string): string {
 
 function productCard(p: ProductForRender, lang: Lang): string {
   const localized = localizedProductOrNull(p, lang);
-  if (!localized) return "";  // skip products without translation
-  const { name } = localized;
+  const { name, isTranslated } = localized;
   const i = I18N[lang];
+  // Tiny "TH" label for cards rendered with Thai fallback on a non-TH page,
+  // so visitors know we have the data and translation is in flight.
+  const fallbackBadge = !isTranslated && lang !== "th"
+    ? `<span class="absolute right-2.5 top-2.5 rounded bg-ink-900/70 px-1.5 py-0.5 text-[10px] font-bold text-white">TH</span>`
+    : "";
 
   const img = p.primaryImage ?? "";
   const discountPct = p.discountPercent && p.discountPercent > 0 ? Math.round(p.discountPercent * 100) : 0;
@@ -571,6 +715,7 @@ function productCard(p: ProductForRender, lang: Lang): string {
         ? `<img src="${escapeHtml(img)}" alt="${escapeHtml(name)}" loading="lazy" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]">`
         : `<div class="flex h-full items-center justify-center text-3xl text-ink-300">📦</div>`}
       ${discountBadge}
+      ${fallbackBadge}
     </div>
     <div class="flex flex-1 flex-col p-3.5">
       <h3 class="line-clamp-2 min-h-[2.6rem] text-sm leading-tight font-medium text-ink-900 dark:text-ink-50">${escapeHtml(name)}</h3>
@@ -651,8 +796,10 @@ export function renderHomePage(args: {
   const path = pageUrl(args.lang, "/");
   const alternates = LANGS.map((l) => ({ lang: l, href: pageUrl(l, "/") }));
 
-  // Filter to translated-only when lang !== th (per user instruction)
-  const visible = args.products.filter((p) => localizedProductOrNull(p, args.lang) !== null);
+  // All products visible — TH fallback handled inside the card renderer
+  // (was: filter dropped 90%+ of cards on /en/ /zh/ /ja/ during the gap
+  // between scrape and translation backfill)
+  const visible = args.products;
 
   // Hot deals = top 16 by discount_percent desc (then by score)
   const hotDeals = [...visible]
@@ -696,9 +843,7 @@ export function renderProductPage(args: {
 }): string {
   const i = I18N[args.lang];
   const localized = localizedProductOrNull(args.product, args.lang);
-  // For lang !== th without translation: render Thai source as graceful fallback on detail
-  // (better than 404 — visitor still sees product, search engines still see content)
-  const { name, description } = localized ?? { name: args.product.name, description: args.product.description };
+  const { name, description, isTranslated } = localized;
 
   const path = productPath(args.lang, args.product.slug);
   const alternates = LANGS.map((l) => ({ lang: l, href: productPath(l, args.product.slug) }));
@@ -736,52 +881,241 @@ export function renderProductPage(args: {
     siteName: args.config.name,
   });
 
-  const img = args.product.primaryImage
+  // ── Image gallery (uses imageUrls if present, falls back to primaryImage)
+  const heroImg = args.product.primaryImage
     ? `<img src="${escapeHtml(args.product.primaryImage)}" alt="${escapeHtml(name)}" class="h-full w-full object-cover" loading="eager">`
     : `<div class="flex h-full items-center justify-center text-6xl text-ink-300">📦</div>`;
 
+  // ── Price block
   const discountPct = args.product.discountPercent && args.product.discountPercent > 0 ? Math.round(args.product.discountPercent * 100) : 0;
   const discountBadge = discountPct > 0
-    ? `<span class="rounded-md bg-deal-600 px-2.5 py-1 text-sm font-bold text-white">−${discountPct}%</span>`
+    ? `<span class="inline-flex items-center rounded-lg bg-deal-50 dark:bg-deal-600/15 px-3 py-1.5 text-sm font-bold text-deal-700 dark:text-deal-400 border border-deal-200 dark:border-deal-600/30">−${discountPct}%</span>`
     : "";
-  const original = args.product.originalPrice && args.product.originalPrice > (args.product.currentPrice ?? 0)
-    ? `<span class="text-lg text-ink-500 line-through">${formatBaht(args.product.originalPrice, args.lang)}</span>` : "";
-
-  const ratingMeta = args.product.rating
-    ? `<div class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-warn-500"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"/></svg><span class="font-medium text-ink-700 dark:text-ink-300">${args.product.rating.toFixed(1)}</span>${args.product.ratingCount ? `<span class="text-ink-400">(${abbreviateCount(args.product.ratingCount, args.lang)})</span>` : ""}</div>`
-    : "";
-  const soldMeta = args.product.soldCount
-    ? `<span class="text-ink-500">${escapeHtml(i.metaSold)} ${abbreviateCount(args.product.soldCount, args.lang)}</span>`
+  const oldPrice = args.product.originalPrice && args.product.originalPrice > (args.product.currentPrice ?? 0)
+    ? `<span class="text-xl text-ink-400 line-through">${formatBaht(args.product.originalPrice, args.lang)}</span>` : "";
+  const savings = args.product.originalPrice && args.product.currentPrice && args.product.originalPrice > args.product.currentPrice
+    ? `<div class="mt-2 text-sm text-success-700 dark:text-success-500 font-medium">${escapeHtml(i.detailSavings)} ${formatBaht(args.product.originalPrice - args.product.currentPrice, args.lang)}</div>`
     : "";
 
+  // ── Rating + sold trust line
+  const ratingHtml = args.product.rating
+    ? `<div class="flex items-center gap-1.5">
+        <div class="flex items-center text-warn-500">
+          ${[1,2,3,4,5].map((n) => {
+            const filled = n <= Math.round(args.product.rating ?? 0);
+            return `<svg viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="1.5" class="h-4 w-4"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"/></svg>`;
+          }).join("")}
+        </div>
+        <span class="font-semibold text-ink-900 dark:text-ink-50">${args.product.rating.toFixed(1)}</span>
+        ${args.product.ratingCount ? `<span class="text-ink-500">(${abbreviateCount(args.product.ratingCount, args.lang)})</span>` : ""}
+      </div>`
+    : "";
+  const soldHtml = args.product.soldCount
+    ? `<div class="text-sm text-ink-600 dark:text-ink-400"><svg viewBox="0 0 24 24" fill="none" class="inline h-4 w-4 mr-1 -mt-0.5"><path d="M3 6h18M6 6V4a2 2 0 012-2h8a2 2 0 012 2v2M6 6v14a2 2 0 002 2h8a2 2 0 002-2V6" stroke="currentColor" stroke-width="1.5"/></svg>${escapeHtml(i.metaSold)} <strong>${abbreviateCount(args.product.soldCount, args.lang)}</strong></div>`
+    : "";
+
+  // ── CTA
   const cta = args.product.affiliateShortUrl
-    ? `<a href="${escapeHtml(args.product.affiliateShortUrl)}" rel="sponsored nofollow noopener" target="_blank" class="btn-primary-lg w-full sm:w-auto">${escapeHtml(i.ctaShopee)} <svg viewBox="0 0 24 24" fill="none" class="h-4 w-4 ml-2"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>`
+    ? `<a href="${escapeHtml(args.product.affiliateShortUrl)}" rel="sponsored nofollow noopener" target="_blank" class="group flex items-center justify-center gap-2 w-full sm:w-auto sm:min-w-[280px] rounded-xl bg-brand-500 hover:bg-brand-600 transition px-6 py-4 text-base font-bold text-white shadow-soft hover:shadow-lift">
+        ${escapeHtml(i.ctaShopee)}
+        <svg viewBox="0 0 24 24" fill="none" class="h-5 w-5 transition group-hover:translate-x-1"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>`
+    : "";
+
+  // ── Specs block
+  const specRows: Array<[string, string]> = [];
+  if (args.product.brand) specRows.push([i.brand, args.product.brand]);
+  if (args.product.niche) specRows.push([i.navCategories, categoryLabel(args.product.niche, args.lang)]);
+  if (args.product.rating) specRows.push([i.rating, `★ ${args.product.rating.toFixed(1)}${args.product.ratingCount ? ` (${abbreviateCount(args.product.ratingCount, args.lang)})` : ""}`]);
+  if (args.product.soldCount) specRows.push([i.metaSold, args.product.soldCount.toLocaleString()]);
+  specRows.push([i.source, "Shopee"]);
+  const specs = specRows.map(([k, v]) =>
+    `<div class="flex justify-between items-baseline py-2.5 border-b border-ink-100 dark:border-ink-800 last:border-0">
+      <span class="text-sm text-ink-500">${escapeHtml(k)}</span>
+      <span class="text-sm font-semibold text-ink-900 dark:text-ink-50">${escapeHtml(v)}</span>
+    </div>`
+  ).join("");
+
+  // ── Price history sparkline (inline SVG, no JS)
+  let priceHistoryHtml = "";
+  if (args.product.priceHistory && args.product.priceHistory.length >= 3) {
+    const points = args.product.priceHistory.slice(-30);  // last 30 snapshots
+    const prices = points.map((p) => p.price);
+    const minP = Math.min(...prices);
+    const maxP = Math.max(...prices);
+    const range = Math.max(1, maxP - minP);
+    const W = 600, H = 120, PAD_X = 8, PAD_Y = 12;
+    const xStep = (W - PAD_X * 2) / Math.max(1, points.length - 1);
+    const path = points.map((p, idx) => {
+      const x = PAD_X + idx * xStep;
+      const y = H - PAD_Y - ((p.price - minP) / range) * (H - PAD_Y * 2);
+      return `${idx === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(" ");
+    const lastY = H - PAD_Y - ((prices[prices.length - 1] - minP) / range) * (H - PAD_Y * 2);
+    const lastX = PAD_X + (points.length - 1) * xStep;
+    priceHistoryHtml = `<section class="container-page pb-14">
+      <div class="mb-6">
+        <h2 class="section-title">${escapeHtml(i.detailPriceHistoryTitle)}</h2>
+        <p class="text-sm text-ink-500 mt-1">${escapeHtml(i.detailPriceHistorySubtitle)} · ${points.length} จุด</p>
+      </div>
+      <div class="rounded-2xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-6">
+        <div class="grid grid-cols-3 gap-4 mb-6 text-center">
+          <div>
+            <div class="text-xs text-ink-500">${escapeHtml(i.detailPriceLowest)}</div>
+            <div class="text-lg font-bold text-success-700 dark:text-success-500">${formatBaht(minP, args.lang)}</div>
+          </div>
+          <div>
+            <div class="text-xs text-ink-500">${escapeHtml(i.detailPriceCurrent)}</div>
+            <div class="text-lg font-bold text-brand-600 dark:text-brand-400">${formatBaht(args.product.currentPrice, args.lang)}</div>
+          </div>
+          <div>
+            <div class="text-xs text-ink-500">${escapeHtml(i.detailPriceHighest)}</div>
+            <div class="text-lg font-bold text-deal-600">${formatBaht(maxP, args.lang)}</div>
+          </div>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" class="w-full h-32" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgb(11 95 255)" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="rgb(11 95 255)" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="${path} L${lastX.toFixed(1)},${H - PAD_Y} L${PAD_X},${H - PAD_Y} Z" fill="url(#pg)"/>
+          <path d="${path}" fill="none" stroke="rgb(11 95 255)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="rgb(11 95 255)" stroke="white" stroke-width="2"/>
+        </svg>
+      </div>
+    </section>`;
+  }
+
+  // ── Related products (same niche)
+  let relatedHtml = "";
+  if (args.product.related && args.product.related.length > 0) {
+    const cards = args.product.related.slice(0, 8).map((p) => productCard(p, args.lang)).filter(Boolean).join("\n");
+    relatedHtml = `<section class="container-page pb-14">
+      <div class="mb-6">
+        <h2 class="section-title">${escapeHtml(i.detailRelatedTitle)}</h2>
+        <p class="text-sm text-ink-500 mt-1">${escapeHtml(i.detailRelatedSubtitle)}</p>
+      </div>
+      <div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">${cards}</div>
+    </section>`;
+  }
+
+  // ── Trust strip (4 mini cards below the fold)
+  const trust = [
+    { icon: "💳", title: i.trustFreeTitle, sub: i.trustFreeSub },
+    { icon: "✅", title: i.trustVerifiedTitle, sub: i.trustVerifiedSub },
+    { icon: "🔄", title: i.trustLiveTitle, sub: i.trustLiveSub },
+    { icon: "🚀", title: i.trustNoSignupTitle, sub: i.trustNoSignupSub },
+  ];
+  const trustHtml = trust.map((t) =>
+    `<div class="flex items-start gap-3 p-4 rounded-xl bg-ink-50 dark:bg-ink-900 border border-ink-100 dark:border-ink-800">
+      <div class="text-2xl shrink-0">${t.icon}</div>
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-ink-900 dark:text-ink-50">${escapeHtml(t.title)}</div>
+        <div class="text-xs text-ink-500 mt-0.5">${escapeHtml(t.sub)}</div>
+      </div>
+    </div>`
+  ).join("");
+
+  // ── Breadcrumb
+  const categoryHref = args.product.niche
+    ? pageUrl(args.lang, `/c/${args.product.niche}`)
+    : pageUrl(args.lang, "/");
+  const categoryName = args.product.niche
+    ? categoryLabel(args.product.niche, args.lang)
+    : "";
+  const breadcrumb = `<nav aria-label="Breadcrumb" class="container-page pt-6 pb-2">
+    <ol class="flex items-center gap-2 text-sm text-ink-500 flex-wrap">
+      <li><a href="${pageUrl(args.lang, "/")}" class="hover:text-brand-600">${escapeHtml(i.detailBreadcrumbHome)}</a></li>
+      ${categoryName ? `<li class="text-ink-300">/</li>
+      <li><a href="${categoryHref}" class="hover:text-brand-600">${escapeHtml(categoryName)}</a></li>` : ""}
+      <li class="text-ink-300">/</li>
+      <li class="text-ink-700 dark:text-ink-300 truncate max-w-[300px]">${escapeHtml(name)}</li>
+    </ol>
+  </nav>`;
+
+  // ── Translation fallback note
+  const translationNote = !isTranslated && args.lang !== "th"
+    ? `<div class="mb-3 inline-flex items-center gap-1.5 text-xs text-ink-500 italic">
+        <svg viewBox="0 0 24 24" fill="none" class="h-3.5 w-3.5"><path d="M12 8v4M12 16h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="1.5"/></svg>
+        ${escapeHtml(i.detailFallbackNote)}
+      </div>`
     : "";
 
   return `${head}
 <body class="min-h-screen flex flex-col">
 ${siteHeader(args.lang, path, args.config.name)}
 <main class="flex-1 pb-20 sm:pb-0">
-  <section class="container-page py-8 sm:py-12">
+  ${breadcrumb}
+
+  <!-- Top: image + buy panel -->
+  <section class="container-page py-6 sm:py-8">
     <div class="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
-      <div class="aspect-square rounded-2xl overflow-hidden bg-ink-100 dark:bg-ink-800 lg:sticky lg:top-24">
-        ${img}
+      <!-- Image -->
+      <div class="aspect-square rounded-2xl overflow-hidden bg-ink-100 dark:bg-ink-800 lg:sticky lg:top-24 shadow-soft">
+        ${heroImg}
       </div>
-      <div>
-        ${args.product.brand ? `<div class="text-xs uppercase tracking-wide text-ink-500 font-semibold mb-2">${escapeHtml(args.product.brand)}</div>` : ""}
-        <h1 class="text-2xl sm:text-3xl font-bold text-ink-900 dark:text-ink-50 leading-tight mb-4">${escapeHtml(name)}</h1>
-        <div class="flex items-baseline gap-3 flex-wrap mb-3">
-          <span class="text-4xl font-bold text-ink-900 dark:text-ink-50">${formatBaht(args.product.currentPrice, args.lang)}</span>
-          ${original}
-          ${discountBadge}
+
+      <!-- Buy panel -->
+      <div class="space-y-5">
+        ${args.product.brand ? `<div class="text-xs uppercase tracking-wider text-brand-600 dark:text-brand-400 font-bold">${escapeHtml(args.product.brand)}</div>` : ""}
+        ${translationNote}
+        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-ink-900 dark:text-ink-50 leading-tight">${escapeHtml(name)}</h1>
+
+        <!-- Trust line: rating + sold -->
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
+          ${ratingHtml}
+          ${soldHtml}
         </div>
-        <div class="flex gap-4 items-center text-sm mb-6">${ratingMeta}${soldMeta}</div>
-        <div class="mb-6">${cta}</div>
-        ${description ? `<div class="prose prose-sm dark:prose-invert max-w-none text-ink-700 dark:text-ink-300 mb-6">${escapeHtml(description)}</div>` : ""}
-        <div class="text-xs text-ink-500 border-l-2 border-brand-300 pl-3 py-1">${escapeHtml(i.footerDisclosure)}</div>
+
+        <!-- Price block -->
+        <div class="rounded-2xl border-2 border-brand-100 dark:border-brand-900/40 bg-brand-50/40 dark:bg-brand-900/10 p-5">
+          <div class="flex items-baseline gap-3 flex-wrap">
+            <span class="text-4xl sm:text-5xl font-extrabold text-brand-600 dark:text-brand-400 tracking-tight">${formatBaht(args.product.currentPrice, args.lang)}</span>
+            ${oldPrice}
+            ${discountBadge}
+          </div>
+          ${savings}
+        </div>
+
+        <!-- CTA -->
+        <div>${cta}</div>
+
+        <!-- Specs -->
+        <div class="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-5">
+          <h2 class="text-sm font-bold text-ink-900 dark:text-ink-50 uppercase tracking-wide mb-3">${escapeHtml(i.detailSpecsTitle)}</h2>
+          ${specs}
+        </div>
+
+        <!-- Disclosure -->
+        <div class="rounded-lg bg-ink-50 dark:bg-ink-900 border-l-4 border-brand-300 dark:border-brand-600 p-4 text-xs text-ink-600 dark:text-ink-400 leading-relaxed">
+          ${escapeHtml(i.footerDisclosure)}
+        </div>
       </div>
     </div>
   </section>
+
+  <!-- Description (if any) -->
+  ${description ? `<section class="container-page pb-10">
+    <div class="rounded-2xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-6 lg:p-8">
+      <h2 class="text-lg font-bold text-ink-900 dark:text-ink-50 mb-4">${escapeHtml(i.detailDescriptionTitle)}</h2>
+      <div class="prose prose-sm dark:prose-invert max-w-none text-ink-700 dark:text-ink-300 whitespace-pre-line">${escapeHtml(description)}</div>
+    </div>
+  </section>` : ""}
+
+  <!-- Trust strip -->
+  <section class="container-page pb-14">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      ${trustHtml}
+    </div>
+  </section>
+
+  <!-- Price history -->
+  ${priceHistoryHtml}
+
+  <!-- Related products -->
+  ${relatedHtml}
 </main>
 ${siteFooter(args.lang, args.config)}
 </body>
@@ -805,8 +1139,8 @@ export function renderCategoryPage(args: {
   const niche = CATEGORY_NICHES.find((c) => c.slug === args.nicheSlug);
   const emoji = niche?.emoji ?? "📦";
 
-  const visible = args.products.filter((p) => localizedProductOrNull(p, args.lang) !== null);
-  // Sort: discount % desc, then rating count desc
+  // All products visible (TH fallback inside card)
+  const visible = [...args.products];
   visible.sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0)
                        || (b.ratingCount ?? 0) - (a.ratingCount ?? 0));
 

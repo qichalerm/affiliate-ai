@@ -32,6 +32,10 @@ const envSchema = z.object({
   SHOPEE_TRACKING_ID: optStr,
   TIKTOK_SHOP_AFFILIATE_ID: optStr,
   TIKTOK_SHOP_API_KEY: optStr,
+  /** Apify actor id for TikTok Shop scraping. When unset, the TikTok
+   * Shop scrape job is a no-op. Pick one from
+   * https://apify.com/store?search=tiktok+shop and paste here. */
+  TIKTOK_SHOP_ACTOR_ID: optStr,
 
   // Apify
   APIFY_TOKEN: optStr,

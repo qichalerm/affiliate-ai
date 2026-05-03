@@ -51,6 +51,7 @@ import {
   type ProductForRender,
   type SiteConfig,
 } from "./templates.ts";
+import { indexNowVerificationFile, pingAllEngines } from "../seo/sitemap-ping.ts";
 
 const log = child("web.site-builder");
 
@@ -171,8 +172,39 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
     pagesWritten++;
   }
 
+  // ── Pre-fetch price history + group by niche for related products ──
+  // One bulk query each, then attach in-memory — avoids N+1 on detail pages.
+  const productIds = productList.map((p) => p.id);
+  const priceHistRows = productIds.length > 0 ? await db.execute<{
+    productId: number; price: number; capturedAt: string; [k: string]: unknown
+  }>(sql`
+    SELECT product_id AS "productId", price, captured_at::text AS "capturedAt"
+    FROM product_prices
+    WHERE product_id = ANY(${sql.raw(`ARRAY[${productIds.join(",")}]::int[]`)})
+    ORDER BY product_id, captured_at ASC
+  `) : [];
+  const histByProduct = new Map<number, Array<{ price: number; capturedAt: string }>>();
+  for (const r of priceHistRows) {
+    const list = histByProduct.get(r.productId) ?? [];
+    list.push({ price: Number(r.price), capturedAt: r.capturedAt });
+    histByProduct.set(r.productId, list);
+  }
+
+  const byNiche = new Map<string, ProductForRender[]>();
+  for (const p of productList) {
+    if (!p.niche) continue;
+    const arr = byNiche.get(p.niche) ?? [];
+    arr.push(p);
+    byNiche.set(p.niche, arr);
+  }
+
   // ── Product detail pages ───────────────────────────────────────
   for (const product of productList) {
+    // Attach price history + related (same niche, different product)
+    product.priceHistory = histByProduct.get(product.id) ?? [];
+    product.related = product.niche
+      ? (byNiche.get(product.niche) ?? []).filter((p) => p.id !== product.id).slice(0, 8)
+      : [];
     for (const lang of LANGS) {
       const html = renderProductPage({ lang, product, config });
       writeFile(join(outDir, lang, "p", `${product.slug}.html`), html);
@@ -211,6 +243,13 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
   pagesWritten++;
 
   writeFile(join(outDir, "robots.txt"), renderRobots(config.domain));
+  pagesWritten++;
+
+  // ── IndexNow verification file (Sprint 29) ─────────────────────
+  // Bing / Yandex / Naver / Seznam look for /<key>.txt to verify the
+  // host owns the IndexNow key before accepting URL submissions.
+  const indexNow = indexNowVerificationFile();
+  writeFile(join(outDir, indexNow.path), indexNow.content);
   pagesWritten++;
 
   const result: BuildResult = {
@@ -316,6 +355,15 @@ export function scheduleSiteRebuild(opts: BuildOptions = {}): Promise<BuildResul
               commitMessage: `auto-rebuild ${r.productsRendered}p ${r.pagesWritten}f`,
             });
             log.info({ url: d.url, alias: d.aliasUrl, deployMs: d.durationMs }, "auto-deploy ok");
+
+            // Sprint 29: tell IndexNow + Google + Bing that we shipped
+            // new content. Best-effort, never blocks the rebuild.
+            try {
+              const ping = await pingAllEngines({});
+              log.info(ping, "sitemap pings done");
+            } catch (pingErr) {
+              log.warn({ err: errMsg(pingErr) }, "sitemap ping failed (non-fatal)");
+            }
           } catch (deployErr) {
             log.error({ err: errMsg(deployErr) }, "auto-deploy failed (build kept)");
           }

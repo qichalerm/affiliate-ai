@@ -8,7 +8,9 @@
 
 import { runShopeeScrape } from "../scraper/shopee/runner.ts";
 import { BudgetExceededError } from "../scraper/shopee/apify-client.ts";
-import { pickKeywords } from "../scraper/niches.ts";
+import { runTikTokShopScrape } from "../scraper/tiktok-shop/runner.ts";
+import { notifyShopeeVideoBacklog } from "../publisher/shopee-video.ts";
+import { pickKeywords, pickKeywordsWeighted } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";
 import { runPromoTrigger } from "../brain/promo-trigger.ts";
@@ -27,7 +29,10 @@ const log = child("jobs");
  * Stops early if Apify daily budget is hit.
  */
 export async function jobScrapeTrending(): Promise<void> {
-  const picks = pickKeywords({ count: env.SCRAPE_KEYWORDS_PER_RUN });
+  // M9 niche budget rebalancer (Sprint 27): weight by recent click data.
+  // Falls back to uniform random when DB query fails or all niches are
+  // cold-start (no clicks yet → all weights = 1 = uniform).
+  const picks = await pickKeywordsWeighted({ count: env.SCRAPE_KEYWORDS_PER_RUN });
 
   log.info(
     { picks: picks.map((p) => `${p.niche}:${p.keyword}`), perKeyword: env.SCRAPE_PRODUCTS_PER_KEYWORD },
@@ -65,6 +70,33 @@ export async function jobScrapeTrending(): Promise<void> {
     { totalSucceeded, totalNew, totalCostUsd: totalCost.toFixed(4) },
     "scrapeTrending done",
   );
+}
+
+/**
+ * Shopee Video helper digest — Sprint 28. Emails operator with the
+ * day's batch of ready-to-upload clips (Shopee has no posting API).
+ */
+export async function jobShopeeVideoDigest(): Promise<void> {
+  const r = await notifyShopeeVideoBacklog();
+  log.info(r, "shopeeVideoDigest done");
+}
+
+/**
+ * TikTok Shop scrape — Sprint 26. No-op until TIKTOK_SHOP_ACTOR_ID set.
+ */
+export async function jobScrapeTikTokShop(): Promise<void> {
+  if (!env.TIKTOK_SHOP_ACTOR_ID) {
+    log.info("TIKTOK_SHOP_ACTOR_ID not set — skipping TikTok Shop scrape");
+    return;
+  }
+  const picks = pickKeywords({ count: 2 });  // less aggressive than Shopee until validated
+  for (const { niche, keyword } of picks) {
+    try {
+      await runTikTokShopScrape({ keyword, niche, maxProducts: env.SCRAPE_PRODUCTS_PER_KEYWORD });
+    } catch (err) {
+      log.error({ keyword, err: errMsg(err) }, "tiktok shop scrape failed");
+    }
+  }
 }
 
 /**
