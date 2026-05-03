@@ -15,6 +15,7 @@ import { runPromoTrigger } from "../brain/promo-trigger.ts";
 import { runEngagementTracker } from "../engagement/tracker.ts";
 import { runSourceHealthCheck } from "../monitoring/source-health.ts";
 import { runDailyReport } from "../monitoring/daily-report.ts";
+import { translateMissingProducts } from "../translation/translator.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -73,6 +74,17 @@ export async function jobScrapeTrending(): Promise<void> {
 export async function jobLearningOptimizer(): Promise<void> {
   const result = await runLearningOptimizer({ windowDays: 1 });
   log.info(result, "learningOptimizer done");
+}
+
+/**
+ * Backfill multilingual translations for products missing one or more
+ * target languages. Idempotent — already-translated products are skipped.
+ * Triggers a site rebuild on success so EN/ZH/JA visitors stop seeing
+ * Thai fallback as soon as new translations land.
+ */
+export async function jobBackfillTranslations(): Promise<void> {
+  const result = await translateMissingProducts({ limit: 20 });
+  log.info(result, "backfillTranslations done");
 }
 
 /**

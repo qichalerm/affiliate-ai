@@ -21,6 +21,7 @@ import {
   jobEngagementTracker,
   jobSourceHealth,
   jobDailyReport,
+  jobBackfillTranslations,
 } from "./jobs.ts";
 
 const log = child("scheduler");
@@ -86,6 +87,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "0 8 * * *",
     description: "Daily operator report — yesterday's pipeline digest (08:00 BKK)",
     handler: jobDailyReport,
+  },
+  {
+    name: "backfillTranslations",
+    cron: "*/45 * * * *",
+    description: "Translate products missing EN/ZH/JA (limit 20/run, idempotent)",
+    handler: jobBackfillTranslations,
   },
 ];
 

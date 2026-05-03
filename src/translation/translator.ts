@@ -18,6 +18,7 @@ import { db, schema } from "../lib/db.ts";
 import { complete } from "../lib/claude.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
+import { scheduleSiteRebuild } from "../web/site-builder.ts";
 
 const log = child("translation");
 
@@ -222,6 +223,12 @@ export async function translateMissingProducts(opts: { limit?: number } = {}): P
     },
     "translateMissingProducts done",
   );
+
+  // If we filled any new languages, schedule a debounced site rebuild
+  // so visitors in those languages stop seeing TH fallback ASAP.
+  if (totalLangs > 0) {
+    void scheduleSiteRebuild().catch(() => {});
+  }
 
   return {
     productsProcessed: candidates.length,
