@@ -127,7 +127,10 @@
     "skip_if": "Skip if",
     "specs": "Specifications",
     "faq": "Frequently asked questions",
-    "related": "Related products"
+    "related": "Related articles",
+    "h1_template": "{name} review",
+    "title_template": "{name} review {year} | PriceTH",
+    "desc_template": "{name} reviewed by real Shopee buyers — with price history and user ratings, refreshed every 4 hours."
   },
   "bestOfPage": {
     "breadcrumb_best": "Best of",

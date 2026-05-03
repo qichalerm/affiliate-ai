@@ -127,7 +127,10 @@
     "skip_if": "向かない人",
     "specs": "スペック",
     "faq": "よくある質問",
-    "related": "関連商品"
+    "related": "関連記事",
+    "h1_template": "{name} レビュー",
+    "title_template": "{name} レビュー {year} | PriceTH",
+    "desc_template": "{name} の実購入者レビュー、価格履歴とユーザー評価付き。4時間ごとに更新。"
   },
   "bestOfPage": {
     "breadcrumb_best": "ベスト",

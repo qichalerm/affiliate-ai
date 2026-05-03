@@ -1,7 +1,7 @@
 ---
 import type { RelatedLink } from "../lib/queries";
 import type { Lang } from "../lib/i18n";
-import { langFromPath, DEFAULT_LANG } from "../lib/i18n";
+import { langFromPath, DEFAULT_LANG, getDict } from "../lib/i18n";
 
 interface Props {
   links: RelatedLink[];
@@ -12,7 +12,9 @@ interface Props {
 
 // Fall back to detecting language from the current URL when not passed explicitly.
 const inferredLang = langFromPath(Astro.url.pathname) ?? DEFAULT_LANG;
-const { links, title = "บทความที่เกี่ยวข้อง", lang = inferredLang } = Astro.props;
+const { links, lang = inferredLang } = Astro.props;
+const t = getDict(lang);
+const title = Astro.props.title ?? t.reviewPage.related;
 
 if (!links || links.length === 0) return null;
 
@@ -23,9 +25,9 @@ const TYPE_PREFIX: Record<RelatedLink["type"], string> = {
 };
 
 const TYPE_LABEL: Record<RelatedLink["type"], string> = {
-  review: "รีวิว",
-  comparison: "เปรียบเทียบ",
-  best_of: "รายการแนะนำ",
+  review: t.reviewPage.breadcrumb_reviews,
+  comparison: t.comparisonPage.breadcrumb_compare,
+  best_of: t.bestOfPage.breadcrumb_best,
 };
 
 // Group by type for cleaner UX

@@ -127,7 +127,10 @@
     "skip_if": "不适合",
     "specs": "规格",
     "faq": "常见问题",
-    "related": "相关商品"
+    "related": "相关文章",
+    "h1_template": "{name} 评测",
+    "title_template": "{name} 评测 {year} | PriceTH",
+    "desc_template": "{name} 真实买家评测,包含价格历史和用户评分,每 4 小时更新一次。"
   },
   "bestOfPage": {
     "breadcrumb_best": "精选",

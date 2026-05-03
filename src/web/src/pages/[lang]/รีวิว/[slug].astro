@@ -9,7 +9,7 @@ import FaqAccordion from "../../../components/FaqAccordion.astro";
 import { compactCount } from "../../../lib/format";
 import { buildAffiliateUrl, platformLabel } from "../../../lib/affiliate-links";
 import { getAllPublishedReviewPages, getReviewPageBySlug } from "../../../lib/queries";
-import { getDict, SUPPORTED_LANGS, type Lang } from "../../../lib/i18n";
+import { getDict, SUPPORTED_LANGS, interpolate, type Lang } from "../../../lib/i18n";
 
 export async function getStaticPaths() {
   let pages: Awaited<ReturnType<typeof getAllPublishedReviewPages>> = [];
@@ -55,12 +55,31 @@ function formatBaht(satang: number | null | undefined): string {
 }
 
 const discountPct = product.discountPercent ? Math.round(product.discountPercent * 100) : 0;
+
+// On Thai pages keep the AI-generated content (page.title / page.h1 are Thai).
+// On other languages, build clean templated strings from product.name + i18n
+// templates so the chrome reads naturally in the visitor's language. The body
+// (verdict text, pros/cons, FAQ) still comes from the Thai contentJson — that
+// requires a content regen pass to translate per language.
+const year = new Date().getFullYear();
+const localizedTitle =
+  lang === "th"
+    ? page.title
+    : interpolate(t.reviewPage.title_template, { name: product.name, year });
+const localizedDesc =
+  lang === "th"
+    ? (page.metaDescription ?? undefined)
+    : interpolate(t.reviewPage.desc_template, { name: product.name });
+const localizedH1 =
+  lang === "th"
+    ? (page.h1 ?? product.name)
+    : interpolate(t.reviewPage.h1_template, { name: product.name });
 ---
 
 <BaseLayout
   lang={lang}
-  title={page.title}
-  description={page.metaDescription ?? undefined}
+  title={localizedTitle}
+  description={localizedDesc}
   ogImage={page.ogImage ?? product.primaryImage ?? undefined}
   jsonLd={page.schemaJsonLd ?? undefined}
 >
@@ -86,7 +105,7 @@ const discountPct = product.discountPercent ? Math.round(product.discountPercent
         </div>
 
         <h1 class="text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-ink-900 dark:text-ink-50 text-balance">
-          {page.h1 ?? product.name}
+          {localizedH1}
         </h1>
 
         <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">

@@ -127,7 +127,10 @@
     "skip_if": "ข้ามถ้า",
     "specs": "สเปคสินค้า",
     "faq": "คำถามที่พบบ่อย",
-    "related": "สินค้าที่เกี่ยวข้อง"
+    "related": "บทความที่เกี่ยวข้อง",
+    "h1_template": "รีวิว {name}",
+    "title_template": "รีวิว {name} {year} | PriceTH",
+    "desc_template": "รีวิว {name} จากผู้ซื้อจริงบน Shopee พร้อมประวัติราคาและคะแนนผู้ใช้ อัปเดตทุก 4 ชั่วโมง"
   },
   "bestOfPage": {
     "breadcrumb_best": "ของดี",
