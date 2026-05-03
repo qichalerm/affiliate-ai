@@ -381,6 +381,90 @@ export const contentVariants = pgTable(
 );
 
 /* ===================================================================
+ * PUBLISHED POSTS (Sprint 5+ — M5)
+ * One row per actual post on a marketing channel. Tracks variant used,
+ * platform's post id (for analytics fetch), and timing.
+ * =================================================================== */
+
+export const postStatusEnum = pgEnum("post_status", [
+  "queued",        // ready to publish
+  "publishing",    // API call in flight
+  "published",     // success
+  "failed",        // permanent failure (giving up)
+  "rate_limited",  // platform throttled — retry later
+  "removed",       // we deleted it (e.g. compliance issue post-publish)
+]);
+
+export const publishedPosts = pgTable(
+  "published_posts",
+  {
+    id: serial("id").primaryKey(),
+    contentVariantId: integer("content_variant_id")
+      .references(() => contentVariants.id, { onDelete: "set null" }),
+    productId: integer("product_id").references(() => products.id, { onDelete: "set null" }),
+    channel: channelEnum("channel").notNull(),
+    status: postStatusEnum("status").notNull().default("queued"),
+
+    // What was actually posted
+    captionPosted: text("caption_posted"),
+    imageUrl: text("image_url"),       // if posted with image
+    videoUrl: text("video_url"),       // if posted with video
+
+    // Platform's own IDs (used for fetching analytics later)
+    platformPostId: varchar("platform_post_id", { length: 128 }),
+    platformPostUrl: text("platform_post_url"),
+
+    // For dry-runs (tests & deferred-key sprints)
+    dryRun: boolean("dry_run").notNull().default(false),
+
+    // Timing
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    failedAt: timestamp("failed_at", { withTimezone: true }),
+    failureReason: text("failure_reason"),
+    retryCount: integer("retry_count").notNull().default(0),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    channelStatusIdx: index("published_posts_channel_status_idx").on(t.channel, t.status),
+    publishedAtIdx: index("published_posts_published_at_idx").on(t.publishedAt),
+    variantIdx: index("published_posts_variant_idx").on(t.contentVariantId),
+    productIdx: index("published_posts_product_idx").on(t.productId),
+  }),
+);
+
+/* ===================================================================
+ * POST METRICS (Sprint 7+ — M7)
+ * Engagement metrics polled from platform APIs. Time-series — one row
+ * per (postId × snapshot time) so we can chart growth.
+ * =================================================================== */
+
+export const postMetrics = pgTable(
+  "post_metrics",
+  {
+    id: serial("id").primaryKey(),
+    publishedPostId: integer("published_post_id")
+      .references(() => publishedPosts.id, { onDelete: "cascade" })
+      .notNull(),
+    impressions: integer("impressions"),
+    reach: integer("reach"),
+    views: integer("views"),
+    likes: integer("likes"),
+    comments: integer("comments"),
+    shares: integer("shares"),
+    saves: integer("saves"),
+    clicks: integer("clicks"),         // platform-reported (separate from our /go tracking)
+    watchTimeSec: integer("watch_time_sec"),
+    raw: jsonb("raw"),                 // full platform response for later analysis
+    capturedAt: timestamp("captured_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    postCapturedIdx: index("post_metrics_post_captured_idx").on(t.publishedPostId, t.capturedAt),
+  }),
+);
+
+/* ===================================================================
  * AFFILIATE LINKS (Sprint 1 — M8)
  * Every trackable short URL we generate. One row per (product × channel × variant).
  * =================================================================== */
