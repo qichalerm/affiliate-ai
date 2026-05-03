@@ -18,6 +18,7 @@ import { eq } from "drizzle-orm";
 import { db, schema } from "../lib/db.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
+import { tryGenerateShortLink } from "./shopee-api.ts";
 
 const log = child("affiliate.link-gen");
 
@@ -167,7 +168,49 @@ export async function createAffiliateLink(
     { productId: product.id, channel: opts.channel, shortId, shortUrl },
     "affiliate link created",
   );
+
+  // Best-effort: ask Shopee for a tracked shope.ee/xxx short link so
+  // the redirect lands on a URL Shopee actually attributes commission
+  // to. No-op when SHOPEE_API_KEY isn't configured. We do this AFTER
+  // the affiliate_links row is committed so a Shopee API failure
+  // doesn't block click tracking — fall back to direct fullUrl in
+  // redirect-server when shopeeShortUrl is null.
+  if (product.platform === "shopee") {
+    void tryAttachShopeeShortLink({
+      affiliateLinkId: result.id,
+      originUrl: fullUrl,
+      subIds: [opts.channel, shortId, opts.campaign ?? "", opts.variant ?? ""].filter(Boolean),
+    });
+  }
+
   return { shortId, shortUrl, fullUrl, affiliateLinkId: result.id };
+}
+
+/**
+ * Async, fire-and-forget: ask Shopee Open API for a shope.ee/xxx short
+ * link and patch it onto the affiliate_links row. Failures are logged
+ * but never propagate — the row exists either way and the click path
+ * has a fallback.
+ */
+async function tryAttachShopeeShortLink(opts: {
+  affiliateLinkId: number;
+  originUrl: string;
+  subIds: string[];
+}): Promise<void> {
+  const shortLink = await tryGenerateShortLink({
+    originUrl: opts.originUrl,
+    subIds: opts.subIds,
+  });
+  if (!shortLink) return;
+  try {
+    await db
+      .update(schema.affiliateLinks)
+      .set({ shopeeShortUrl: shortLink })
+      .where(eq(schema.affiliateLinks.id, opts.affiliateLinkId));
+    log.info({ affiliateLinkId: opts.affiliateLinkId, shortLink }, "shp.ee attached");
+  } catch (err) {
+    log.warn({ affiliateLinkId: opts.affiliateLinkId, err: err instanceof Error ? err.message : String(err) }, "shp.ee patch failed");
+  }
 }
 
 /**

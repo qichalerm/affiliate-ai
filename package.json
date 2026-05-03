@@ -18,6 +18,7 @@
     "test:source-health": "bun run src/scripts/test-source-health.ts",
     "build:site": "bun run src/scripts/build-site.ts",
     "deploy:site": "bun run src/scripts/deploy-site.ts",
+    "backfill:shopee-shortlinks": "bun run src/scripts/backfill-shopee-shortlinks.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",

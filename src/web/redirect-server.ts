@@ -91,7 +91,14 @@ const server = Bun.serve({
         log.warn({ err: errMsg(err), shortId }, "background click log failed"),
       );
 
-      return Response.redirect(link.fullUrl, 302);
+      // Prefer the Shopee-issued shope.ee/xxx short link when we have
+      // it — that's the only URL Shopee credits commission against.
+      // Fallback to the direct product URL (with our af_id query) so
+      // clicks still land on the right product page even when Shopee
+      // API hasn't issued a short link yet (e.g. before SHOPEE_API_KEY
+      // was configured, or rate-limited).
+      const destination = link.shopeeShortUrl ?? link.fullUrl;
+      return Response.redirect(destination, 302);
     }
 
     // Default
