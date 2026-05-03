@@ -36,7 +36,16 @@ function hardKill(p: Product): string[] {
   if ((p.rating ?? 0) > 0 && (p.rating ?? 0) < 3.8 && (p.ratingCount ?? 0) >= 30) {
     reasons.push("low-rating");
   }
-  if ((p.soldCount ?? 0) === 0 && (p.ratingCount ?? 0) === 0) reasons.push("no-traction");
+  // Apify basic mode often returns sold_count=0 and rating_count=0 even for legit
+  // products with a real rating (e.g. 4.5★). Only kill when the product has NO
+  // signal at all — no sales, no review count, AND no rating value.
+  if (
+    (p.soldCount ?? 0) === 0 &&
+    (p.ratingCount ?? 0) === 0 &&
+    (p.rating ?? 0) === 0
+  ) {
+    reasons.push("no-traction");
+  }
   if (p.currentPrice == null || p.currentPrice <= 0) reasons.push("no-price");
   if (!p.isActive) reasons.push("inactive");
   return reasons;

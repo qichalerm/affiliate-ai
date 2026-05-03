@@ -122,7 +122,8 @@ export async function generateBestOfPage(
        AND flag_blacklisted = false
        AND flag_regulated = false
        AND rating >= 4.0
-       AND sold_count >= 50
+       -- Same relaxed filter as the category eligibility query above.
+       AND (sold_count >= 50 OR rating_count >= 5 OR discount_percent >= 0.10 OR sold_count = 0)
        AND current_price IS NOT NULL
        AND ${priceFilter}
      ORDER BY ${orderBy}
@@ -278,7 +279,9 @@ export async function generateAllBestOfPages(opts: { force?: boolean } = {}): Pr
        AND p.is_active = true
        AND p.flag_blacklisted = false
        AND p.rating >= 4.0
-       AND p.sold_count >= 50
+       -- Apify basic mode rarely populates sold_count; treat any signal of
+       -- traction as eligible (matches the relaxed jobScrapeTrending filter).
+       AND (p.sold_count >= 50 OR p.rating_count >= 5 OR p.discount_percent >= 0.10 OR p.sold_count = 0)
      WHERE c.is_active = true
      GROUP BY c.id
     HAVING COUNT(p.id) >= 5

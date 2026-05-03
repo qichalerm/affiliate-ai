@@ -286,10 +286,12 @@ export async function findComparisonCandidates(
          AND flag_blacklisted = false
          AND flag_regulated = false
          AND rating >= 4.2
-         AND sold_count >= 100
+         -- Apify basic mode rarely populates sold_count; rating_count or
+         -- discount also indicate a real, transacting product.
+         AND (sold_count >= 100 OR rating_count >= 20 OR discount_percent >= 0.20)
          AND current_price IS NOT NULL
          AND final_score IS NOT NULL
-         AND final_score > 0.4
+         AND final_score > 0.3
     )
     SELECT a.id AS a_id, b.id AS b_id
       FROM ranked a
