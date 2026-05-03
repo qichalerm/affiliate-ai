@@ -124,6 +124,10 @@ export async function upsertProduct(
         viewCount: sharedFields.viewCount,
         likeCount: sharedFields.likeCount,
         lastScrapedAt: sharedFields.lastScrapedAt,
+        // Tag with the niche this scrape originated from. We don't
+        // overwrite an existing niche if the new scrape doesn't carry
+        // one — keeps tags stable across multi-niche keyword overlaps.
+        ...(niche ? { niche } : {}),
         // Only overwrite description if scraper returned one (avoid wiping existing)
         ...(product.description ? { description: product.description } : {}),
       })
@@ -150,6 +154,7 @@ export async function upsertProduct(
       externalId: product.externalId,
       shopId: shopDbId,
       categoryId: categoryId ?? null,
+      niche: niche ?? null,
       name: product.name,
       slug,
       brand: product.brand ?? null,

@@ -39,9 +39,13 @@ import { deployToCloudflarePages } from "./deploy-cloudflare.ts";
 import {
   renderHomePage,
   renderProductPage,
+  renderCategoryPage,
+  renderSearchPage,
   renderSitemap,
   renderRobots,
   renderRootRedirect,
+  buildSearchIndex,
+  knownNicheSlugs,
   LANGS,
   type Lang,
   type ProductForRender,
@@ -104,7 +108,8 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
       discount_percent AS "discountPercent",
       rating, rating_count AS "ratingCount", sold_count AS "soldCount",
       affiliate_short_url AS "affiliateShortUrl",
-      translations
+      translations,
+      niche::text AS niche
     FROM products
     WHERE is_active = true
       AND flag_blacklisted = false
@@ -173,6 +178,28 @@ export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {
       writeFile(join(outDir, lang, "p", `${product.slug}.html`), html);
       pagesWritten++;
     }
+  }
+
+  // ── Category pages (per niche × lang) ──────────────────────────
+  const niches = knownNicheSlugs();
+  for (const nicheSlug of niches) {
+    const inNiche = productList.filter((p) => p.niche === nicheSlug);
+    for (const lang of LANGS) {
+      const html = renderCategoryPage({ lang, nicheSlug, products: inNiche, config });
+      writeFile(join(outDir, lang, "c", `${nicheSlug}.html`), html);
+      pagesWritten++;
+    }
+  }
+
+  // ── Search page + per-lang search index JSON ───────────────────
+  for (const lang of LANGS) {
+    const html = renderSearchPage({ lang, config });
+    writeFile(join(outDir, lang, "search.html"), html);
+    pagesWritten++;
+
+    const indexJson = buildSearchIndex(productList, lang);
+    writeFile(join(outDir, `search-index-${lang}.json`), indexJson);
+    pagesWritten++;
   }
 
   // ── Sitemap + robots ───────────────────────────────────────────

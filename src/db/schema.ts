@@ -174,6 +174,11 @@ export const products = pgTable(
     viewCount: integer("view_count"),
     likeCount: integer("like_count"),
 
+    // Niche tag (set at scrape time from the keyword's source niche).
+    // Lets the web layer build per-niche category pages without joining
+    // through the categories table (which is currently empty/unmapped).
+    niche: nicheEnum("niche"),
+
     // Affiliate
     affiliateShortUrl: varchar("affiliate_short_url", { length: 255 }),  // shp.ee/xxx if available
 

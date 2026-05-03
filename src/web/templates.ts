@@ -38,6 +38,7 @@ export interface ProductForRender {
   soldCount: number | null;
   affiliateShortUrl: string | null;
   translations: Record<string, { name?: string; description?: string }> | null;
+  niche: string | null;         // V2 Sprint 24 — for category pages + search filter
 }
 
 export interface SiteConfig {
@@ -247,6 +248,14 @@ const CATEGORY_NICHES: Array<{
   { slug: "fashion",        emoji: "👗", labels: { th: "แฟชั่น",              en: "Fashion",           zh: "时尚",            ja: "ファッション" } },
   { slug: "car_garage",     emoji: "🚗", labels: { th: "รถยนต์",              en: "Car & Garage",      zh: "汽车",            ja: "車・ガレージ" } },
 ];
+
+export function categoryLabel(nicheSlug: string, lang: Lang): string {
+  return CATEGORY_NICHES.find((c) => c.slug === nicheSlug)?.labels[lang] ?? nicheSlug;
+}
+
+export function knownNicheSlugs(): string[] {
+  return CATEGORY_NICHES.map((c) => c.slug);
+}
 
 /* -----------------------------------------------------------------------------
  * Helpers
@@ -735,6 +744,192 @@ ${siteHeader(args.lang, path, args.config.name)}
 ${siteFooter(args.lang, args.config)}
 </body>
 </html>`;
+}
+
+/* -----------------------------------------------------------------------------
+ * Category page (/<lang>/c/<niche>) — filter products by niche
+ * ---------------------------------------------------------------------------*/
+
+export function renderCategoryPage(args: {
+  lang: Lang;
+  nicheSlug: string;
+  products: ProductForRender[];   // already pre-filtered to this niche
+  config: SiteConfig;
+}): string {
+  const i = I18N[args.lang];
+  const path = pageUrl(args.lang, `/c/${args.nicheSlug}`);
+  const alternates = LANGS.map((l) => ({ lang: l, href: pageUrl(l, `/c/${args.nicheSlug}`) }));
+  const label = categoryLabel(args.nicheSlug, args.lang);
+  const niche = CATEGORY_NICHES.find((c) => c.slug === args.nicheSlug);
+  const emoji = niche?.emoji ?? "📦";
+
+  const visible = args.products.filter((p) => localizedProductOrNull(p, args.lang) !== null);
+  // Sort: discount % desc, then rating count desc
+  visible.sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0)
+                       || (b.ratingCount ?? 0) - (a.ratingCount ?? 0));
+
+  const head = htmlHead({
+    lang: args.lang,
+    title: `${emoji} ${label} — ${args.config.name}`,
+    description: `${label} · ${i.heroSub1}`,
+    canonical: path,
+    ogImage: visible[0]?.primaryImage ?? null,
+    alternates,
+    domain: args.config.domain,
+    siteName: args.config.name,
+  });
+
+  const cards = visible.map((p) => productCard(p, args.lang)).filter(Boolean).join("\n");
+  const noContent = visible.length === 0
+    ? `<p class="text-center text-ink-500 py-16">${escapeHtml(i.noProducts)}</p>`
+    : "";
+
+  return `${head}
+<body class="min-h-screen flex flex-col">
+${siteHeader(args.lang, path, args.config.name)}
+<main class="flex-1 pb-20 sm:pb-0">
+  <section class="container-page py-10 sm:py-14">
+    <div class="mb-8">
+      <a href="${pageUrl(args.lang, "/")}" class="text-sm text-ink-500 hover:text-brand-600">← ${escapeHtml(i.navHome)}</a>
+      <h1 class="mt-3 text-3xl sm:text-4xl font-bold text-ink-900 dark:text-ink-50">
+        <span class="text-3xl sm:text-4xl mr-2">${emoji}</span>${escapeHtml(label)}
+      </h1>
+      <p class="mt-2 text-ink-500">${visible.length} ${escapeHtml(i.productCount)}</p>
+    </div>
+    ${noContent || `<div class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">${cards}</div>`}
+  </section>
+</main>
+${siteFooter(args.lang, args.config)}
+</body>
+</html>`;
+}
+
+/* -----------------------------------------------------------------------------
+ * Search page (/<lang>/search) — client-side JS filter over the product index
+ * Static page reads ?q= from URL, fetches /search-index-<lang>.json, filters,
+ * renders cards. No server roundtrip.
+ * ---------------------------------------------------------------------------*/
+
+export function renderSearchPage(args: {
+  lang: Lang;
+  config: SiteConfig;
+}): string {
+  const i = I18N[args.lang];
+  const path = pageUrl(args.lang, "/search");
+  const alternates = LANGS.map((l) => ({ lang: l, href: pageUrl(l, "/search") }));
+
+  const head = htmlHead({
+    lang: args.lang,
+    title: `${escapeHtml(i.searchPlaceholder)} — ${args.config.name}`,
+    description: i.heroSub1,
+    canonical: path,
+    ogImage: null,
+    alternates,
+    domain: args.config.domain,
+    siteName: args.config.name,
+  });
+
+  // Embed search runtime — minimal JS, ~1.5KB
+  const script = `<script>
+(function(){
+  var lang = ${JSON.stringify(args.lang)};
+  var i18n = ${JSON.stringify({
+    placeholder: i.searchPlaceholder,
+    button: i.searchButton,
+    sold: i.metaSold,
+    cta: i.ctaShopee,
+    noResults: i.noProducts,
+    resultsFor: args.lang === "th" ? "ผลการค้นหา" : args.lang === "zh" ? "搜索结果" : args.lang === "ja" ? "検索結果" : "Results for",
+  })};
+  var params = new URLSearchParams(location.search);
+  var q = (params.get("q") || "").trim();
+  var input = document.querySelector("input[name=q]");
+  if (input && q) input.value = q;
+  var grid = document.getElementById("results");
+  var heading = document.getElementById("results-heading");
+  if (!q) { grid.innerHTML = ""; return; }
+  heading.textContent = i18n.resultsFor + ' "' + q + '"';
+  fetch("/search-index-" + lang + ".json").then(function(r){ return r.json(); }).then(function(items){
+    var ql = q.toLowerCase();
+    var hits = items.filter(function(it){
+      return (it.n || "").toLowerCase().indexOf(ql) !== -1
+          || (it.b || "").toLowerCase().indexOf(ql) !== -1;
+    }).slice(0, 60);
+    if (hits.length === 0) {
+      grid.innerHTML = '<p class="text-center text-ink-500 py-16 col-span-full">' + i18n.noResults + '</p>';
+      return;
+    }
+    grid.innerHTML = hits.map(function(it){
+      var pct = it.d ? Math.round(it.d * 100) : 0;
+      var badge = pct > 0 ? '<span class="absolute left-2.5 top-2.5 rounded-md bg-deal-600 px-2 py-0.5 text-xs font-bold text-white shadow-soft">−' + pct + '%</span>' : '';
+      var price = '฿' + Math.round(it.p / 100).toLocaleString();
+      var oldP = it.op && it.op > it.p ? '<span class="text-sm text-ink-500 line-through">฿' + Math.round(it.op / 100).toLocaleString() + '</span>' : '';
+      var rating = it.r ? '<div class="flex items-center gap-1.5"><svg viewBox="0 0 24 24" fill="currentColor" class="h-3.5 w-3.5 text-warn-500"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"/></svg><span class="font-medium text-ink-700 dark:text-ink-300">' + it.r.toFixed(1) + '</span></div>' : '';
+      var sold = it.s ? '<span class="text-ink-500">' + i18n.sold + ' ' + it.s + '</span>' : '';
+      var img = it.i ? '<img src="' + it.i + '" alt="" loading="lazy" class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.04]">' : '<div class="flex h-full items-center justify-center text-3xl text-ink-300">📦</div>';
+      return '<article class="card-interactive group relative flex flex-col overflow-hidden p-0">' +
+        '<a href="/' + lang + '/p/' + it.u + '" class="flex flex-col h-full">' +
+        '<div class="relative aspect-square overflow-hidden bg-ink-100 dark:bg-ink-800">' + img + badge + '</div>' +
+        '<div class="flex flex-1 flex-col p-3.5">' +
+        '<h3 class="line-clamp-2 min-h-[2.6rem] text-sm leading-tight font-medium text-ink-900 dark:text-ink-50">' + escapeText(it.n) + '</h3>' +
+        '<div class="mt-2 flex items-baseline gap-2 flex-wrap"><span class="text-xl font-bold text-ink-900 dark:text-ink-50">' + price + '</span>' + oldP + '</div>' +
+        '<div class="mt-2 flex items-center justify-between gap-2 text-[11px] text-ink-500">' + rating + sold + '</div>' +
+        '</div></a></article>';
+    }).join("");
+  });
+  function escapeText(s){ var d=document.createElement("div"); d.textContent=s; return d.innerHTML; }
+})();
+</script>`;
+
+  return `${head}
+<body class="min-h-screen flex flex-col">
+${siteHeader(args.lang, path, args.config.name)}
+<main class="flex-1 pb-20 sm:pb-0">
+  <section class="container-page py-10 sm:py-14">
+    <form action="${path}" method="get" class="mx-auto max-w-2xl">
+      <label class="relative block">
+        <span class="absolute inset-y-0 left-0 flex items-center pl-5 text-ink-400">
+          <svg viewBox="0 0 24 24" fill="none" class="h-6 w-6"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"></circle><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path></svg>
+        </span>
+        <input type="search" name="q" required minlength="2" placeholder="${escapeHtml(i.searchPlaceholder)}" autofocus class="block w-full h-14 sm:h-16 rounded-2xl border border-ink-200 bg-white pl-14 pr-32 text-base sm:text-lg text-ink-900 placeholder:text-ink-400 shadow-soft focus:border-brand-500 focus:outline-none focus:shadow-ring dark:border-ink-800 dark:bg-ink-900 dark:text-ink-50">
+        <button type="submit" class="absolute inset-y-2 right-2 inline-flex items-center justify-center rounded-xl bg-brand-500 px-5 text-sm font-semibold text-white hover:bg-brand-600 transition">${escapeHtml(i.searchButton)}</button>
+      </label>
+    </form>
+    <h2 id="results-heading" class="section-title mt-10 mb-6"></h2>
+    <div id="results" class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4"></div>
+  </section>
+</main>
+${siteFooter(args.lang, args.config)}
+${script}
+</body>
+</html>`;
+}
+
+/**
+ * Build the search index for client-side fetch. Compact JSON keyed by short
+ * field names to keep the file small (~30-50KB for 200 products):
+ *   u: slug   n: name   b: brand   p: price-satang   op: original-price-satang
+ *   d: discount   r: rating   s: sold   i: image-url
+ */
+export function buildSearchIndex(products: ProductForRender[], lang: Lang): string {
+  const items = products
+    .map((p) => {
+      const localized = localizedProductOrNull(p, lang);
+      if (!localized) return null;
+      return {
+        u: p.slug,
+        n: localized.name,
+        b: p.brand ?? "",
+        p: p.currentPrice,
+        op: p.originalPrice,
+        d: p.discountPercent,
+        r: p.rating,
+        s: p.soldCount,
+        i: p.primaryImage,
+      };
+    })
+    .filter(Boolean);
+  return JSON.stringify(items);
 }
 
 export function renderSitemap(args: {
