@@ -10,6 +10,7 @@ import { errMsg } from "../../lib/retry.ts";
 import { searchByKeyword, BudgetExceededError } from "./apify-client.ts";
 import { upsertShop, upsertProduct } from "./persist.ts";
 import { clearSourceHealthAlerts } from "../../monitoring/source-health.ts";
+import { scheduleSiteRebuild } from "../../web/site-builder.ts";
 import type { Niche } from "./types.ts";
 
 const log = child("shopee.runner");
@@ -109,13 +110,17 @@ export async function runShopeeScrape(opts: ScrapeRunOptions): Promise<ScrapeRun
       })
       .where(eq(schema.scraperRuns.id, runId));
 
-    // Auto-resolve any open source-health alerts on successful runs
+    // Auto-resolve any open source-health alerts on successful runs,
+    // and schedule a debounced static-site rebuild so the public site
+    // reflects the new product/price data within ~5 min.
     if (finalStatus === "success") {
       try {
         await clearSourceHealthAlerts("shopee_apify");
       } catch (err) {
         log.warn({ err: errMsg(err) }, "failed to auto-clear source-health alerts");
       }
+      // Fire-and-forget: rebuild errors are logged inside the scheduler.
+      void scheduleSiteRebuild().catch(() => {});
     }
 
     log.info(

@@ -16,6 +16,7 @@
     "test:promo": "bun run src/scripts/test-promo-hunter.ts",
     "test:promo:trigger": "bun run src/scripts/test-promo-trigger.ts",
     "test:source-health": "bun run src/scripts/test-source-health.ts",
+    "build:site": "bun run src/scripts/build-site.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",

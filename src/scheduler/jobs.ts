@@ -6,7 +6,8 @@
  *   - jobScrapeTrending: pick N keywords (multi-niche), run Apify scrape, persist
  */
 
-import { runShopeeScrape, BudgetExceededError } from "../scraper/shopee/runner.ts";
+import { runShopeeScrape } from "../scraper/shopee/runner.ts";
+import { BudgetExceededError } from "../scraper/shopee/apify-client.ts";
 import { pickKeywords } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";

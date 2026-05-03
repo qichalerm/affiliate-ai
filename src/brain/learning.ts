@@ -37,11 +37,14 @@ const UNDERPERFORMER_RATIO = 0.3;
 /** Mark inactive only if confidence interval lower-bound is below threshold. */
 const SIG_THRESHOLD = 0.01; // 1% absolute lower bound
 
+// Index signature on each row type satisfies db.execute<T>'s
+// Record<string, unknown> constraint without losing field types.
 interface ChannelStats {
   channel: string;
   impressions: number;
   clicks: number;
   ctr: number;
+  [k: string]: unknown;
 }
 
 interface AngleStats {
@@ -50,6 +53,7 @@ interface AngleStats {
   impressions: number;
   clicks: number;
   ctr: number;
+  [k: string]: unknown;
 }
 
 interface VariantStats {
@@ -61,6 +65,7 @@ interface VariantStats {
   impressions: number;
   clicks: number;
   ctr: number;
+  [k: string]: unknown;
 }
 
 export interface LearningRunResult {
