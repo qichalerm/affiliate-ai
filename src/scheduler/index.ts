@@ -19,6 +19,7 @@ import {
   jobLearningOptimizer,
   jobPromoHunter,
   jobEngagementTracker,
+  jobSourceHealth,
 } from "./jobs.ts";
 
 const log = child("scheduler");
@@ -72,6 +73,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "0 */2 * * *",
     description: "M7 Engagement Tracker — poll FB/IG/TikTok analytics every 2 hours",
     handler: jobEngagementTracker,
+  },
+  {
+    name: "sourceHealth",
+    cron: "15 * * * *",
+    description: "M0 Source Health — detect stale/degraded scrapers (every hour, :15 offset)",
+    handler: jobSourceHealth,
   },
 ];
 

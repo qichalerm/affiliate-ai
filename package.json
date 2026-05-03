@@ -15,6 +15,7 @@
     "test:publish:fb": "bun run src/scripts/test-publish-fb.ts",
     "test:promo": "bun run src/scripts/test-promo-hunter.ts",
     "test:promo:trigger": "bun run src/scripts/test-promo-trigger.ts",
+    "test:source-health": "bun run src/scripts/test-source-health.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:generate": "drizzle-kit generate",

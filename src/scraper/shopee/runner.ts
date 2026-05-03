@@ -9,6 +9,7 @@ import { child } from "../../lib/logger.ts";
 import { errMsg } from "../../lib/retry.ts";
 import { searchByKeyword, BudgetExceededError } from "./apify-client.ts";
 import { upsertShop, upsertProduct } from "./persist.ts";
+import { clearSourceHealthAlerts } from "../../monitoring/source-health.ts";
 import type { Niche } from "./types.ts";
 
 const log = child("shopee.runner");
@@ -93,10 +94,11 @@ export async function runShopeeScrape(opts: ScrapeRunOptions): Promise<ScrapeRun
     }
 
     // Mark run successful
+    const finalStatus = succeeded === 0 ? "failed" : failed > succeeded ? "partial" : "success";
     await db
       .update(schema.scraperRuns)
       .set({
-        status: succeeded === 0 ? "failed" : failed > succeeded ? "partial" : "success",
+        status: finalStatus,
         itemsAttempted: result.products.length,
         itemsSucceeded: succeeded,
         itemsFailed: failed,
@@ -106,6 +108,15 @@ export async function runShopeeScrape(opts: ScrapeRunOptions): Promise<ScrapeRun
         raw: { apifyRunId: result.stats.apifyRunId, newProducts, priceChanges },
       })
       .where(eq(schema.scraperRuns.id, runId));
+
+    // Auto-resolve any open source-health alerts on successful runs
+    if (finalStatus === "success") {
+      try {
+        await clearSourceHealthAlerts("shopee_apify");
+      } catch (err) {
+        log.warn({ err: errMsg(err) }, "failed to auto-clear source-health alerts");
+      }
+    }
 
     log.info(
       {

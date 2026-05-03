@@ -12,6 +12,7 @@ import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";
 import { runPromoTrigger } from "../brain/promo-trigger.ts";
 import { runEngagementTracker } from "../engagement/tracker.ts";
+import { runSourceHealthCheck } from "../monitoring/source-health.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -70,6 +71,15 @@ export async function jobScrapeTrending(): Promise<void> {
 export async function jobLearningOptimizer(): Promise<void> {
   const result = await runLearningOptimizer({ windowDays: 1 });
   log.info(result, "learningOptimizer done");
+}
+
+/**
+ * Source Health Monitor (M0). Detects silently-degrading scrapers
+ * (stale, low success rate, cost-per-item spike) and writes alerts.
+ */
+export async function jobSourceHealth(): Promise<void> {
+  const result = await runSourceHealthCheck();
+  log.info(result, "sourceHealth done");
 }
 
 /**
