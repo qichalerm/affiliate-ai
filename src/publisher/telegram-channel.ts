@@ -80,7 +80,9 @@ export async function broadcastDealsToChannel(
        AND p.flag_regulated = false
        AND p.discount_percent >= ${minDiscount}
        AND p.rating >= ${minRating}
-       AND p.sold_count >= 100
+       -- Apify basic mode rarely populates sold_count; trust rating_count or
+       -- discount as alternative signals of demand (matches scrape/scoring).
+       AND (p.sold_count >= 100 OR p.rating_count >= 20 OR p.discount_percent >= 0.30)
        AND p.current_price IS NOT NULL
        AND NOT EXISTS (
          SELECT 1 FROM published_posts pp
