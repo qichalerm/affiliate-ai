@@ -9,6 +9,7 @@
 import { runShopeeScrape, BudgetExceededError } from "../scraper/shopee/runner.ts";
 import { pickKeywords } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
+import { runPromoHunter } from "../brain/promo-hunter.ts";
 import { env } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
@@ -67,4 +68,13 @@ export async function jobScrapeTrending(): Promise<void> {
 export async function jobLearningOptimizer(): Promise<void> {
   const result = await runLearningOptimizer({ windowDays: 1 });
   log.info(result, "learningOptimizer done");
+}
+
+/**
+ * Promo Hunter (M6). Scans active products for price/discount signals
+ * and writes promo_events rows for the variant generator to fast-track.
+ */
+export async function jobPromoHunter(): Promise<void> {
+  const result = await runPromoHunter({ windowHours: 24 });
+  log.info(result, "promoHunter done");
 }

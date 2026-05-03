@@ -14,7 +14,7 @@ import { env, summarizeCapabilities } from "../lib/env.ts";
 import { logger, child } from "../lib/logger.ts";
 import { closeDb, pingDb } from "../lib/db.ts";
 import { errMsg } from "../lib/retry.ts";
-import { jobScrapeTrending, jobLearningOptimizer } from "./jobs.ts";
+import { jobScrapeTrending, jobLearningOptimizer, jobPromoHunter } from "./jobs.ts";
 
 const log = child("scheduler");
 
@@ -55,6 +55,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "0 3 * * *",
     description: "M9 Learning — aggregate perf, deactivate losers, write insights (03:00 BKK)",
     handler: jobLearningOptimizer,
+  },
+  {
+    name: "promoHunter",
+    cron: "*/30 * * * *",
+    description: "M6 Promo Hunter — detect price drops / discount jumps every 30 min",
+    handler: jobPromoHunter,
   },
 ];
 

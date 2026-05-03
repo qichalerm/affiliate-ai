@@ -600,3 +600,50 @@ export const alerts = pgTable(
     unresolvedIdx: index("alerts_unresolved_idx").on(t.resolvedAt),
   }),
 );
+
+/* ===================================================================
+ * PROMO EVENTS (Sprint 14 — M6 Promo Hunter)
+ *
+ * One row per detected "rising star" signal on a product.
+ * Variant generator reads recent unprocessed events to fast-track
+ * content production for products that are currently hot.
+ * =================================================================== */
+
+export const promoEventTypeEnum = pgEnum("promo_event_type", [
+  "price_drop",      // current price is N% below recent floor
+  "discount_jump",   // discount_percent jumped vs prior snapshot
+  "sold_surge",      // sold_count grew faster than recent baseline
+  "new_low",         // price hit lowest value in observation window
+]);
+
+export const promoEvents = pgTable(
+  "promo_events",
+  {
+    id: serial("id").primaryKey(),
+    productId: integer("product_id").references(() => products.id, { onDelete: "cascade" }).notNull(),
+    eventType: promoEventTypeEnum("event_type").notNull(),
+
+    /** 0..1 — higher = stronger signal. Used to prioritize variant gen. */
+    signalStrength: real("signal_strength").notNull(),
+
+    /** Snapshot context for the signal (raw before/after values). */
+    prevValue: real("prev_value"),
+    currValue: real("curr_value"),
+    deltaPct: real("delta_pct"),  // (curr - prev) / prev * 100
+
+    /** Window the detection looked at (hours). */
+    windowHours: integer("window_hours").notNull().default(24),
+
+    /** Has the variant generator picked this up yet? */
+    variantsTriggered: boolean("variants_triggered").notNull().default(false),
+    variantsTriggeredAt: timestamp("variants_triggered_at", { withTimezone: true }),
+
+    payload: jsonb("payload"),
+    detectedAt: timestamp("detected_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    productDetectedIdx: index("promo_events_product_detected_idx").on(t.productId, t.detectedAt),
+    pendingIdx: index("promo_events_pending_idx").on(t.variantsTriggered, t.detectedAt),
+    typeIdx: index("promo_events_type_idx").on(t.eventType, t.detectedAt),
+  }),
+);

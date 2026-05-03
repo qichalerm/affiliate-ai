@@ -50,6 +50,13 @@
       "when": 1777825348949,
       "tag": "0006_dark_cammi",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1777826004082,
+      "tag": "0007_cultured_tomorrow_man",
+      "breakpoints": true
     }
   ]
 }
