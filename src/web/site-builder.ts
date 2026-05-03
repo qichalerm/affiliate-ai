@@ -32,8 +32,10 @@ import { mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { sql } from "drizzle-orm";
 import { db } from "../lib/db.ts";
+import { env, can } from "../lib/env.ts";
 import { child } from "../lib/logger.ts";
 import { errMsg } from "../lib/retry.ts";
+import { deployToCloudflarePages } from "./deploy-cloudflare.ts";
 import {
   renderHomePage,
   renderProductPage,
@@ -210,6 +212,22 @@ export function scheduleSiteRebuild(opts: BuildOptions = {}): Promise<BuildResul
       queuedBuildRejectors = [];
       try {
         const r = await buildSite(opts);
+
+        // Auto-deploy to Cloudflare Pages if configured. Build success
+        // is reported even if deploy fails — local dist/ is still good
+        // for a manual `deploy:site` retry.
+        if (env.AUTO_DEPLOY_AFTER_REBUILD && can.deployCloudflare()) {
+          try {
+            const d = await deployToCloudflarePages({
+              outDir: r.outDir,
+              commitMessage: `auto-rebuild ${r.productsRendered}p ${r.pagesWritten}f`,
+            });
+            log.info({ url: d.url, alias: d.aliasUrl, deployMs: d.durationMs }, "auto-deploy ok");
+          } catch (deployErr) {
+            log.error({ err: errMsg(deployErr) }, "auto-deploy failed (build kept)");
+          }
+        }
+
         for (const fn of resolvers) fn(r);
       } catch (err) {
         log.error({ err: errMsg(err) }, "scheduled rebuild failed");

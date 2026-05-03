@@ -60,7 +60,14 @@ const envSchema = z.object({
   CLOUDFLARE_ACCOUNT_ID: optStr,
   CLOUDFLARE_API_TOKEN: optStr,
   CLOUDFLARE_ZONE_ID: optStr,
-  CLOUDFLARE_PAGES_PROJECT: z.string().default("affiliate-ai"),
+  CLOUDFLARE_PAGES_PROJECT: z.string().default("shopee-aggregator"),
+
+  // Public site config (used by site builder + deployer)
+  SITE_DOMAIN: z.string().default("price-th.com"),
+  SITE_NAME: z.string().default("Price-TH Deals"),
+  SITE_OUT_DIR: z.string().default("./dist"),
+  /** Set true to auto-deploy to Cloudflare Pages after every site rebuild. */
+  AUTO_DEPLOY_AFTER_REBUILD: z.string().default("true").transform((v) => v === "true"),
 
   R2_ACCOUNT_ID: optStr,
   R2_ACCESS_KEY_ID: optStr,
