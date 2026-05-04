@@ -29,6 +29,12 @@ interface Env {
   ORIGIN_URL: string;
 }
 
+// Handle both GET and HEAD — link preview bots (Slack, FB, Discord, X)
+// often HEAD a URL before unfurling. Without onRequestHead, those hits
+// fall through to CF Pages' default static handler and return 200/HTML
+// instead of the proper 302, breaking unfurl + confusing crawlers.
+export const onRequestHead: PagesFunction<Env> = (ctx) => onRequestGet(ctx);
+
 export const onRequestGet: PagesFunction<Env> = async ({ params, request, env }) => {
   const shortId = String(params.shortId ?? "").trim();
   if (!shortId) {
