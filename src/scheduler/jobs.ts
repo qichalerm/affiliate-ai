@@ -10,6 +10,7 @@ import { runShopeeScrape } from "../scraper/shopee/runner.ts";
 import { BudgetExceededError } from "../scraper/shopee/apify-client.ts";
 import { runTikTokShopScrape } from "../scraper/tiktok-shop/runner.ts";
 import { notifyShopeeVideoBacklog } from "../publisher/shopee-video.ts";
+import { runAutoPublish } from "../publisher/auto-publish.ts";
 import { pickKeywords, pickKeywordsWeighted } from "../scraper/niches.ts";
 import { runLearningOptimizer } from "../brain/learning.ts";
 import { runPromoHunter } from "../brain/promo-hunter.ts";
@@ -70,6 +71,18 @@ export async function jobScrapeTrending(): Promise<void> {
     { totalSucceeded, totalNew, totalCostUsd: totalCost.toFixed(4) },
     "scrapeTrending done",
   );
+}
+
+/**
+ * Auto-publish — Sprint 30. Closes the autonomous marketing loop.
+ * For each enabled channel, picks the best product with an approved
+ * variant + hasn't been published recently, waits a random anti-bot
+ * delay (30-300s), then publishes via the channel's publisher module
+ * (which gates dry-run on its own when token is missing).
+ */
+export async function jobAutoPublish(): Promise<void> {
+  const r = await runAutoPublish();
+  log.info(r, "autoPublish done");
 }
 
 /**

@@ -24,6 +24,7 @@ import {
   jobBackfillTranslations,
   jobScrapeTikTokShop,
   jobShopeeVideoDigest,
+  jobAutoPublish,
 } from "./jobs.ts";
 
 const log = child("scheduler");
@@ -107,6 +108,12 @@ const SCHEDULES: JobSchedule[] = [
     cron: "0 10 * * *",
     description: "Email operator the day's Shopee Video upload backlog (10:00 BKK)",
     handler: jobShopeeVideoDigest,
+  },
+  {
+    name: "autoPublish",
+    cron: "10,40 8-22 * * *",
+    description: "M5 Auto-publish — pick best variant per channel, post (every 30 min, 8AM-10PM BKK)",
+    handler: jobAutoPublish,
   },
 ];
 

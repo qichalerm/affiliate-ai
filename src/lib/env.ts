@@ -115,6 +115,11 @@ const envSchema = z.object({
   CRON_SCRAPE_PRODUCTS: z.string().default("0 8,13,19,22 * * *"),
 
   // Budget caps
+  // Per-channel daily post caps (V2 vision safeguard against bot-detection)
+  DAILY_POSTS_FACEBOOK: z.coerce.number().int().positive().default(5).optional(),
+  DAILY_POSTS_INSTAGRAM: z.coerce.number().int().positive().default(5).optional(),
+  DAILY_POSTS_TIKTOK: z.coerce.number().int().positive().default(3).optional(),
+
   DAILY_LLM_BUDGET_USD: z.coerce.number().nonnegative().default(10),
   DAILY_VIDEO_GEN_BUDGET_USD: z.coerce.number().nonnegative().default(10),
   DAILY_IMAGE_GEN_BUDGET_USD: z.coerce.number().nonnegative().default(3),
