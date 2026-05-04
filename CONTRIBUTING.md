@@ -6,8 +6,8 @@ Thanks for considering a contribution. This project was built fast (30 sprints i
 
 Before sending a PR, read these in order:
 
-1. [README.md](README.md) — what the system does
-2. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — module map + data flow diagrams
+1. [README.md](README.md) — what the system does + full architecture (diagrams, module map, data flow, design decisions)
+2. [docs/FEATURES.md](docs/FEATURES.md) — per-subsystem feature catalog with examples
 3. [docs/SETUP.md](docs/SETUP.md) — how to run locally
 4. [docs/HANDOFF.md](docs/HANDOFF.md) — production-state details + critical gotchas
 
