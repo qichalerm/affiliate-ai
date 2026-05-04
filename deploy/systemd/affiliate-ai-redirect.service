@@ -1,6 +1,6 @@
 [Unit]
 Description=Affiliate-AI click-tracking redirect server (M8)
-Documentation=https://github.com/qichalerm/affiliate-ai
+Documentation=See README.md
 After=network.target postgresql.service
 Wants=postgresql.service
 

@@ -11,7 +11,7 @@
  *     from Workers without Hyperdrive (and that needs Zone permissions
  *     this token doesn't have).
  *   - Pages Functions can fetch any HTTPS hostname → the droplet exposes
- *     port 3001 via Cloudflare Tunnel as https://api.price-th.com,
+ *     port 3001 via Cloudflare Tunnel as https://api.<your-domain>,
  *     gated by the X-Internal-Auth shared secret so direct hits to the
  *     tunnel hostname get 401 with no info leaked.
  *
@@ -21,7 +21,7 @@
  *
  * Env (set via Pages project env vars):
  *   INTERNAL_AUTH_SECRET — must match droplet's redirect-server.ts
- *   ORIGIN_URL           — https://api.price-th.com (CF Tunnel hostname)
+ *   ORIGIN_URL           — https://api.<your-domain> (CF Tunnel hostname)
  */
 
 interface Env {

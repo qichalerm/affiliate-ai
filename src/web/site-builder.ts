@@ -74,7 +74,7 @@ export interface BuildResult {
 }
 
 const DEFAULT_OUT = process.env.SITE_OUT_DIR ?? "./dist";
-const DEFAULT_DOMAIN = process.env.SITE_DOMAIN ?? "price-th.com";
+const DEFAULT_DOMAIN = process.env.SITE_DOMAIN ?? "example.com";
 const DEFAULT_NAME = process.env.SITE_NAME ?? "Price-TH Deals";
 
 export async function buildSite(opts: BuildOptions = {}): Promise<BuildResult> {

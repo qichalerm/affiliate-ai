@@ -18,7 +18,7 @@ These are filled in `.env` on the live droplet:
 | `APIFY_TOKEN` | apify.com | Shopee scraper (residential TH proxy) |
 | `CLOUDFLARE_ACCOUNT_ID` / `_API_TOKEN` / `_ZONE_ID` / `_PAGES_PROJECT` | Cloudflare dashboard | Pages deploy + Tunnel + DNS |
 | `SHOPEE_AFFILIATE_ID` | affiliate.shopee.co.th | Embedded in fallback URL when shp.ee not yet generated |
-| `SITE_DOMAIN` / `SITE_NAME` / `SITE_OUT_DIR` | manual | `price-th.com`, `Price-TH Deals`, `./dist` |
+| `SITE_DOMAIN` / `SITE_NAME` / `SITE_OUT_DIR` | manual | `example.com`, `Affiliate AI`, `./dist` |
 | `INTERNAL_AUTH_SECRET` | `openssl rand -hex 32` | Shared secret between Pages Function and droplet |
 
 ---
@@ -32,12 +32,12 @@ SHOPEE_API_KEY=
 SHOPEE_API_SECRET=
 ```
 
-**Why:** Without these, every click on price-th.com → Shopee gets 0 commission attribution. Shopee only credits affiliate clicks that come through their `shope.ee/xxx` short links, which we mint via this API.
+**Why:** Without these, every click on example.com → Shopee gets 0 commission attribution. Shopee only credits affiliate clicks that come through their `shope.ee/xxx` short links, which we mint via this API.
 
 **How to get:**
 1. Go to https://affiliate.shopee.co.th/open_api
 2. Click **Apply for Open API access**
-3. Fill the application (App name: `affiliate-ai`, Website: `https://price-th.com`, brief description of usage)
+3. Fill the application (App name: `affiliate-ai`, Website: `https://example.com`, brief description of usage)
 4. Submit → wait **1–3 business days** for Shopee approval
 5. Once approved, you'll receive App ID + App Secret
 
@@ -148,7 +148,7 @@ ELEVENLABS_MODEL=eleven_multilingual_v3   # default ok
 
 ```
 RESEND_API_KEY=
-EMAIL_FROM=alerts@price-th.com   # optional; uses noreply default if unset
+EMAIL_FROM=alerts@example.com   # optional; uses noreply default if unset
 OPERATOR_EMAIL=                  # your inbox
 ```
 
@@ -162,10 +162,10 @@ OPERATOR_EMAIL=                  # your inbox
 GOOGLE_OAUTH_CLIENT_ID=
 GOOGLE_OAUTH_CLIENT_SECRET=
 GOOGLE_OAUTH_REFRESH_TOKEN=
-GOOGLE_SEARCH_CONSOLE_PROPERTY=sc-domain:price-th.com
+GOOGLE_SEARCH_CONSOLE_PROPERTY=sc-domain:example.com
 ```
 
-**Why:** See what queries bring users to price-th.com. Currently we know clicks but not search intent.
+**Why:** See what queries bring users to example.com. Currently we know clicks but not search intent.
 
 **How to get:**
 1. console.cloud.google.com → create project → enable **Search Console API**
@@ -256,8 +256,8 @@ AUTO_DEPLOY_AFTER_REBUILD=true
 SITE_REBUILD_DEBOUNCE_MS=300000        # 5 min coalescing window
 
 # Site builder
-SITE_DOMAIN=price-th.com
-SITE_NAME=Price-TH Deals
+SITE_DOMAIN=example.com
+SITE_NAME=Affiliate AI
 SITE_OUT_DIR=./dist
 
 # Internal auth (rotate occasionally — must match between droplet + Pages env vars)

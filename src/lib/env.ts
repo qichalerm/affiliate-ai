@@ -16,7 +16,7 @@ const boolish = z
 
 const envSchema = z.object({
   // Core
-  DOMAIN_NAME: z.string().default("price-th.com"),
+  DOMAIN_NAME: z.string().default("example.com"),
   NODE_ENV: z.enum(["development", "production"]).default("development"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   TIMEZONE: z.string().default("Asia/Bangkok"),
@@ -64,11 +64,12 @@ const envSchema = z.object({
   CLOUDFLARE_ACCOUNT_ID: optStr,
   CLOUDFLARE_API_TOKEN: optStr,
   CLOUDFLARE_ZONE_ID: optStr,
-  CLOUDFLARE_PAGES_PROJECT: z.string().default("shopee-aggregator"),
+  CLOUDFLARE_PAGES_PROJECT: z.string().default("affiliate-ai"),
 
-  // Public site config (used by site builder + deployer)
-  SITE_DOMAIN: z.string().default("price-th.com"),
-  SITE_NAME: z.string().default("Price-TH Deals"),
+  // Public site config (used by site builder + deployer).
+  // Override these in your .env to point at your own domain.
+  SITE_DOMAIN: z.string().default("example.com"),
+  SITE_NAME: z.string().default("Affiliate AI"),
   SITE_OUT_DIR: z.string().default("./dist"),
   /** Set true to auto-deploy to Cloudflare Pages after every site rebuild. */
   AUTO_DEPLOY_AFTER_REBUILD: z.string().default("true").transform((v) => v === "true"),

@@ -4,7 +4,7 @@
 > built, what's running, and how to continue. Audience: future Claude session,
 > future you, or a new collaborator.
 >
-> **Last updated:** 2026-05-04 · **Production URL:** https://price-th.com
+> **Last updated:** 2026-05-04 · **Production URL:** https://example.com
 
 ---
 
@@ -19,19 +19,19 @@ History: started as V1 (Telegram-focused, Astro static, full Phase 1-5 plan). Us
 ## 1. Current production state
 
 ```
-Droplet (DigitalOcean, 162.243.208.103)
+Droplet (DigitalOcean, <droplet-ip>)
 ├── postgresql.service        Postgres 16, localhost:5432 only
 ├── affiliate-ai-scheduler    11 cron jobs (croner in-process)
 ├── affiliate-ai-redirect     Bun HTTP server, 127.0.0.1:3001 (no public port)
-└── cloudflared.service       Outbound tunnel: api.price-th.com → :3001
+└── cloudflared.service       Outbound tunnel: api.example.com → :3001
 
 Cloudflare
-├── Pages project "shopee-aggregator"
+├── Pages project "affiliate-ai"
 │   ├── 850 static pages (200 products × 4 langs)
 │   ├── 1 Function: functions/go/[shortId].ts
-│   └── Aliases: price-th.com, www.price-th.com
-├── Tunnel "affiliate-ai-redirect" (8a05f6cb-...)
-└── DNS: api.price-th.com → CNAME tunnel; price-th.com → Pages
+│   └── Aliases: example.com, www.example.com
+├── Tunnel "affiliate-ai-redirect" (<tunnel-uuid>)
+└── DNS: api.example.com → CNAME tunnel; example.com → Pages
 
 External services in use
 ├── Apify (Shopee scraper, residential TH proxy)         APIFY_TOKEN
@@ -110,9 +110,9 @@ promoHunter detects price_drop / discount_jump / new_low / sold_surge
 
 ### Click → Commission (sub-second)
 ```
-User clicks /go/<shortId> on price-th.com
+User clicks /go/<shortId> on example.com
          → CF Pages Function functions/go/[shortId].ts
-         → fetch https://api.price-th.com/go/<shortId> + X-Internal-Auth
+         → fetch https://api.example.com/go/<shortId> + X-Internal-Auth
          → CF Tunnel → droplet redirect-server (port 3001 localhost-only)
          → DB lookup (affiliate_links) → log click (clicks table, hashed IP)
          → 302 to shp.ee/xxx (when SHOPEE_API_KEY set) or direct Shopee URL
@@ -166,7 +166,7 @@ Web:              Bun-built static HTML, V1 Tailwind theme ported
                   (theme.css = 49KB compiled Tailwind from V1 Astro build)
 Static deploy:    Cloudflare Pages (via bunx wrangler@latest)
 Pages Functions:  functions/go/[shortId].ts (1 function only)
-Tunnel:           cloudflared (systemd) → api.price-th.com
+Tunnel:           cloudflared (systemd) → api.example.com
 Lint/format:      Biome
 ```
 
@@ -217,7 +217,7 @@ World-readable .env was a finding in the systematic audit. Fixed via `chmod 600`
 
 ### 8.5 Cloudflare Pages Functions can't fetch bare HTTP IPs
 **Symptom:** function returns CF error 1003 ("Direct IP access not allowed") when trying to fetch `http://<droplet-ip>:3001`.
-**Fix:** must go through HTTPS hostname. We use Cloudflare Tunnel → `api.price-th.com`. The tunnel binding is static — don't break it.
+**Fix:** must go through HTTPS hostname. We use Cloudflare Tunnel → `api.example.com`. The tunnel binding is static — don't break it.
 
 ### 8.6 Pages Function only handles GET by default
 **Symptom (caught in audit):** link-preview bots (Slack, FB, Discord, X) HEAD a URL → fall through to static handler → unfurl shows wrong content.
@@ -246,7 +246,7 @@ Thai/Chinese chars are 3 bytes in UTF-8. Long product names blew past 255 bytes 
 | Anthropic Claude (translations + variants + quality gate) | ~$1 | ~$30 |
 | Cloudflare Pages | $0 (free tier covers everything) | $0 |
 | Cloudflare Tunnel | $0 | $0 |
-| Domain (price-th.com via CF Registrar) | — | ~$0.80 |
+| Domain (example.com via CF Registrar) | — | ~$0.80 |
 | **Total ongoing** | ~$1.50 | ~$58 |
 
 When traffic + paid services activate (image gen / voice / publishing):
@@ -293,7 +293,7 @@ When traffic + paid services activate (image gen / voice / publishing):
 
 ## 12. What "done" looks like
 
-- ✅ **V2 Sprint 30 done** = autonomous closed-loop running 24/7, all 11 modules implemented, site live on price-th.com, 0 critical bugs after audit
+- ✅ **V2 Sprint 30 done** = autonomous closed-loop running 24/7, all 11 modules implemented, site live on example.com, 0 critical bugs after audit
 - 🔜 **Phase: Activation** = user provides Shopee + META keys → revenue starts flowing
 - 🔜 **Phase: Scale** = after 2-4 weeks of real click data → niche rebalancer + bandit converge → optimize scrape budget allocation per niche
 
@@ -304,7 +304,7 @@ When traffic + paid services activate (image gen / voice / publishing):
 - [ ] Backup strategy: nightly `pg_dump` to R2 vs DO Spaces vs nothing (current state: nothing — risk if droplet dies)
 - [ ] When to enable image gen (Replicate) — improves CTR but adds cost
 - [ ] Whether to publish to TikTok Shop scraper — depends on whether user wants TikTok Shop products on the site
-- [ ] V1 → V2 redirect: V1 cached preview URLs still serve old design at random `*.shopee-aggregator.pages.dev` URLs. Acceptable since price-th.com is the canonical.
+- [ ] V1 → V2 redirect: V1 cached preview URLs still serve old design at random `*.<your-project>.pages.dev` URLs. Acceptable since example.com is the canonical.
 
 ---
 

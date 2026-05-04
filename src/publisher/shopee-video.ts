@@ -91,7 +91,7 @@ export async function notifyShopeeVideoBacklog(): Promise<ShopeeVideoNotifyResul
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: env.EMAIL_FROM ?? "alerts@price-th.com",
+        from: env.EMAIL_FROM ?? `alerts@${env.SITE_DOMAIN}`,
         to: env.OPERATOR_EMAIL,
         subject,
         text: body,

@@ -12,7 +12,7 @@ curl -fsSL https://get.docker.com | sudo bash
 sudo systemctl enable --now docker
 
 # 2. Clone project
-git clone https://<TOKEN>@github.com/qichalerm/affiliate-bot.git /root/research-2
+git clone https://<TOKEN>@github.com/<your-username>/affiliate-bot.git /root/research-2
 cd /root/research-2
 
 # 3. Fill .env

@@ -79,8 +79,8 @@ export async function deployToCloudflarePages(opts: DeployOptions = {}): Promise
 
   // Parse the deployment URL from wrangler's output.
   // Successful output contains lines like:
-  //   ✨ Deployment complete! Take a peek over at https://abc123.shopee-aggregator.pages.dev
-  //   ✨ Deployment alias URL: https://main.shopee-aggregator.pages.dev
+  //   ✨ Deployment complete! Take a peek over at https://abc123.<your-project>.pages.dev
+  //   ✨ Deployment alias URL: https://main.<your-project>.pages.dev
   const urlMatch = stdout.match(/https:\/\/([a-z0-9-]+\.)?[a-z0-9-]+\.pages\.dev/g);
   const url = urlMatch?.[0] ?? "(unknown)";
   const aliasUrl = urlMatch?.find((u) => u.includes(`${branch}.`));

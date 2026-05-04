@@ -16,7 +16,7 @@ ssh root@your-droplet-ip
 curl -fsSL https://bun.sh/install | bash
 exec $SHELL
 apt update && apt install -y git
-cd /root && git clone https://<TOKEN>@github.com/qichalerm/affiliate-bot.git research-2
+cd /root && git clone https://<TOKEN>@github.com/<your-username>/affiliate-bot.git research-2
 cd research-2
 bun install
 ```

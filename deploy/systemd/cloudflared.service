@@ -1,5 +1,5 @@
 [Unit]
-Description=cloudflared (Cloudflare Tunnel for api.price-th.com → localhost:3001)
+Description=cloudflared (Cloudflare Tunnel for api.<your-domain> → localhost:3001)
 After=network-online.target
 Wants=network-online.target
 

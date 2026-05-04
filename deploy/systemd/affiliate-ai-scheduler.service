@@ -1,6 +1,6 @@
 [Unit]
 Description=Affiliate-AI scheduler (cron jobs: scrape, promo hunter, learning, daily report, ...)
-Documentation=https://github.com/qichalerm/affiliate-ai
+Documentation=See README.md
 After=network.target postgresql.service affiliate-ai-redirect.service
 Wants=postgresql.service
 

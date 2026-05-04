@@ -11,7 +11,7 @@ Activation = paste keys → restart → verify. No code changes needed.
 
 ## §1. Shopee Open Affiliate API (P0 — most important)
 
-**Effect:** Every click on price-th.com → Shopee starts crediting commission.
+**Effect:** Every click on example.com → Shopee starts crediting commission.
 Without this, our /go/ tracker logs clicks correctly but Shopee dashboard
 shows 0 commission.
 
@@ -44,12 +44,12 @@ shows 0 commission.
 
 5. **Smoke-test end-to-end click:**
    ```bash
-   SHORT=$(curl -s "https://price-th.com/th/" | \
+   SHORT=$(curl -s "https://example.com/th/" | \
            grep -oE 'href="/th/p/[^"]+"' | head -1 | \
-           xargs -I{} curl -s "https://price-th.com{}" | \
-           grep -oE 'href="https://price-th.com/go/[A-Za-z0-9]+"' | head -1 | \
+           xargs -I{} curl -s "https://example.com{}" | \
+           grep -oE 'href="https://example.com/go/[A-Za-z0-9]+"' | head -1 | \
            sed 's|.*go/||;s|"$||')
-   curl -sI "https://price-th.com/go/$SHORT" | grep location
+   curl -sI "https://example.com/go/$SHORT" | grep location
    # Should show: location: https://shope.ee/<random>
    ```
 
@@ -181,7 +181,7 @@ detects degraded scrapers.
    ```
    RESEND_API_KEY=...
    OPERATOR_EMAIL=you@example.com
-   EMAIL_FROM=alerts@price-th.com   # optional
+   EMAIL_FROM=alerts@example.com   # optional
    ```
 2. Restart scheduler.
 3. Test:
@@ -212,10 +212,10 @@ psql "$(grep ^DATABASE_URL .env | cut -d= -f2)" -c \
 bun -e 'import {config} from "dotenv"; config(); const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/pages/projects/${process.env.CLOUDFLARE_PAGES_PROJECT}/deployments?per_page=1`, { headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_API_TOKEN}` } }); const j = await r.json(); console.log("last deploy:", j.result[0].created_on)'
 
 # 4. Site live
-curl -sI https://price-th.com/th/ | head -3
+curl -sI https://example.com/th/ | head -3
 
 # 5. Click flow
-curl -s "https://price-th.com/th/" | grep -oE 'href="/go/[A-Za-z0-9]+"' | head -1
+curl -s "https://example.com/th/" | grep -oE 'href="/go/[A-Za-z0-9]+"' | head -1
 # (should print href; then curl that URL → expect 302 to shope.ee or shopee.co.th)
 ```
 

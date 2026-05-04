@@ -172,7 +172,7 @@ Make sure `.env` has:
 ```
 CLOUDFLARE_API_TOKEN=...
 CLOUDFLARE_ACCOUNT_ID=...
-CLOUDFLARE_PAGES_PROJECT=shopee-aggregator
+CLOUDFLARE_PAGES_PROJECT=<your-project>
 ```
 
 ## Cost summary (DigitalOcean)
