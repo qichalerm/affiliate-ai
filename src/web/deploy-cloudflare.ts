@@ -100,8 +100,28 @@ function runBunx(
   extraEnv: Record<string, string>,
 ): Promise<string> {
   return new Promise<string>((resolve, reject) => {
-    const proc = spawn("bunx", args, {
-      env: { ...process.env, ...extraEnv },
+    // systemd's default PATH doesn't include /root/.bun/bin, so spawning
+    // "bunx" by name fails with ENOENT under affiliate-ai-scheduler.service.
+    // Resolve to absolute path: try $BUN_INSTALL/bin/bunx, fall back to
+    // common locations, and only then spawn by name.
+    const bunxPath = (() => {
+      const candidates = [
+        process.env.BUN_INSTALL ? `${process.env.BUN_INSTALL}/bin/bunx` : null,
+        "/root/.bun/bin/bunx",
+        "/usr/local/bin/bunx",
+      ].filter((x): x is string => Boolean(x));
+      for (const p of candidates) {
+        try { if (require("node:fs").existsSync(p)) return p; } catch {}
+      }
+      return "bunx";  // last resort — relies on PATH
+    })();
+
+    const proc = spawn(bunxPath, args, {
+      env: {
+        ...process.env,
+        ...extraEnv,
+        PATH: `/root/.bun/bin:${process.env.PATH ?? "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}`,
+      },
       stdio: ["ignore", "pipe", "pipe"],
     });
 
