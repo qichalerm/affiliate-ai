@@ -1,364 +1,311 @@
-# 📒 Project Handoff Document
+# 📒 Handoff — V2 (Sprint 30 production state)
 
-> Read this first before doing anything. This is the single source of truth for what was decided, what was built, and how to continue.
+> Read this first before doing anything. Single source of truth for what's
+> built, what's running, and how to continue. Audience: future Claude session,
+> future you, or a new collaborator.
 >
-> **Audience**: future Claude session, future you, or a new collaborator.
+> **Last updated:** 2026-05-04 · **Production URL:** https://price-th.com
 
 ---
 
 ## 0. One-paragraph summary
 
-**Build a Thai-language Shopee Affiliate aggregator + multi-channel content engine.**
-Niche: IT/Gadget. Scrape Shopee → Postgres → Claude generates SEO review pages → Astro static site on Cloudflare Pages → Telegram broadcasts deals. All on one DigitalOcean Droplet. Layers 2/3/4/5 add: cross-platform compare, social posters (TikTok/FB/IG/YT), narrative video engine, ML-driven self-tuning. Expected revenue: ~฿1.5M Year 1 / ~฿7M Year 2 (probability-weighted, Phase 3+ path).
+A Thai-language Shopee deal-aggregator + autonomous-marketing engine. Scrapes Shopee 4×/day → translates every product to TH/EN/ZH/JA → renders 850-page static site → auto-deploys to Cloudflare Pages within 5 min → detects price drops every 30 min → generates marketing copy → posts to FB/IG/TikTok during business hours → tracks clicks via Pages Function → 302 to Shopee → learns nightly. Everything runs unattended on a single DigitalOcean Droplet + Cloudflare Pages.
+
+History: started as V1 (Telegram-focused, Astro static, full Phase 1-5 plan). User pivoted to V2 in early May 2026 — dropped Telegram, Pinterest, YouTube, Email; locked scope to Shopee + TikTok Shop sources, FB/IG/TikTok/Shopee Video/Web channels; added closed-loop AI brain. V2 was rebuilt from scratch in 30 sprints over 3 days.
 
 ---
 
-## 1. Origin & Context
-
-The project began as an exploration of "AI bot that makes money", evaluating:
-
-1. ❌ **Polymarket weather betting** — explored, rejected. Markets in 2026 are too efficient; ROI/hour low; regulatory grey for Thailand.
-2. ✅ **Shopee Affiliate** — chosen. Thai market is mature, infrastructure is mature, can use AI heavily, and has clear scale path (Priceza is the existence proof).
-
-User profile inferred from conversation:
-- Thai-based
-- Has a DigitalOcean Droplet already
-- VSCode + Claude Code workflow
-- Wants 95%+ automation but understands "fully hands-off forever" is unrealistic
-- Open to hybrid mode (record themselves on camera 5-10s/week) for higher ROI
-- Long-term thinking — wants asset that compounds, not get-rich-quick
-
----
-
-## 2. Key Decisions (and why)
-
-| Decision | Choice | Reason |
-|---|---|---|
-| Niche | **IT/Gadget** | Highest AOV (฿1,200+), clean specs, Priceza is weak on TikTok Shop deals |
-| Posting mode | **Hybrid** (5-10s human face/wk) | 5-10x ROI vs full-AI in 2026, sustainable per TikTok TOS |
-| Runtime | **Bun** | Native TS, fastest startup, single-binary |
-| Language | **TypeScript strict** | Single language across server + scraper + web |
-| DB | **Postgres 16 self-host on DO Droplet** | Localhost = zero latency, one bill, no vendor lock |
-| Web | **Astro static** + Cloudflare Pages | Best SSG SEO, free CDN, fastest in TH |
-| AI | **Claude Haiku 4.5 fast / Sonnet 4.6 smart** | Best Thai language, cheapest pre-cache |
-| Cron | **croner (in-process)** | Simpler than k8s; one VPS = whole system |
-| Logging | **pino** | Fastest JSON logger |
-| Validation | **Zod** | Env, prompt outputs, API responses |
-| Compliance | **Layer 11** (forbidden-words + AI label + affiliate disclosure) | Thai law (อย./สคบ.) + platform TOS |
-| Budget | ~$60/mo Phase 1 → ~$300/mo Phase 5 | Ramps with revenue, never pre-paid |
-
-### Decisions NOT to make yet (deferred until data)
-
-- Lazada scraping priority vs new niche — wait for Phase 1 traffic data
-- Dashboard build (CLI + Telegram is 80% of dashboard value at 20% effort)
-- Full-auto vs hybrid for TikTok — depends on user willingness to record
-- Multi-niche timing — Phase 5 pacing decided by data
-
----
-
-## 3. The 11-Layer Architecture
-
-| Layer | Purpose | Phase | Built? |
-|---|---|---|---|
-| 1 | Data Collection (Shopee public JSON) | 1 | ✅ |
-| 2 | Content Generation (verdict + SEO meta + JSON-LD) | 1 | ✅ |
-| 3a | Distribution: Web (Astro) | 1 | ✅ |
-| 3b | Distribution: Telegram channel | 1 | ✅ |
-| 3c | Distribution: Pinterest | 2 | ⏸ |
-| 3d | Distribution: TikTok/FB/IG/YT | 3 | ⏸ |
-| 4 | Optimization Loop | 4 | ⏸ |
-| 5 | Monitoring & Alert | 1 | ✅ |
-| 6 | Self-Healing (retry/backoff) | 1 | ✅ |
-| 7 | Campaign Optimization (Shopee mission auto-claim) | 2 | ⏸ |
-| 8 | Product Intelligence (demand × profit × season) | 2 | ⏸ |
-| 9 | Narrative Content Engine (1 story → 8 formats) | 3 | ⏸ |
-| 10 | Performance Intelligence (analytics + ML) | 4 | ⏸ |
-| 11 | Compliance & Policy (Thai + TOS) | 1 | ✅ |
-
----
-
-## 4. The 5 Phases
-
-### ✅ Phase 1 — Foundation (DONE — 67 files)
-
-**What exists**: scraper, generator, web, Telegram broadcaster, scheduler, compliance, monitoring, all CLI scripts, Astro static site, systemd service, full docs.
-
-**See**: [development-plan.md](development-plan.md) Phase 1 section, [architecture.md](architecture.md), file list in [README.md](../README.md).
-
-**Expected revenue at end of Phase 1**: ฿1.5k–฿5k/month
-**Cost**: ~$60/mo
-
-### ⏸ Phase 2 — Scale + Intelligence (~30 files to add)
-
-Adds Lazada scraping, Layer 7 (Shopee mission auto-claim), Layer 8 (smart product scoring), Pinterest publisher, dashboard.
-
-**See**: [phase-2-spec.md](phase-2-spec.md) for detailed file-by-file build plan.
-
-**Expected at end**: ฿10k–฿80k/month
-
-### ⏸ Phase 3 — Social Distribution (~35 files to add)
-
-Adds Layer 9 (narrative engine: voice + image + video pipeline), TikTok/Meta/YouTube publishers.
-
-**See**: [phase-3-spec.md](phase-3-spec.md).
-
-**Expected at end**: ฿80k–฿500k/month
-
-### ⏸ Phase 4 — Performance ML (~22 files to add)
-
-Adds Layer 10 (analytics collector, attribution, ML predictor, A/B framework, auto-rebalance).
-
-**See**: [phase-4-spec.md](phase-4-spec.md).
-
-**Expected at end**: ฿250k–฿1.5M/month
-
-### ⏸ Phase 5 — Compound + Scale (~12 files to add)
-
-Multi-niche orchestration, backlinks, multilingual, exports.
-
-**See**: [phase-5-spec.md](phase-5-spec.md).
-
-**Expected at end**: ฿500k–฿5M/month
-
----
-
-## 5. Tech stack reference
+## 1. Current production state
 
 ```
-Runtime:          Bun 1.1+
+Droplet (DigitalOcean, 162.243.208.103)
+├── postgresql.service        Postgres 16, localhost:5432 only
+├── affiliate-ai-scheduler    11 cron jobs (croner in-process)
+├── affiliate-ai-redirect     Bun HTTP server, 127.0.0.1:3001 (no public port)
+└── cloudflared.service       Outbound tunnel: api.price-th.com → :3001
+
+Cloudflare
+├── Pages project "shopee-aggregator"
+│   ├── 850 static pages (200 products × 4 langs)
+│   ├── 1 Function: functions/go/[shortId].ts
+│   └── Aliases: price-th.com, www.price-th.com
+├── Tunnel "affiliate-ai-redirect" (8a05f6cb-...)
+└── DNS: api.price-th.com → CNAME tunnel; price-th.com → Pages
+
+External services in use
+├── Apify (Shopee scraper, residential TH proxy)         APIFY_TOKEN
+├── Anthropic Claude (Haiku + Sonnet)                    ANTHROPIC_API_KEY
+└── (waiting on user) Shopee Open Affiliate API, META Page Token, TikTok
+```
+
+DB has 16 tables, 10 migrations. Schema in `src/db/schema.ts`.
+
+---
+
+## 2. The 9 modules (V2 vision)
+
+| # | Module | Status | Files |
+|---|---|---|---|
+| **M0** | Operations (cron, alerts, daily report, source health) | ✅ live | `src/scheduler/`, `src/monitoring/` |
+| **M1** | Source — Shopee scraper | ✅ live | `src/scraper/shopee/` |
+| **M1** | Source — TikTok Shop scraper | 🟡 scaffold (no-op until `TIKTOK_SHOP_ACTOR_ID` set) | `src/scraper/tiktok-shop/` |
+| **M2** | Signal Analyzer (scoring, niche tagging) | 🟡 partial — niche assigned via keyword backfill, full demand-score deferred | `src/scraper/niches.ts` |
+| **M3** | Brain — Thompson Sampling bandit | ✅ live | `src/brain/bandit.ts` |
+| **M4** | Content Engine (text + image + voice + video) | ✅ text live, image/voice/video dry-run until keys | `src/content/` |
+| **M5** | Multi-channel publisher (FB/IG/TikTok/Shopee Video) | ✅ scaffolded; live posting waits on tokens | `src/publisher/` |
+| **M5** | Auto-publish dispatcher (Sprint 30) | ✅ live | `src/publisher/auto-publish.ts` |
+| **M6** | Promo Hunter (price drop / discount jump / sold surge / new low) | ✅ live | `src/brain/promo-hunter.ts` |
+| **M7** | Engagement Tracker (FB/IG insights polling) | 🟡 ready, no-op until META tokens | `src/engagement/tracker.ts` |
+| **M8** | Click tracking (`/go/<shortId>` → tunnel → DB → 302) | ✅ live | `src/web/redirect-server.ts`, `functions/go/[shortId].ts` |
+| **M9** | Learning Optimizer + Niche budget rebalancer | ✅ live | `src/brain/learning.ts`, `src/scraper/niches.ts` |
+| **SEO** | Sitemap auto-ping (IndexNow + Google + Bing) | ✅ live | `src/seo/sitemap-ping.ts` |
+| **Affiliate** | Shopee Open Affiliate API → `shp.ee/xxx` | ✅ ready, no-op until SHOPEE_API_KEY | `src/affiliate/shopee-api.ts` |
+
+---
+
+## 3. Cron jobs (11, all running 24/7)
+
+| Job | Schedule | What it does |
+|---|---|---|
+| `healthCheck` | `*/5 * * * *` | DB ping, log status |
+| `scrapeTrending` | `0 8,13,19,22 * * *` BKK | Apify Shopee scrape, weighted niche selection (M9) |
+| `scrapeTikTokShop` | `30 9,15,21 * * *` BKK | TikTok Shop scrape (no-op until actor id set) |
+| `learningOptimizer` | `0 3 * * *` BKK | Wilson-LB underperformer cleanup, niche click rollup |
+| `promoHunter` | `*/30 * * * *` | Detect promos → trigger variant gen |
+| `autoPublish` | `10,40 8-22 * * *` BKK | Pick best variant per channel, publish (rate-limited) |
+| `engagementTracker` | `0 */2 * * *` | Pull FB/IG insights into post_metrics |
+| `sourceHealth` | `15 * * * *` | Detect stale/degraded scrapers, raise alerts |
+| `backfillTranslations` | `*/45 * * * *` | Translate products missing EN/ZH/JA |
+| `dailyReport` | `0 8 * * *` BKK | Email operator yesterday's stats |
+| `shopeeVideoDigest` | `0 10 * * *` BKK | Email upload backlog (Shopee has no posting API) |
+
+Daily LLM cost at current scale: **< $1/day**. Daily Apify cost: **< $0.50/day**.
+
+---
+
+## 4. Key flows (autonomous, end-to-end)
+
+### Scrape → Site update (5–7 min)
+```
+Apify scrape → DB upsert (product + price snapshot + niche)
+            → scheduleSiteRebuild() (debounce 5 min)
+            → buildSite() → 850 pages in ~250ms
+            → bunx wrangler pages deploy → CF Pages live
+            → IndexNow ping (Bing/Yandex) + Google/Bing legacy ping
+```
+
+### Promo detected → Marketing post (~30 min)
+```
+promoHunter detects price_drop / discount_jump / new_low / sold_surge
+         → creates promo_event row
+         → promoTrigger (chained) → generateVariants()
+              → 6 variants (FB+IG × 3 angles) through Quality Gate
+         → autoPublish next tick picks best one per channel
+              → bandit selects which approved variant
+              → random 30-300s delay (anti-bot)
+              → publishToFacebook/Instagram/TikTok
+              → published_posts row (dry_run=true if no token)
+```
+
+### Click → Commission (sub-second)
+```
+User clicks /go/<shortId> on price-th.com
+         → CF Pages Function functions/go/[shortId].ts
+         → fetch https://api.price-th.com/go/<shortId> + X-Internal-Auth
+         → CF Tunnel → droplet redirect-server (port 3001 localhost-only)
+         → DB lookup (affiliate_links) → log click (clicks table, hashed IP)
+         → 302 to shp.ee/xxx (when SHOPEE_API_KEY set) or direct Shopee URL
+         → user lands on Shopee → conversion tracked there
+```
+
+### Learning loop (nightly + per-tick)
+```
+Per-tick (M3): every published_post → bandit picks variant by Beta(α,β)
+              where α = 1+clicks, β = 1+(impressions−clicks)
+
+Nightly (M9, 03:00 BKK):
+  - Aggregate yesterday's CTR per channel × angle
+  - Wilson lower-bound test → deactivate variants with WLB < threshold
+  - Insert insights row (snapshot per scope/dimension)
+  - Niche budget rebalancer: weight pickKeywordsWeighted() by 14d clicks
+```
+
+---
+
+## 5. What needs API keys to fully activate
+
+| Priority | Env vars | Activates |
+|---|---|---|
+| 🔴 P0 | `SHOPEE_API_KEY` + `SHOPEE_API_SECRET` | Commission tracking — converts /go/ clicks into real shp.ee links Shopee credits |
+| 🟠 P1 | `META_APP_ID`/`SECRET`, `META_PAGE_ID`, `META_PAGE_ACCESS_TOKEN`, `META_INSTAGRAM_BUSINESS_ID`, `FEATURE_META_AUTO_POST=true` | autoPublish posts to FB Page + IG Business |
+| 🟠 P1 | `TIKTOK_CLIENT_KEY`/`SECRET`, `TIKTOK_ACCESS_TOKEN`/`REFRESH_TOKEN`, `TIKTOK_OPEN_ID`, `FEATURE_TIKTOK_AUTO_POST=true` | autoPublish posts videos to TikTok |
+| 🟡 P2 | `REPLICATE_API_TOKEN` | Live image gen (Flux) for posts |
+| 🟡 P2 | `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` | Thai voice clone for TikTok video narration |
+| 🟢 P3 | `RESEND_API_KEY` + `OPERATOR_EMAIL` | Daily report + alerts via email |
+| 🟢 P3 | `GOOGLE_OAUTH_CLIENT_ID`/`SECRET`/`REFRESH_TOKEN` | Search Console performance data |
+| 🔵 P4 | `TIKTOK_SHOP_ACTOR_ID` | TikTok Shop product scraping |
+
+Detailed activation steps: [ACTIVATION.md](ACTIVATION.md).
+
+---
+
+## 6. Tech stack reference
+
+```
+Runtime:          Bun 1.3+
 Language:         TypeScript strict
-DB:               Postgres 16 (self-host on Droplet)
+DB:               Postgres 16 self-host on Droplet
 ORM:              Drizzle ORM
 Validation:       Zod
-HTTP:             Bun fetch (+ Playwright for fallback in Phase 2)
-LLM:              @anthropic-ai/sdk (Haiku 4.5 + Sonnet 4.6)
-Logging:          pino + pino-pretty
-Cron:             croner
-Telegram:         telegraf
-Web:              Astro 5 + Tailwind 3
-Static deploy:    Cloudflare Pages (via wrangler)
-Object storage:   R2 (or DO Spaces for backups)
+HTTP:             Bun fetch
+LLM:              @anthropic-ai/sdk
+Logging:          pino
+Cron:             croner (in-process)
+Web:              Bun-built static HTML, V1 Tailwind theme ported
+                  (theme.css = 49KB compiled Tailwind from V1 Astro build)
+Static deploy:    Cloudflare Pages (via bunx wrangler@latest)
+Pages Functions:  functions/go/[shortId].ts (1 function only)
+Tunnel:           cloudflared (systemd) → api.price-th.com
 Lint/format:      Biome
 ```
 
-### Why this stack survives 2-3 years
-- Bun + TS = mainstream, well-supported
-- Postgres = boring, reliable, decade+ runway
-- Drizzle = type-safe, zero magic, easy to swap
-- Astro = static, no runtime dependency, can host anywhere
-- All open-source — no vendor lock-in
+### Why this stack
+
+- **Bun + TS** — mainstream, well-supported, fast cold start
+- **Postgres + Drizzle** — boring + reliable + type-safe
+- **Static HTML** — no framework runtime, sub-second rebuilds, infinite CDN scale
+- **Cloudflare** — single account for DNS + Pages + Functions + Tunnel = no glue code
+- **Apify** — only realistic path through Shopee bot defenses (verified across SOAX, IPRoyal, Scrapfly, Playwright)
 
 ---
 
-## 6. Where to find specific things
+## 7. Where to find specific things
 
 | Need | Look in |
 |---|---|
-| What's built | `src/` + `README.md` |
-| How to run on fresh server | `docs/runbook.md` + `scripts/migrate.sh` |
-| DigitalOcean specifics | `docs/digitalocean-setup.md` |
-| Fill .env | `docs/env-setup.md` |
-| Architecture | `docs/architecture.md` |
-| Revenue projection | `docs/reports/revenue-projection.html` (open in browser) |
-| Master plan | `docs/development-plan.md` |
-| Detailed Phase 2 plan | `docs/phase-2-spec.md` |
-| Detailed Phase 3 plan | `docs/phase-3-spec.md` |
-| Detailed Phase 4 plan | `docs/phase-4-spec.md` |
-| Detailed Phase 5 plan | `docs/phase-5-spec.md` |
-| Compliance rules | `src/compliance/forbidden-words.ts` |
-| All env vars | `.env.example` |
-| Database schema | `src/db/schema.ts` |
+| What's running 24/7 | `systemctl status affiliate-ai-*` + `cloudflared` |
+| What scheduler does | `src/scheduler/index.ts` (job registry) + `src/scheduler/jobs.ts` (handlers) |
+| All env vars | `.env.example` + `src/lib/env.ts` (Zod schema is authoritative) |
+| Database schema | `src/db/schema.ts` (16 tables) + `src/db/migrations/` (10 SQL files) |
+| Daily report sample | `bun -e 'import {generateDailyReport} from "./src/monitoring/daily-report.ts"; console.log(await generateDailyReport({daysAgo: 1}))'` |
+| Site build output | `dist/` (gitignored — generated each build) |
+| Site source templates | `src/web/templates.ts` (V1 theme port) |
+| Theme CSS | `src/web/static/theme.css` (V1 Astro Tailwind output, 49KB) |
+| Cloudflare Page Function | `functions/go/[shortId].ts` |
+| Activation when keys land | `docs/ACTIVATION.md` |
+| Per-key requirements | `docs/env-setup.md` |
 
 ---
 
-## 7. Critical gotchas (the things that bite)
+## 8. Critical gotchas (the things that bite)
 
-### 7.1 Shopee API endpoints are unofficial
-The scraper hits `shopee.co.th/api/v4/...` — these are public web JSON endpoints, not officially documented. **They can change without notice.** When that happens:
-- Symptom: scraper success rate drops
-- Fix: update parsers in `src/scraper/shopee/parser.ts`
-- Long-term: add Playwright fallback in Phase 2 (`src/scraper/shopee/playwright-runner.ts`)
+### 8.1 systemd PATH doesn't include `/root/.bun/bin`
+**Symptom:** auto-deploy silently fails with `Executable not found in $PATH: "bunx"`.
+**Fix:** `deploy-cloudflare.ts` resolves bunx to absolute path before spawn. Don't revert.
 
-### 7.2 Postgres 15+ requires explicit schema grant
-After creating user, must run `GRANT ALL ON SCHEMA public TO botuser;` — `setup-postgres.sh` handles this.
+### 8.2 systemd `EnvironmentFile=.env` mishandles inline `# comment`
+**Symptom:** scheduler crash on boot with Zod validation error on `NODE_ENV=development # comment`.
+**Fix:** services use `bun --env-file=...` instead of systemd's parser. Both unit files do this.
 
-### 7.3 Affiliate dashboard rate limiting (Phase 2)
-Shopee dashboard scrape uses Playwright + your real login. Don't hammer it — max 1 request per 5 minutes. If banned, wait 24-48h before retrying.
+### 8.3 `.env` file permission must be 600
+World-readable .env was a finding in the systematic audit. Fixed via `chmod 600`. Set this on every fresh droplet.
 
-### 7.4 TikTok AI label requirement (2026)
-TikTok demotes AI-only content. **Required**: enable "AI Content" toggle in `src/publisher/tiktok.ts`. Hidden cost: full-AI faceless videos get throttled to ~200 views regardless of quality. Hybrid mode (5-10s human face) avoids this.
+### 8.4 Shopee API tracking REQUIRES `shope.ee/xxx` short links
+**Symptom (until SHOPEE_API_KEY lands):** clicks happen, /go logs them, but Shopee dashboard shows 0 commission.
+**Fix:** integrate Shopee Open Affiliate API (Sprint 25 done — code ready, just needs key + run `bun run backfill:shopee-shortlinks`).
 
-### 7.5 Thai marketing law
-- ห้ามอ้างคำว่า "รักษา", "หาย", "ดีที่สุด 100%"
-- รายได้ affiliate > ฿60k/ปี ต้องยื่นภาษี
-- ถ้า revenue > ฿1.8M/ปี ต้องจดทะเบียน VAT
-- หากโฆษณาเครื่องสำอาง/อาหารเสริม ต้องมีเลข อย.
+### 8.5 Cloudflare Pages Functions can't fetch bare HTTP IPs
+**Symptom:** function returns CF error 1003 ("Direct IP access not allowed") when trying to fetch `http://<droplet-ip>:3001`.
+**Fix:** must go through HTTPS hostname. We use Cloudflare Tunnel → `api.price-th.com`. The tunnel binding is static — don't break it.
 
-`src/compliance/forbidden-words.ts` auto-softens most issues.
+### 8.6 Pages Function only handles GET by default
+**Symptom (caught in audit):** link-preview bots (Slack, FB, Discord, X) HEAD a URL → fall through to static handler → unfurl shows wrong content.
+**Fix:** functions/go/[shortId].ts exports both `onRequestGet` AND `onRequestHead` (the latter delegates to the former).
 
-### 7.6 Cloudflare Pages + Thai filenames
-Astro page route `/รีวิว/[slug]` works locally but some CI may have issues with non-ASCII paths. Tested OK on Cloudflare Pages — but if you change CI, verify URL encoding.
+### 8.7 Pages Function env vars apply only to NEW deployments
+**Symptom:** PATCH `/pages/projects/.../env_vars` returns success but old function still sees old values.
+**Fix:** trigger a redeploy after any env change. Or use the `auto-deploy after rebuild` chain — every scrape produces a fresh deploy.
 
----
+### 8.8 Translation gap can break `/en/`, `/zh/`, `/ja/`
+**Symptom (caught in audit):** scrape adds 300 new products → next 45 min before backfill cron, those products appear with Thai-source titles only.
+**Fix (Sprint 26):** `localizedProductOrNull()` always returns Thai fallback (with small "TH" badge) instead of skipping the card.
 
-## 8. Credentials — what's needed when
-
-### Need IMMEDIATELY (Phase 1 production)
-- `DOMAIN_NAME` — Cloudflare Registrar ($10/yr)
-- `DATABASE_URL` — auto-generated by `setup-postgres.sh`
-- `ANTHROPIC_API_KEY` — console.anthropic.com (start with $20)
-- `SHOPEE_AFFILIATE_ID` — affiliate.shopee.co.th (1-3 days approval)
-- `TELEGRAM_BOT_TOKEN` + `TELEGRAM_OPERATOR_CHAT_ID` — @BotFather (free)
-- `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` — Cloudflare dashboard
-- `GITHUB_TOKEN` + `GITHUB_REPO` — for git push automation
-
-### Apply NOW even if not needed yet (long approval)
-- **TikTok Developer**: 2-4 weeks approval — needed Phase 3
-- **Meta Developer (FB+IG)**: 3-7 days — needed Phase 3
-
-### Add for Phase 2
-- `PINTEREST_ACCESS_TOKEN` (free)
-- `BITLY_TOKEN` (free 1k/mo)
-- `FASTMOSS_API_KEY` ($50/mo, optional but improves Layer 8)
-- `WEBSHARE_API_KEY` ($30/mo, optional, for proxy when Shopee blocks)
-- `SHOPEE_AFFILIATE_USERNAME/PASSWORD` (Layer 7 dashboard scrape — your own login)
-
-### Add for Phase 3
-- `TIKTOK_ACCESS_TOKEN` (after dev approval)
-- `META_PAGE_ACCESS_TOKEN` (after dev approval)
-- `YOUTUBE_API_KEY` + OAuth (instant)
-- `ELEVENLABS_API_KEY` ($22/mo)
-- `FLUX_API_KEY` or `REPLICATE_API_TOKEN` (~$30/mo)
-- `SUBMAGIC_API_KEY` ($20/mo)
-
-### Add for Phase 4
-- `GOOGLE_SERVICE_ACCOUNT_JSON` (Search Console — free)
+### 8.9 Filenames truncated for ext4 path limits
+Thai/Chinese chars are 3 bytes in UTF-8. Long product names blew past 255 bytes filesystem limit.
+**Fix:** `safeSlug()` truncates to 40 codepoints + appends product ID for uniqueness. Don't change.
 
 ---
 
-## 9. Migration to a new server (TL;DR)
+## 9. Cost model (current scale)
 
-```bash
-# 1. New Droplet (Ubuntu 24.04, Singapore, 1-2 GB RAM)
-ssh root@<new-ip>
+| Item | Daily | Monthly |
+|---|---|---|
+| DigitalOcean Droplet (1-2GB) | — | $12 |
+| Apify (Shopee scraping at 4×/day, 4 keywords each) | ~$0.50 | ~$15 |
+| Anthropic Claude (translations + variants + quality gate) | ~$1 | ~$30 |
+| Cloudflare Pages | $0 (free tier covers everything) | $0 |
+| Cloudflare Tunnel | $0 | $0 |
+| Domain (price-th.com via CF Registrar) | — | ~$0.80 |
+| **Total ongoing** | ~$1.50 | ~$58 |
 
-# 2. One-shot setup
-curl -fsSL https://bun.sh/install | bash
-exec $SHELL
-apt update && apt install -y git
-cd /root && git clone https://<TOKEN>@github.com/qichalerm/affiliate-bot.git research-2
-cd research-2
-
-# 3. Install + configure
-bun install
-cd src/web && bun install && cd ../..
-
-# 4. Copy .env from old server (KEY: NOT in git for security)
-scp old-server:/root/research-2/.env .env
-
-# 5. Or recreate Postgres locally
-sudo bash scripts/setup-postgres.sh
-
-# 6. Restore DB from backup (if migrating with data)
-gunzip -c affiliate-backup.sql.gz | psql "$DATABASE_URL"
-
-# 7. Verify
-bun run check-env
-bun run test-connections
-
-# 8. Start scheduler
-sudo cp systemd/affiliate-scheduler.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now affiliate-scheduler
-```
-
-See [scripts/migrate.sh](../scripts/migrate.sh) for the automated version.
+When traffic + paid services activate (image gen / voice / publishing):
+- Replicate (image): ~$0.50/day at current scale → **$15/mo**
+- ElevenLabs (voice): ~$22/mo at $5/mo subscription tier
+- **Realistic full-feature ceiling: ~$120/mo**
 
 ---
 
-## 10. How to resume building (next session)
+## 10. How to resume work
 
-### If continuing Phase 1
-- Read `README.md`, run through `docs/runbook.md` setup
-- First: ensure scraper still works against current Shopee API (`bun run scrape:once "หูฟัง" 5`)
-- Common fix: update selectors in `src/scraper/shopee/parser.ts`
+### If continuing autonomous operation
+- Nothing to do. Services run 24/7. Watch the daily report.
+- Verify scraper still works against current Shopee API: `bun run scrape:once "หูฟัง" 5`.
+- Common breakage point: Apify actor schema changes → update `src/scraper/shopee/parser.ts`.
 
-### If starting Phase 2
-- Read `docs/phase-2-spec.md`
-- Build order: Layer 8 scoring (improves Phase 1 quality) → Pinterest publisher → Layer 7 campaigns → Lazada scraper → dashboard
-- Don't skip ahead — Layer 8 needs the scoring data Phase 1 collects
+### If activating Shopee API
+- See [ACTIVATION.md](ACTIVATION.md) §1.
 
-### If starting Phase 3
-- Verify TikTok Developer + Meta Developer accounts approved
-- Read `docs/phase-3-spec.md`
-- Build order: voice (ElevenLabs) → image gen → video assembler (Remotion) → narrative engine → individual platform publishers
+### If activating META (FB+IG)
+- See [ACTIVATION.md](ACTIVATION.md) §2.
 
-### If starting Phase 4
-- Need 60+ days of analytics data first — don't start ML without data
-- Read `docs/phase-4-spec.md`
-- Build order: analytics collectors → attribution → scoring → predictor → A/B framework
-
-### If starting Phase 5
-- Only after Phase 4 ML stable + revenue > ฿100k/mo
-- Read `docs/phase-5-spec.md`
+### If something looks wrong
+- Run the systematic audit checklist: `journalctl -u affiliate-ai-scheduler --since "24h ago"` for errors.
+- Check `systemctl is-active affiliate-ai-scheduler affiliate-ai-redirect cloudflared postgresql` — all four must be `active`.
+- Check `MAX(last_scraped_at)` in DB vs current time — should be < 6 hours stale.
+- Check latest Cloudflare deployment timestamp via `gh api` or CF dashboard.
 
 ---
 
-## 11. Conversation summary (for future Claude sessions)
-
-The full conversation is preserved as themes:
-
-1. **Discovery**: explored Polymarket weather (rejected), settled on Shopee affiliate
-2. **Strategy**: discussed full-auto vs hybrid posting, decided hybrid
-3. **Architecture**: designed 11 layers, mapped to 5 phases
-4. **Build**: Phase 1 implementation (this session built 67 files)
-5. **Infrastructure**: chose DigitalOcean self-host (vs Neon)
-6. **Operations**: revenue projection, cost model, decision matrix
-
-Key user statements (for behavioral continuity):
-- "ระบบต้องทำกำไรได้ยิ่งเยอะยิ่งดี" — optimize for revenue, not minimum viable
-- "คุณตัดสินใจเลือกสิ่งที่มีประสิทธิภาพที่ดีที่สุดได้เลย" — autonomous decision-making expected
-- "ไม่ต้องมี popup ให้ผมกดยืนยัน" — execute without confirmation
-- "ขอใช้ digital ocean เพราะ vps server นี้ก็ใช้ ของ digital ocean อยู่" — already on DO
-
-Use these to calibrate your defaults: prefer ambitious + autonomous + DO-aligned.
-
----
-
-## 12. Risks & mitigations (running list)
+## 11. Risks & mitigations
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Shopee API breaks | High over 6mo | Playwright fallback (Phase 2), monitor scrape success rate |
-| TikTok ban for AI content | Med | Hybrid mode + AI label compliance |
-| Google penalty for AI content | Med | 90% real data, schema markup, price history (data moat) |
-| Anthropic price hike | Low | Easy to swap to OpenAI/Gemini in `src/lib/claude.ts` |
-| Operator burnout | High in mo 2-4 | Daily Telegram report keeps engagement; can disable safely |
-| Cloudflare Pages limits | Low (free tier huge) | If hit, fallback to Vercel/Netlify |
-| Postgres data loss | Low if backups | Daily `pg_dump` to DO Spaces ($5/mo) |
+| Apify Shopee actor breaks | High over 6mo | M0 source-health monitor alerts; we re-target on failure |
+| Shopee changes affiliate URL format | Med | Tracked via shp.ee API output; can fall back to direct URL |
+| Cloudflare Pages free-tier limit | Low | 100k req/day per Function — current traffic ~50/day |
+| Anthropic price hike | Low | Easy swap to OpenAI/Gemini in `src/lib/claude.ts` |
+| Postgres data loss | Low if backups | TODO: nightly `pg_dump` to R2 (not yet implemented) |
+| Bunx path bug on system update | Low | Hard-coded fallback paths in deploy-cloudflare.ts |
+| Translations stale on burst-scrape | Low | TH fallback prevents user-visible breakage; backfill catches up in 45 min |
 
 ---
 
-## 13. What "done" looks like
+## 12. What "done" looks like
 
-- **Phase 1 done** = scraper runs daily, ~50,000 pages indexed, Telegram channel active, revenue >฿0
-- **Phase 2 done** = dashboard live, Lazada compare working, Shopee missions auto-claimed, revenue >฿50k/mo
-- **Phase 3 done** = posting on 4+ social platforms, video pipeline produces, revenue >฿200k/mo
-- **Phase 4 done** = ML predicting which content to skip, A/B running, revenue >฿800k/mo
-- **Phase 5 done** = 2nd niche live, multi-language, revenue >฿2M/mo
-
-Each phase has explicit revenue threshold to validate readiness for next phase. Don't move forward until current phase is producing predictable income.
+- ✅ **V2 Sprint 30 done** = autonomous closed-loop running 24/7, all 11 modules implemented, site live on price-th.com, 0 critical bugs after audit
+- 🔜 **Phase: Activation** = user provides Shopee + META keys → revenue starts flowing
+- 🔜 **Phase: Scale** = after 2-4 weeks of real click data → niche rebalancer + bandit converge → optimize scrape budget allocation per niche
 
 ---
 
-## 14. Open questions (for next session)
+## 13. Open decisions (not blocking)
 
-- [ ] Verify Shopee API endpoints still work in production (test with `bun run scrape:once`)
-- [ ] Decide on dashboard timing (build with Phase 2 or defer to Phase 3)
-- [ ] Choose Phase 2 build order: Layer 7 first (claim missions = immediate revenue) or Layer 8 first (smart scoring = compounds)?
-- [ ] Decide on backup strategy: DO Spaces ($5/mo off-site) or local-only
+- [ ] Backup strategy: nightly `pg_dump` to R2 vs DO Spaces vs nothing (current state: nothing — risk if droplet dies)
+- [ ] When to enable image gen (Replicate) — improves CTR but adds cost
+- [ ] Whether to publish to TikTok Shop scraper — depends on whether user wants TikTok Shop products on the site
+- [ ] V1 → V2 redirect: V1 cached preview URLs still serve old design at random `*.shopee-aggregator.pages.dev` URLs. Acceptable since price-th.com is the canonical.
 
 ---
 
-**Last updated**: 2026-05-01
-**Maintainer**: project owner + Claude (via this handoff doc)
+**Conventions:** every commit is one logical change with a short title + paragraph in the body. Commit body explains *why*, not what. Sprint numbers in messages refer to V2 sprints (this document's history).

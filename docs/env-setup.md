@@ -1,158 +1,284 @@
 # Environment Variables Setup Guide
 
-คู่มือกรอก `.env` ทีละตัว — เรียงตาม priority
+`.env` reference — ranked by priority (P0 = blocks revenue, P4 = optional polish).
 
-## 🔴 Phase 1 (จำเป็นก่อนเริ่มเดือน 1)
-
-ต้องมี **ก่อนเริ่ม code จริง**:
-
-### 1. Domain
-- **DOMAIN_NAME** — ซื้อที่ Cloudflare Registrar (~$10/ปี)
-  - ตัวอย่างชื่อ: `dealfinder.co`, `priceth.app`, `gadgetfinder.io`
-
-### 2. Cloudflare
-- สมัคร: https://dash.cloudflare.com/sign-up
-- **CLOUDFLARE_ACCOUNT_ID** — Dashboard → ขวาล่าง
-- **CLOUDFLARE_API_TOKEN** — My Profile → API Tokens → Create Token
-  - Permissions: `Account.Cloudflare Pages:Edit`, `Zone.DNS:Edit`, `Account.R2:Edit`
-- **CLOUDFLARE_ZONE_ID** — หลัง add domain → Overview tab
-
-### 3. Database (Postgres on DigitalOcean Droplet — self-host)
-- ใช้ Droplet เดียวกับที่รัน bot (ลด latency, ประหยัดเงิน)
-- รัน script ติดตั้ง:
-  ```bash
-  sudo bash scripts/setup-postgres.sh
-  ```
-  สคริปต์จะ:
-  1. ติดตั้ง Postgres 16 (ถ้ายังไม่มี)
-  2. สร้าง database `affiliate` + user `botuser` พร้อม random password
-  3. ล็อคให้รับเฉพาะ localhost
-  4. Tune memory ให้เหมาะ Droplet 1–2GB
-  5. เขียน `DATABASE_URL` เข้า `.env` ให้อัตโนมัติ
-
-- ดูคู่มือเต็ม: [docs/digitalocean-setup.md](digitalocean-setup.md)
-- Alternative: ถ้าอยากใช้ Neon ฟรี → กรอก connection string จาก [neon.tech](https://neon.tech) แทน
-
-### 4. Anthropic (Claude API)
-- สมัคร: https://console.anthropic.com
-- API Keys → Create Key
-- เติม credit เริ่มต้น $20
-
-### 5. GitHub
-- สมัคร: https://github.com (ถ้ายังไม่มี)
-- Settings → Developer settings → Personal access tokens → Fine-grained
-- Permissions: `Contents: Read and write`, `Pages: Read and write`
-
-### 6. Shopee Affiliate
-- สมัคร: https://affiliate.shopee.co.th/
-- ต้องมี: บัตรประชาชน + บัญชีธนาคารไทย
-- หลัง approve → copy Affiliate ID
-
-### 7. Telegram Bot
-- เปิด Telegram → search `@BotFather`
-- `/newbot` → ตั้งชื่อ → ได้ `TELEGRAM_BOT_TOKEN`
-- Search `@userinfobot` → ได้ `TELEGRAM_OPERATOR_CHAT_ID` (ของคุณ)
-- สร้าง channel → ตั้ง bot เป็น admin → ได้ channel ID
+The Zod schema in `src/lib/env.ts` is authoritative. This doc explains what each
+variable does, where to get it, and what activates when it lands.
 
 ---
 
-## 🟡 Phase 2 (เพิ่มในเดือน 2)
+## Already configured (production)
 
-### 8. ElevenLabs (voice)
-- https://elevenlabs.io
-- Plan: Creator $22/เดือน
-- Upload ตัวอย่างเสียงคุณ 10 นาที → voice clone → copy ID
+These are filled in `.env` on the live droplet:
 
-### 9. Webshare Proxy
-- https://webshare.io
-- Plan: 100 proxies $30/เดือน
-
-### 10. Pinterest
-- https://developers.pinterest.com → create app
-- OAuth → ได้ `PINTEREST_ACCESS_TOKEN`
-- สร้าง board สำหรับ niche → copy board ID
-
-### 11. Resend (email alerts)
-- https://resend.com (ฟรี 3,000 email/เดือน)
-
-### 12. FastMoss (TikTok trends)
-- https://fastmoss.com
-- Plan: $49–99/เดือน
+| Var | Source | Notes |
+|---|---|---|
+| `DATABASE_URL` | `scripts/setup-postgres.sh` generates | Postgres 16 localhost-only |
+| `ANTHROPIC_API_KEY` | console.anthropic.com | Funds translations + variant gen |
+| `APIFY_TOKEN` | apify.com | Shopee scraper (residential TH proxy) |
+| `CLOUDFLARE_ACCOUNT_ID` / `_API_TOKEN` / `_ZONE_ID` / `_PAGES_PROJECT` | Cloudflare dashboard | Pages deploy + Tunnel + DNS |
+| `SHOPEE_AFFILIATE_ID` | affiliate.shopee.co.th | Embedded in fallback URL when shp.ee not yet generated |
+| `SITE_DOMAIN` / `SITE_NAME` / `SITE_OUT_DIR` | manual | `price-th.com`, `Price-TH Deals`, `./dist` |
+| `INTERNAL_AUTH_SECRET` | `openssl rand -hex 32` | Shared secret between Pages Function and droplet |
 
 ---
 
-## 🟢 Phase 3 (เพิ่มเดือน 3 — เริ่ม social)
+## 🔴 P0 — Blocks revenue (apply first)
 
-### 13. TikTok Content Posting API
-- https://developers.tiktok.com → register as developer
-- Submit app for review (ใช้เวลา 2–4 สัปดาห์)
-- หลัง approve → OAuth → ได้ `TIKTOK_ACCESS_TOKEN`
+### Shopee Open Affiliate API
 
-### 14. Meta Graph API (Facebook + Instagram)
-- https://developers.facebook.com → My Apps → Create App
-- Type: Business
-- Add product: Pages API + Instagram Graph API
-- Generate page access token (long-lived)
-
-### 15. Submagic (auto captions)
-- https://submagic.co/api
-- Plan: $20/เดือน
-
-### 16. Flux Pro / Replicate (image gen)
-- Replicate: https://replicate.com → API token
-- หรือ Flux โดยตรง: https://blackforestlabs.ai
-
-### 17. YouTube Data API
-- https://console.cloud.google.com → enable YouTube Data API v3
-- OAuth credentials → ได้ refresh token
-
----
-
-## 🔵 Phase 4+ (optional)
-
-### 18. SerpAPI (Google search/trends)
-- https://serpapi.com — $50/เดือน
-
-### 19. Sora / Veo / Kling (video gen)
-- เปิดใช้เฉพาะตอนต้องการ ambient scenes
-
-### 20. Suno (music gen)
-- https://suno.com/api
-
-### 21. Clerk (dashboard auth)
-- https://clerk.com (ฟรี 1 user)
-
----
-
-## 💡 Tips
-
-1. **เก็บ `.env` ในที่ปลอดภัย** — อย่า commit, อย่าส่ง chat
-2. **Generate secrets**:
-   ```bash
-   openssl rand -hex 32      # สำหรับ INTERNAL_API_SECRET, SESSION_SECRET
-   ```
-3. **Test ทีละตัว** หลังกรอก — รัน health check ก่อนต่อ pipeline
-4. **OAuth tokens หมดอายุได้** — ระบบ auto-refresh ที่ Layer 6
-5. **Backup**: เก็บ copy ของ `.env` ใน password manager (1Password, Bitwarden)
-
----
-
-## ⚠️ Security Notes
-
-- `.env` อยู่ใน `.gitignore` แล้ว — จะไม่ถูก push ขึ้น GitHub
-- ไฟล์ `secrets/google-service-account.json` ก็ ignored ด้วย
-- API keys ที่หลุด → revoke ทันทีที่หน้า provider
-- ใช้ **dedicated email** สำหรับ project นี้ (ไม่ผูกกับ personal account)
-
----
-
-## Quick Validation Script
-
-หลังกรอกครบ phase 1 ใช้ command นี้เช็ค:
-
-```bash
-npm run check-env       # ตรวจว่า required vars ครบไหม
-npm run test-connections  # ทดสอบ connection ทุก service
+```
+SHOPEE_API_KEY=
+SHOPEE_API_SECRET=
 ```
 
-(จะมี script ตัวนี้หลังผม build ใน Phase 1)
+**Why:** Without these, every click on price-th.com → Shopee gets 0 commission attribution. Shopee only credits affiliate clicks that come through their `shope.ee/xxx` short links, which we mint via this API.
+
+**How to get:**
+1. Go to https://affiliate.shopee.co.th/open_api
+2. Click **Apply for Open API access**
+3. Fill the application (App name: `affiliate-ai`, Website: `https://price-th.com`, brief description of usage)
+4. Submit → wait **1–3 business days** for Shopee approval
+5. Once approved, you'll receive App ID + App Secret
+
+**Activation after keys arrive:** see [ACTIVATION.md §1](ACTIVATION.md).
+
+---
+
+## 🟠 P1 — Marketing channels (after P0)
+
+### Meta (Facebook + Instagram)
+
+```
+META_APP_ID=
+META_APP_SECRET=
+META_PAGE_ID=
+META_PAGE_ACCESS_TOKEN=        # long-lived (60-day)
+META_INSTAGRAM_BUSINESS_ID=
+FEATURE_META_AUTO_POST=true    # default false; toggle on after tokens land
+```
+
+**Why:** Enables `autoPublish` cron to post promo content to your FB Page + IG Business account every 30 min during 8 AM–10 PM BKK (max 5 posts/day per channel).
+
+**How to get:**
+1. https://developers.facebook.com → My Apps → **Create App** (Type: Business)
+2. Add products: **Facebook Login** + **Instagram Graph API**
+3. You need:
+   - A Facebook Page where you're admin
+   - An Instagram Business Account linked to that Page
+4. **Graph API Explorer**:
+   - Get a User Access Token with scopes: `pages_show_list`, `pages_manage_posts`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`
+   - Use the token to query `/me/accounts` → copy the Page Access Token + Page ID
+5. **Exchange for long-lived token** (~60 days):
+   ```
+   GET https://graph.facebook.com/v21.0/oauth/access_token
+     ?grant_type=fb_exchange_token
+     &client_id={APP_ID}
+     &client_secret={APP_SECRET}
+     &fb_exchange_token={SHORT_LIVED_PAGE_TOKEN}
+   ```
+6. **Get IG Business ID**:
+   ```
+   GET https://graph.facebook.com/v21.0/{PAGE_ID}?fields=instagram_business_account&access_token={PAGE_TOKEN}
+   ```
+
+**Effort:** ~30–60 min. App Review may be needed for `pages_manage_posts` if app is "live mode" — for personal use, "development mode" works without review.
+
+---
+
+### TikTok Content Posting API
+
+```
+TIKTOK_CLIENT_KEY=
+TIKTOK_CLIENT_SECRET=
+TIKTOK_ACCESS_TOKEN=        # 24h, refresh with refresh_token
+TIKTOK_REFRESH_TOKEN=       # 1-year
+TIKTOK_OPEN_ID=
+FEATURE_TIKTOK_AUTO_POST=true
+```
+
+**Why:** Enables `autoPublish` to post short videos to TikTok (3 posts/day default).
+
+**How to get:**
+1. https://developers.tiktok.com → **Manage Apps** → Create App
+2. Request scopes: `video.upload`, `video.publish`
+3. Submit for **App Review** — TikTok is strict, expect **3–7 days** wait
+4. After approval, OAuth flow returns access + refresh token + open_id
+
+**Effort:** mostly waiting on TikTok review.
+
+---
+
+## 🟡 P2 — Content quality
+
+### Replicate (image generation via Flux)
+
+```
+REPLICATE_API_TOKEN=
+```
+
+**Why:** Generate hero images for FB/IG/TikTok posts (instead of using the bare Shopee product photo). Better-looking posts → higher CTR.
+
+**Cost:** ~$0.0050 per image (Flux schnell). At 3 channels × 5 posts/day = 15 images/day = $0.075/day = **~$2.25/mo**.
+
+**How to get:** sign up at https://replicate.com → API Tokens → create. Add credit card, set $5–$10 starter budget.
+
+### ElevenLabs (Thai voice clone)
+
+```
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+ELEVENLABS_MODEL=eleven_multilingual_v3   # default ok
+```
+
+**Why:** Voice narration for TikTok videos. Without this, TikTok videos are silent slideshows (lower CTR).
+
+**Cost:** Starter plan $5/mo gives 30k chars (~30 min audio). Pro $22/mo = 100k chars.
+
+**How to get:**
+1. https://elevenlabs.io → sign up → upgrade to Starter+
+2. **Voice Lab** → either pick a default Thai voice or clone your own (record 1 min sample)
+3. Copy Voice ID from voice library
+
+---
+
+## 🟢 P3 — Operations + SEO
+
+### Resend (operator email — daily report + alerts)
+
+```
+RESEND_API_KEY=
+EMAIL_FROM=alerts@price-th.com   # optional; uses noreply default if unset
+OPERATOR_EMAIL=                  # your inbox
+```
+
+**Cost:** Free tier 100 emails/day. Plenty for daily report (1 email) + alerts.
+
+**How to get:** https://resend.com → API Keys → Create. Verify domain (or use their sandbox for testing).
+
+### Google Search Console (organic traffic data)
+
+```
+GOOGLE_OAUTH_CLIENT_ID=
+GOOGLE_OAUTH_CLIENT_SECRET=
+GOOGLE_OAUTH_REFRESH_TOKEN=
+GOOGLE_SEARCH_CONSOLE_PROPERTY=sc-domain:price-th.com
+```
+
+**Why:** See what queries bring users to price-th.com. Currently we know clicks but not search intent.
+
+**How to get:**
+1. console.cloud.google.com → create project → enable **Search Console API**
+2. OAuth consent screen → add scope `https://www.googleapis.com/auth/webmasters.readonly`
+3. Create OAuth Client ID (type: Desktop)
+4. Run a one-time auth script to exchange auth code → refresh token
+
+### Bing IndexNow (already auto-derived)
+
+```
+BING_INDEXNOW_KEY=    # optional — if blank, auto-derived from domain
+```
+
+We auto-derive a stable key from `sha256(SITE_DOMAIN)`. Bing/Yandex/Naver/Seznam are pinged on every site rebuild. If you want a custom key, paste any 32-char hex string.
+
+### Sentry (error monitoring)
+
+```
+SENTRY_DSN=
+```
+
+Optional. We log errors to journalctl already; Sentry adds aggregation + alerts. Free tier covers small projects.
+
+---
+
+## 🔵 P4 — Optional source diversity
+
+### TikTok Shop scraper
+
+```
+TIKTOK_SHOP_ACTOR_ID=    # e.g. "clockworks/tiktok-shop-scraper"
+```
+
+**Why:** Add TikTok Shop products alongside Shopee. Code scaffold ready in `src/scraper/tiktok-shop/`.
+
+**How to get:**
+1. Browse https://apify.com/store?search=tiktok+shop
+2. Pick an actor that's actively maintained (check last-updated date + reviews)
+3. Paste its full id (e.g. `clockworks/tiktok-shop-scraper`)
+4. Restart scheduler — `scrapeTikTokShop` cron starts firing 3×/day
+
+**Note:** Actor input/output schemas vary. You may need to refine `src/scraper/tiktok-shop/apify-client.ts` parser to match.
+
+### Premium video gen (replaces ffmpeg slideshow)
+
+```
+KLING_API_KEY=
+SORA_API_KEY=
+RUNWAY_API_KEY=
+```
+
+Optional. Currently TikTok videos are assembled with ffmpeg (image + voice + text overlay → MP4). Premium video models would replace this with proper motion video. Not wired yet — needs additional `src/content/video-models/` work.
+
+### Submagic (auto-captions)
+
+```
+SUBMAGIC_API_KEY=
+```
+
+Optional. For burned-in captions on TikTok videos. Not wired.
+
+---
+
+## Tuning knobs (defaults are sensible)
+
+```
+# Niche scrape budget
+PRIMARY_NICHE=all
+SCRAPE_KEYWORDS_PER_RUN=4              # how many keywords per scrape tick
+SCRAPE_PRODUCTS_PER_KEYWORD=15
+
+# Cron schedule (BKK)
+CRON_SCRAPE_PRODUCTS=0 8,13,19,22 * * *
+
+# Daily budget caps
+DAILY_LLM_BUDGET_USD=10
+DAILY_VIDEO_GEN_BUDGET_USD=10
+DAILY_IMAGE_GEN_BUDGET_USD=3
+DAILY_VOICE_GEN_BUDGET_USD=2
+
+# Per-channel post caps (V2 vision: anti-bot)
+DAILY_POSTS_FACEBOOK=5
+DAILY_POSTS_INSTAGRAM=5
+DAILY_POSTS_TIKTOK=3
+
+# Auto-deploy
+AUTO_DEPLOY_AFTER_REBUILD=true
+SITE_REBUILD_DEBOUNCE_MS=300000        # 5 min coalescing window
+
+# Site builder
+SITE_DOMAIN=price-th.com
+SITE_NAME=Price-TH Deals
+SITE_OUT_DIR=./dist
+
+# Internal auth (rotate occasionally — must match between droplet + Pages env vars)
+INTERNAL_AUTH_SECRET=               # openssl rand -hex 32
+
+# Feature flags (default false — flip when ready)
+FEATURE_META_AUTO_POST=false
+FEATURE_TIKTOK_AUTO_POST=false
+FEATURE_AI_BRAIN=false
+FEATURE_PROMO_HUNTER=false
+FEATURE_AUTO_TRANSLATE=false
+
+# Debug
+DEBUG_DRY_RUN=false                 # true = no real posts, no real spend
+```
+
+---
+
+## Security
+
+- `.env` permission must be `600` — verified via systematic audit
+- `INTERNAL_AUTH_SECRET` is the shared secret between Cloudflare Pages Function and the droplet's redirect-server. Rotate when you change ownership.
+- Never commit `.env`. Verify `.gitignore` includes it (it does).
+- Service accounts use least-privilege tokens (e.g. CF API token has only Pages/Tunnel/DNS edit, not full account access).
