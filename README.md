@@ -1,10 +1,9 @@
 # affiliate-ai
 
-> **Autonomous Shopee affiliate marketing engine** built for the Thai market.
-> Scrape → translate → render multilingual SEO site → detect promos → generate
-> ads → publish to FB / IG / TikTok → track clicks → learn → repeat.
-> One Bun process + one Postgres + Cloudflare Pages — closed loop, no human in
-> the daily flow.
+> **ระบบ Affiliate Marketing อัตโนมัติสำหรับ Shopee** ออกแบบเฉพาะตลาดไทย
+> ดึงข้อมูล → แปลภาษา → สร้างเว็บ SEO หลายภาษา → จับโปรโมชั่น → สร้างคอนเทนต์โฆษณา
+> → โพสต์ลง FB / IG / TikTok อัตโนมัติ → track คลิก → เรียนรู้ → วนลูป
+> ใช้แค่ **Bun process เดียว + Postgres + Cloudflare Pages** — closed loop เต็มระบบ ไม่ต้องมีคนอยู่ในขั้นตอนรายวัน
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Bun](https://img.shields.io/badge/runtime-Bun_1.3+-orange.svg)](https://bun.sh)
@@ -12,50 +11,54 @@
 
 ---
 
-## What this is
+## 🇹🇭 ระบบนี้คืออะไร
 
-A reference implementation of a fully autonomous affiliate-marketing pipeline that:
+Reference implementation ของ pipeline affiliate marketing แบบ autonomous เต็มรูปแบบ ที่ทำงาน:
 
-1. **Scrapes** Shopee Thailand for trending products (4× per day via Apify residential proxy)
-2. **Translates** every product into 4 languages (TH source → EN/ZH/JA via Claude Haiku, ~$0.0016/product)
-3. **Builds** a static multilingual SEO site (200 products × 4 langs = 850 pages, sub-second rebuild)
-4. **Auto-deploys** to Cloudflare Pages within 5 min of each scrape
-5. **Detects** price drops, discount jumps, sold-count surges, and new lows every 30 min
-6. **Generates** marketing copy (3 angles × 2 channels) for promo products via Claude
-7. **Quality-gates** every variant (toxicity / disclosure / forbidden Thai-law terms)
-8. **Auto-publishes** to FB Page, IG Business, TikTok during business hours (rate-limited, anti-bot delays)
-9. **Tracks clicks** through a Cloudflare Pages Function → Tunnel → DB → 302 to Shopee
-10. **Learns nightly**: deactivates underperforming variants (Wilson lower-bound), rebalances scrape budget per niche based on click data
+1. **Scrape** สินค้า trending จาก Shopee Thailand วันละ 4 ครั้ง (ผ่าน Apify residential proxy)
+2. **แปลภาษา** ทุกสินค้าเป็น 4 ภาษา (TH source → EN/ZH/JA ผ่าน Claude Haiku, ~$0.0016/สินค้า)
+3. **สร้างเว็บ static หลายภาษา** สำหรับ SEO (200 สินค้า × 4 ภาษา = 850 หน้า, build ใน sub-second)
+4. **Auto-deploy** ขึ้น Cloudflare Pages ภายใน 5 นาทีหลังแต่ละ scrape
+5. **ตรวจจับโปรโมชั่น** ราคาตก, ส่วนลดเพิ่ม, ยอดขายพุ่ง, ราคาต่ำสุดใหม่ — ทุก 30 นาที
+6. **สร้าง marketing copy** (3 มุมโฆษณา × 2 ช่อง) สำหรับสินค้าโปร ผ่าน Claude
+7. **Quality-gate** ทุกชิ้นเนื้อหา (toxicity / disclosure / คำต้องห้ามตามกฎหมายไทย)
+8. **Auto-publish** ลง FB Page, IG Business, TikTok ในช่วงเวลาที่เหมาะ (rate-limited + anti-bot delays)
+9. **Track คลิก** ผ่าน Cloudflare Pages Function → Tunnel → DB → 302 ไป Shopee
+10. **เรียนรู้ทุกคืน**: ปิด variants ที่ underperform (Wilson lower-bound), rebalance scrape budget ตาม niche ที่กำไรดี
 
-Everything runs unattended on a single 1-2 GB DigitalOcean Droplet + Cloudflare's free tier.
-
-## Why publish this
-
-There's no end-to-end open-source reference for autonomous affiliate marketing in the Thai market. Every commercial tool is either:
-
-- A **browser extension** (closes the API surface, requires a human to leave Chrome open)
-- A **SaaS** that locks you into their model + pricing
-- A **fragment** (just a scraper, just a content generator, etc.)
-
-This is the whole pipeline, with all the boring infrastructure that makes it actually work autonomously: schedulers, rate limits, cost caps, source-health monitoring, daily reports, niche budget rebalancing, click attribution, multilingual site builder, etc.
-
-## What you can do with it
-
-- **Run as-is** for Shopee Thailand (point at your domain → fill keys → wait)
-- **Fork for another marketplace** — replace `src/scraper/shopee/` with Lazada / Amazon / etc.; the rest of the pipeline is marketplace-agnostic
-- **Use individual modules**: the bandit (`src/brain/bandit.ts`), the quality gate (`src/quality/`), the multilingual site builder (`src/web/`), the Pages-Function-via-Tunnel pattern (`functions/go/[shortId].ts`) — all work standalone
-- **Study** how ~12k lines of TypeScript replace a $5k/mo SaaS stack on a $12/mo droplet
+ทำงานแบบไม่ต้องคนแตะ บน DigitalOcean Droplet 1-2 GB ตัวเดียว + Cloudflare free tier
 
 ---
 
-## Architecture
+## 🤔 ทำไมเปิดเป็น open-source
+
+ตลาดไทยตอนนี้ **ยังไม่มี end-to-end open-source reference** สำหรับ affiliate marketing automation. เครื่องมือเชิงพาณิชย์ทุกตัวมีปัญหาอย่างใดอย่างหนึ่ง:
+
+- **Browser extension** — ปิด API surface, ต้องเปิด Chrome ค้างไว้
+- **SaaS** — lock-in vendor + ราคาแพง
+- **Fragment** — มีแค่ scraper หรือแค่ generator แยกกัน
+
+โปรเจกต์นี้คือ **pipeline ทั้งระบบ** พร้อม infrastructure ที่จำเป็นจริงๆ สำหรับการทำงาน autonomous: scheduler, rate limit, cost cap, source-health monitoring, daily report, niche budget rebalancing, click attribution, multilingual site builder, ฯลฯ
+
+---
+
+## 🛠 เอาไปใช้ยังไงได้บ้าง
+
+- **ใช้ตามนี้เลย** สำหรับ Shopee Thailand (ชี้โดเมน → ใส่ key → รอผล)
+- **Fork สำหรับ marketplace อื่น** — เปลี่ยน `src/scraper/shopee/` เป็น Lazada / Amazon / etc; ส่วนที่เหลือของ pipeline ใช้ได้กับทุก marketplace
+- **ใช้แต่ละ module แยก**: bandit (`src/brain/bandit.ts`), quality gate (`src/quality/`), multilingual site builder (`src/web/`), Pages-Function-via-Tunnel pattern (`functions/go/[shortId].ts`) — ใช้แบบ standalone ได้
+- **ศึกษา** ว่า TypeScript ~12,000 บรรทัด แทน SaaS stack $5k/เดือน บน droplet $12/เดือนได้ยังไง
+
+---
+
+## 🏗 สถาปัตยกรรม (Architecture)
 
 ### 1. Production infrastructure
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                                  USER                                      │
-│                (browser on your-domain / FB feed / IG / TikTok)            │
+│             (browser บน your-domain / FB feed / IG / TikTok)               │
 └──────────────────────────┬─────────────────────────────────────────────────┘
                            │ HTTPS
                            ▼
@@ -63,20 +66,20 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 │                       CLOUDFLARE GLOBAL EDGE                               │
 │ ┌──────────────────────────────────┐  ┌──────────────────────────────────┐ │
 │ │  Pages Project                   │  │  DNS                             │ │
-│ │  • 850 static HTML files         │  │  example.com → Pages             │ │
-│ │  • 4 langs (TH/EN/ZH/JA)         │  │  www.example.com → Pages         │ │
+│ │  • 850 ไฟล์ HTML static          │  │  example.com → Pages             │ │
+│ │  • 4 ภาษา (TH/EN/ZH/JA)          │  │  www.example.com → Pages         │ │
 │ │  • /c/<niche> + /search          │  │  api.example.com → Tunnel CNAME  │ │
 │ │  • /p/<slug>.html × 800          │  └──────────────────────────────────┘ │
 │ │  • theme.css + sitemap + JSONs   │  ┌──────────────────────────────────┐ │
 │ │                                  │  │  Cloudflare Tunnel               │ │
-│ │  Pages Function                  │  │  TLS terminate, route to droplet │ │
-│ │  /go/[shortId] (proxies clicks)  │◄─│                                  │ │
+│ │  Pages Function                  │  │  TLS terminate → route ไป droplet│ │
+│ │  /go/[shortId] (proxy คลิก)      │◄─│                                  │ │
 │ └──────────────────────────────────┘  └──────────────────────────────────┘ │
 └───────────────────────────────────────────────────────────────────────────┬┘
                                                                             │
                                                                             ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
-│        DROPLET (Ubuntu 24.04 · 1-2GB RAM · single VM)                      │
+│        DROPLET (Ubuntu 24.04 · RAM 1-2GB · เครื่องเดียว)                    │
 │                                                                            │
 │ ┌──────────────────────────┐  ┌──────────────────────────┐                 │
 │ │ systemd: cloudflared     │  │ systemd:                 │                 │
@@ -86,7 +89,7 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 │                                          │                                 │
 │ ┌────────────────────────────────────────▼───────────────┐                 │
 │ │ systemd: affiliate-ai-scheduler                        │                 │
-│ │ Bun + croner — runs 11 cron jobs                       │                 │
+│ │ Bun + croner — รัน 11 cron jobs                        │                 │
 │ │                                                        │                 │
 │ │  scrapeTrending  promoHunter   autoPublish             │                 │
 │ │  learning        engagement    sourceHealth            │                 │
@@ -95,20 +98,20 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 │                       │                                                    │
 │ ┌─────────────────────▼──────────────────────────────────┐                 │
 │ │ systemd: postgresql.service  (Postgres 16)             │                 │
-│ │ localhost:5432 ONLY · 16 tables                        │                 │
+│ │ localhost:5432 เท่านั้น · 16 tables                     │                 │
 │ │  products, product_prices, content_variants,           │                 │
 │ │  affiliate_links, clicks, promo_events,                │                 │
 │ │  scraper_runs, generation_runs, ...                    │                 │
 │ └────────────────────────────────────────────────────────┘                 │
 └─────────────────────┬──────────────────────────────────────────────────────┘
-                      │ outbound HTTPS only (no inbound except SSH)
+                      │ outbound HTTPS เท่านั้น (ไม่มี inbound ยกเว้น SSH)
                       ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                         EXTERNAL SERVICES                                  │
 │                                                                            │
 │  Apify         ────  Shopee scraper (residential proxy)                    │
-│  Anthropic     ────  Claude Haiku/Sonnet (translations + variants)         │
-│  Cloudflare    ────  Pages deploy via wrangler                             │
+│  Anthropic     ────  Claude Haiku/Sonnet (แปลภาษา + variants)              │
+│  Cloudflare    ────  Pages deploy ผ่าน wrangler                            │
 │  Shopee        ────  shp.ee/xxx mint API (commission tracking)             │
 │  Meta Graph    ────  FB Page + IG Business posting                         │
 │  TikTok        ────  Content Posting API                                   │
@@ -122,76 +125,76 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 
 ```
                        ┌─────────────────────────────────┐
-                       │  CRON: scrapeTrending           │ 4×/day
+                       │  CRON: scrapeTrending           │ 4 ครั้ง/วัน
                        │  pickKeywordsWeighted (M9)      │
                        └────────────────┬────────────────┘
                                         │
                        ┌────────────────▼────────────────┐
                        │  Apify Shopee actor             │
-                       │  → 4 keywords × 15 products     │
+                       │  → 4 keywords × 15 สินค้า        │
                        └────────────────┬────────────────┘
                                         │
                        ┌────────────────▼────────────────┐
                        │  upsertProduct (M1 persist)     │
                        │  → products + product_prices    │
-                       │  → niche tag from keyword       │
-                       │  → auto-create web /go link     │
+                       │  → tag niche จาก keyword        │
+                       │  → สร้าง /go affiliate link      │
                        └────┬──────────────────────┬─────┘
                             │                      │
         ┌───────────────────┘                      └────────────┐
         ▼                                                       ▼
   ┌──────────────────────┐                       ┌──────────────────────────┐
-  │ scheduleSiteRebuild  │ debounce 5 min        │ promoHunter (every 30m)  │
-  │ (per scrape success) │                       │ price_drop / discount /  │
+  │ scheduleSiteRebuild  │ debounce 5 นาที       │ promoHunter (ทุก 30 นาที)│
+  │ (หลัง scrape สำเร็จ)  │                       │ price_drop / discount /  │
   └──────────┬───────────┘                       │ new_low / sold_surge     │
              │                                   └──────────┬───────────────┘
              ▼                                              │
   ┌──────────────────────────┐                              ▼
   │ buildSite()              │             ┌────────────────────────────────┐
-  │ 850 HTML in 250ms        │             │ promoTrigger (chained)         │
+  │ 850 HTML ใน 250ms        │             │ promoTrigger (ตามมา)           │
   │ + theme.css + sitemap    │             │ → generateVariants() force     │
-  │ + search-index×4         │             │ → 6 variants (FB+IG × 3 angles)│
-  └──────────┬───────────────┘             │ → Quality Gate (6 layers)      │
+  │ + search-index×4         │             │ → 6 variants (FB+IG × 3 มุม)   │
+  └──────────┬───────────────┘             │ → Quality Gate (6 ชั้น)        │
              ▼                             │ → save content_variants        │
   ┌──────────────────────────┐             └──────────┬─────────────────────┘
   │ deploy → CF Pages        │                        │
   │ (wrangler bunx)          │                        ▼
   └──────────┬───────────────┘          ┌──────────────────────────────────┐
-             ▼                          │ autoPublish (every 30m, 8AM-10PM)│
-  ┌──────────────────────────┐          │ per channel:                     │
-  │ pingAllEngines           │          │  - daily-cap check (5/5/3)       │
-  │ IndexNow + Google + Bing │          │  - pick: promo events first      │
-  └──────────────────────────┘          │    then top final_score          │
-             │                          │  - bandit (M3) picks variant     │
-             ▼                          │  - random delay 30–300s          │
+             ▼                          │ autoPublish (ทุก 30 นาที, 8AM-10PM)│
+  ┌──────────────────────────┐          │ ต่อช่อง:                          │
+  │ pingAllEngines           │          │  - check daily cap (5/5/3)        │
+  │ IndexNow + Google + Bing │          │  - เลือก: promo events ก่อน      │
+  └──────────────────────────┘          │    แล้วตาม final_score           │
+             │                          │  - bandit (M3) เลือก variant     │
+             ▼                          │  - random delay 30–300 วินาที    │
   ┌──────────────────────────┐          │  - publishToFB/IG/TikTok         │
   │ your-domain LIVE         │          └──────────┬───────────────────────┘
   │ users browse pages       │                     │
   └──────────┬───────────────┘                     ▼
-             │ user clicks "View on Shopee" ┌────────────────────┐
+             │ user คลิก "ดูใน Shopee"      ┌────────────────────┐
              ▼                              │ social posts LIVE  │
   ┌──────────────────────────────────┐      │ FB / IG / TikTok   │
   │ Pages Function /go/[id]          │      └──────┬─────────────┘
-  │ → CF Tunnel api.<your-domain>    │             │ users see post
-  │ → droplet redirect-server :3001  │             ▼ click affiliate link
+  │ → CF Tunnel api.<your-domain>    │             │ user เห็น post
+  │ → droplet redirect-server :3001  │             ▼ คลิก affiliate link
   │ → DB log click (clicks table)    │   ┌─────────────────────────┐
-  │ → 302 to shp.ee/xxx              │   │ engagementTracker       │
-  │   (or direct Shopee fallback)    │   │ every 2h: pull FB/IG    │
+  │ → 302 ไป shp.ee/xxx              │   │ engagementTracker       │
+  │   (หรือ Shopee URL ปกติ)         │   │ ทุก 2 ชม: ดึง FB/IG     │
   └──────────┬───────────────────────┘   │ insights → post_metrics │
              ▼                           └────────┬────────────────┘
   ┌──────────────────────────┐                    │
-  │ user lands on Shopee     │                    ▼
+  │ user ไปถึง Shopee        │                    ▼
   │ → COMMISSION TRACKED     │         ┌─────────────────────────┐
-  │   (when SHOPEE_API_KEY   │         │ learningOptimizer (M9)  │
-  │    is configured)        │         │ nightly 03:00:          │
+  │   (ตอนที่ตั้ง             │         │ learningOptimizer (M9)  │
+  │    SHOPEE_API_KEY แล้ว)  │         │ ทุกคืน 03:00:           │
   └──────────────────────────┘         │  - aggregate CTR        │
                                        │  - Wilson LB cleanup    │
                                        │  - niche budget rebal   │
-                                       │  - write insights       │
+                                       │  - เขียน insights       │
                                        └────────┬────────────────┘
                                                 │
-                                                └──► back to scrape (next day)
-                                                     weighted by performance
+                                                └──► กลับไป scrape (วันถัดไป)
+                                                     ถ่วงน้ำหนักตามผลที่ได้
 ```
 
 ### 3. Module map (9 V2 pillars)
@@ -201,7 +204,7 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 │                       M0  OPERATIONS  (cron orchestrator)                  │
 │   scheduler/  monitoring/source-health  monitoring/daily-report            │
 │           ▲                                                                │
-│           │ schedules everything                                           │
+│           │ schedule ทุกอย่าง                                               │
 └───────────┼────────────────────────────────────────────────────────────────┘
             │
    ┌────────┼────────┬────────────┬─────────────┬────────────┬─────────────┐
@@ -221,39 +224,39 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
        │  shops · categories · published_posts · post_metrics · alerts        │
        └────────┬─────────────────────────────────────────────────────────────┘
                 │
-                │ reads aggregated stats
+                │ อ่าน aggregated stats
                 ▼
        ┌─────────────────────────────────────┐
-       │  M9  LEARNING OPTIMIZER             │ nightly
+       │  M9  LEARNING OPTIMIZER             │ ทุกคืน
        │  + Niche budget rebalancer          │
        │                                     │
-       │  • Wilson LB → deactivate losers    │
-       │  • Insights row per scope/dimension │
-       │  • Updates pickKeywordsWeighted     │
+       │  • Wilson LB → ปิดตัวที่ underperform│
+       │  • Insights row ต่อ scope/dimension │
+       │  • Update pickKeywordsWeighted      │
        └────────────┬────────────────────────┘
                     │
-                    │ feeds back into M3 (variant pick) + M1 (scrape budget)
-                    └────────► closes the loop
+                    │ feedback ไป M3 (variant pick) + M1 (scrape budget)
+                    └────────► ปิด loop
 
 
-  M8  ATTRIBUTION  (orthogonal — runs in user-click path)
+  M8  ATTRIBUTION  (orthogonal — ทำงานในเส้นทาง user-click)
   ┌──────────────────────────────────────────┐
   │  CF Pages Function → Tunnel → Bun        │
   │  /go/<shortId> → log click → 302 Shopee  │
   │                                          │
   │  Shopee Open Affiliate API integration   │
   │  → mint shp.ee/xxx links                 │
-  │  → commission credited                   │
+  │  → commission ติดตามได้                  │
   └──────────────────────────────────────────┘
                     │
-                    │ click counts feed M3 bandit (clicks → α/β)
-                    │ click counts feed M9 (niche rebalancer)
-                    └────────► reinforces the loop
+                    │ click counts → M3 bandit (clicks → α/β)
+                    │ click counts → M9 (niche rebalancer)
+                    └────────► เสริม loop
 ```
 
 ### 4. Module → file mapping
 
-| Module | Status | Files | Lines |
+| Module | สถานะ | Files | Lines |
 |---|---|---|---|
 | **M0** Operations | ✅ live | `src/scheduler/`, `src/monitoring/` | ~1,000 |
 | **M1** Source — Shopee | ✅ live | `src/scraper/shopee/` | ~700 |
@@ -272,66 +275,68 @@ This is the whole pipeline, with all the boring infrastructure that makes it act
 | **Web** Site builder | ✅ live | `src/web/` (templates + builder + deploy) | ~2,000 |
 | **DB** schema | ✅ live | `src/db/schema.ts` (16 tables) + `src/db/migrations/` (10 SQL) | ~700 |
 
-**Total: ~12,000 lines TypeScript across 67 files.**
+**รวม: ~12,000 บรรทัด TypeScript ใน 67 ไฟล์**
 
-### 5. Cron jobs (11 jobs)
+### 5. Cron jobs (11 jobs ที่รันต่อเนื่อง)
 
-| Job | Schedule | What it does |
+| Job | Schedule | ทำอะไร |
 |---|---|---|
-| `healthCheck` | `*/5 * * * *` | DB ping, log status |
+| `healthCheck` | `*/5 * * * *` | DB ping + log status |
 | `scrapeTrending` | `0 8,13,19,22 * * *` BKK | Apify Shopee scrape, weighted niche selection (M9) |
-| `scrapeTikTokShop` | `30 9,15,21 * * *` BKK | TikTok Shop scrape (no-op until actor id set) |
-| `learningOptimizer` | `0 3 * * *` BKK | Wilson-LB underperformer cleanup, niche click rollup |
-| `promoHunter` | `*/30 * * * *` | Detect promos → trigger variant gen |
-| `autoPublish` | `10,40 8-22 * * *` BKK | Pick best variant per channel, publish (rate-limited) |
-| `engagementTracker` | `0 */2 * * *` | Pull FB/IG insights into post_metrics |
-| `sourceHealth` | `15 * * * *` | Detect stale/degraded scrapers, raise alerts |
-| `backfillTranslations` | `*/45 * * * *` | Translate products missing EN/ZH/JA |
-| `dailyReport` | `0 8 * * *` BKK | Email operator yesterday's stats |
-| `shopeeVideoDigest` | `0 10 * * *` BKK | Email upload backlog (Shopee has no posting API) |
+| `scrapeTikTokShop` | `30 9,15,21 * * *` BKK | TikTok Shop scrape (no-op จนกว่าจะตั้ง actor id) |
+| `learningOptimizer` | `0 3 * * *` BKK | Wilson-LB cleanup + niche click rollup |
+| `promoHunter` | `*/30 * * * *` | ตรวจจับ promos → trigger variant gen |
+| `autoPublish` | `10,40 8-22 * * *` BKK | เลือก variant ดีที่สุดต่อช่อง, post (rate-limited) |
+| `engagementTracker` | `0 */2 * * *` | ดึง FB/IG insights ลง post_metrics |
+| `sourceHealth` | `15 * * * *` | ตรวจ scraper ที่ stale/degraded → alerts |
+| `backfillTranslations` | `*/45 * * * *` | แปลสินค้าที่ขาด EN/ZH/JA |
+| `dailyReport` | `0 8 * * *` BKK | Email สรุปรายวันให้ operator |
+| `shopeeVideoDigest` | `0 10 * * *` BKK | Email upload backlog (Shopee ไม่มี posting API) |
+
+ค่าใช้จ่ายต่อวันที่ scale ปัจจุบัน: **LLM < $1/วัน**, **Apify < $0.50/วัน**
 
 ### 6. Data flow → table touch matrix
 
-| Table | Written by | Read by |
+| Table | เขียนโดย | อ่านโดย |
 |---|---|---|
 | `products` | M1 scrape | M2 score, M4 content gen, web builder, M9 learning |
-| `product_prices` | M1 (every scrape) | M6 promo hunter (sparkline on detail page) |
+| `product_prices` | M1 (ทุก scrape) | M6 promo hunter (sparkline ในหน้า detail) |
 | `content_variants` | M4 generator | M3 bandit pick, M5 publisher |
-| `affiliate_links` | M4 (one per variant) | M8 click handler, web CTA buttons |
+| `affiliate_links` | M4 (1 ต่อ variant) | M8 click handler, web CTA buttons |
 | `clicks` | M8 redirect server | M3 bandit (α update), M9 niche rebalancer |
 | `promo_events` | M6 hunter | M4 promo trigger, M5 autoPublish (priority pick) |
 | `published_posts` | M5 publisher | M7 engagement tracker, M9 learning |
 | `post_metrics` | M7 tracker | M9 learning |
 | `insights` | M9 nightly | Daily report, future bandit V2 |
-| `scraper_runs` | M1 (every run) | M0 source-health, daily report |
-| `generation_runs` | claude.ts (every LLM call) | Budget gate, daily report |
+| `scraper_runs` | M1 (ทุก run) | M0 source-health, daily report |
+| `generation_runs` | claude.ts (ทุก LLM call) | Budget gate, daily report |
 
-### 7. Design decisions (the *why*)
+### 7. Design decisions (เหตุผลที่เลือก)
 
-**Why Bun instead of Node?**
-Native TypeScript without transpilation step · ~3× faster cold start · Single binary · Native dotenv loading
+**ทำไมเลือก Bun แทน Node?**
+TypeScript native ไม่ต้อง transpile · cold start เร็ว ~3 เท่า · single binary · โหลด dotenv ในตัว
 
-**Why Postgres self-host instead of managed?**
-Localhost = zero network latency · $0 marginal cost vs $15-30/mo managed · Drizzle handles migrations cleanly
+**ทำไม Postgres self-host แทนใช้ managed?**
+Localhost = network latency เป็น 0 · ค่าใช้จ่าย $0 vs $15-30/เดือน managed · Drizzle จัดการ migration เรียบ
 
-**Why static HTML instead of Astro/Next/etc.?**
-250ms full rebuild for 850 pages — no framework runtime overhead · One language across server + builder + Cloudflare Function · CDN serves from edge cache infinitely
+**ทำไมใช้ static HTML แทน Astro/Next?**
+Build 850 หน้าใน 250ms — ไม่มี framework runtime overhead · ภาษาเดียวข้าม server + builder + Cloudflare Function · CDN cache infinite scale
 
-**Why Cloudflare Pages + Functions + Tunnel?**
-All three under one account = no glue code · Pages: free CDN, infinite scale · Functions: 100k req/day free, perfect for /go/<id> · Tunnel: encrypted reverse proxy without opening droplet ports
+**ทำไม Cloudflare Pages + Functions + Tunnel?**
+ทุกอย่างใต้ account เดียว = ไม่ต้องเขียน glue code · Pages: free CDN, infinite scale · Functions: ฟรี 100k req/วัน เหมาะ /go/<id> · Tunnel: encrypted reverse proxy โดยไม่เปิด port
 
-**Why Apify for Shopee?**
-Verified path through Shopee's bot defenses (SOAX, IPRoyal, Scrapfly, Playwright all failed) · Residential TH proxies built-in · ~$0.50/day at our scale
+**ทำไม Apify สำหรับ Shopee?**
+Verified ผ่าน bot defense ของ Shopee (SOAX, IPRoyal, Scrapfly, Playwright fail หมด) · มี residential TH proxy ในตัว · ~$0.50/วันที่ scale ของเรา
 
-**Why Thompson Sampling for variant selection?**
-Self-balances explore/exploit without hyperparameter tuning · Conjugate Beta-Binomial = closed-form posterior · Cold-start: uniform Beta(1,1) prior gives equal chance until evidence accumulates
+**ทำไม Thompson Sampling สำหรับเลือก variant?**
+Self-balance explore/exploit ไม่ต้อง tune hyperparameter · Conjugate Beta-Binomial = closed-form posterior · Cold-start: uniform Beta(1,1) prior ให้ทุก variant โอกาสเท่ากันจน evidence สะสม
 
-**Why translate at scrape time, not request time?**
-SEO: search engines see real translated content (better ranking than runtime translation) · Latency: zero client-side cost · Cost: translate-once-cache pattern, idempotent on `translations` JSONB
+**ทำไมแปลตอน scrape ไม่ใช่ตอน request?**
+SEO: search engines เห็นเนื้อหาแปลแล้ว (rank ดีกว่า runtime translation) · Latency: client-side cost = 0 · Cost: translate-once-cache pattern, idempotent บน `translations` JSONB
 
 ---
 
-## Quick start
+## 🚀 เริ่มต้น (Quick start)
 
 ```bash
 # 1. Clone + install
@@ -342,14 +347,14 @@ bun install
 # 2. Configure
 cp .env.example .env
 chmod 600 .env
-$EDITOR .env   # see docs/SETUP.md for what each var means
+$EDITOR .env   # ดู docs/SETUP.md ว่าแต่ละ var คืออะไร
 
 # 3. Database
 sudo bash scripts/setup-postgres.sh
 bun run db:push
 
 # 4. Smoke test
-bun run scrape:once "your-keyword" 5
+bun run scrape:once "หูฟัง" 5
 bun run build:site
 
 # 5. Production install (systemd)
@@ -357,59 +362,59 @@ sudo cp deploy/systemd/*.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now affiliate-ai-scheduler affiliate-ai-redirect
 
-# 6. Cloudflare Tunnel for click tracking (one-time)
+# 6. Cloudflare Tunnel สำหรับ click tracking (ครั้งเดียว)
 cloudflared service install <CONNECTOR_TOKEN>
 
-# 7. First deploy
+# 7. Deploy ครั้งแรก
 bun run deploy:site
 ```
 
-Detailed setup walkthrough: [docs/SETUP.md](docs/SETUP.md).
+คู่มือ setup ละเอียด: [docs/SETUP.md](docs/SETUP.md)
 
 ---
 
-## Tech stack
+## 💻 Tech stack
 
-| Layer | Choice | Why |
+| Layer | เลือก | เหตุผล |
 |---|---|---|
-| Runtime | **Bun 1.3+** | Native TypeScript, fast cold start, single binary |
-| Language | **TypeScript** strict | One language across server, scraper, site builder, Cloudflare Functions |
-| Database | **Postgres 16** self-host | Localhost = zero latency, $0 marginal cost |
-| ORM | **Drizzle** | Type-safe, no codegen, easy migrations |
-| LLM | **Anthropic Claude** Haiku 4.5 (bulk) / Sonnet 4.6 (decisions) | Best Thai language, prompt-cache friendly |
-| Scraper | **Apify** `xtracto/shopee-scraper` | Verified path through Shopee's bot defenses |
-| Web | **Static HTML** generated by Bun | No framework runtime, sub-second rebuilds, infinite CDN scale |
-| Edge | **Cloudflare Pages + Functions + Tunnel** | Free CDN + Workers + secure tunnel, all under one CF account |
-| Cron | **croner** in-process | One systemd service runs everything (11 jobs) |
+| Runtime | **Bun 1.3+** | TypeScript native, cold start เร็ว, single binary |
+| Language | **TypeScript** strict | ภาษาเดียวข้าม server, scraper, site builder, Cloudflare Functions |
+| Database | **Postgres 16** self-host | Localhost = latency 0, ไม่มี marginal cost |
+| ORM | **Drizzle** | Type-safe, ไม่ต้อง codegen, migration ง่าย |
+| LLM | **Anthropic Claude** Haiku 4.5 (bulk) / Sonnet 4.6 (decisions) | ภาษาไทยดีที่สุด, prompt-cache เป็นมิตร |
+| Scraper | **Apify** `xtracto/shopee-scraper` | Verified ผ่าน bot defense ของ Shopee |
+| Web | **Static HTML** generated by Bun | ไม่มี framework runtime, sub-second rebuild, CDN scale infinite |
+| Edge | **Cloudflare Pages + Functions + Tunnel** | Free CDN + Workers + secure tunnel ใน account เดียว |
+| Cron | **croner** in-process | systemd service เดียวรัน 11 jobs |
 
 ---
 
-## Documentation map
+## 📚 Documentation map
 
-| If you want to... | Read |
+| ถ้าคุณต้องการ... | อ่าน |
 |---|---|
-| See every feature with examples | [docs/FEATURES.md](docs/FEATURES.md) |
-| Get it running on your own droplet | [docs/SETUP.md](docs/SETUP.md) |
-| Understand env vars + API keys needed | [docs/env-setup.md](docs/env-setup.md) |
-| Activate marketing channels (FB/IG/TikTok) after onboarding | [docs/ACTIVATION.md](docs/ACTIVATION.md) |
-| Read deep production notes (gotchas, costs, risks) | [docs/HANDOFF.md](docs/HANDOFF.md) |
+| ดู feature ทั้งหมดพร้อมตัวอย่าง | [docs/FEATURES.md](docs/FEATURES.md) |
+| ติดตั้งบน droplet ของตัวเอง | [docs/SETUP.md](docs/SETUP.md) |
+| เข้าใจ env vars + API keys ที่ต้องการ | [docs/env-setup.md](docs/env-setup.md) |
+| Activate ช่อง marketing (FB/IG/TikTok) หลังติดตั้งเสร็จ | [docs/ACTIVATION.md](docs/ACTIVATION.md) |
+| อ่าน production notes ลึก (gotchas, costs, risks) | [docs/HANDOFF.md](docs/HANDOFF.md) |
 | Contribute | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| Report security issues | [SECURITY.md](SECURITY.md) |
+| รายงาน security issues | [SECURITY.md](SECURITY.md) |
 
 ---
 
-## License
+## 📝 License
 
-[MIT](LICENSE) — use it, fork it, ship it. Attribution appreciated but not required.
+[MIT](LICENSE) — เอาไปใช้, fork, ship ได้เลย. Attribution ขอบคุณ แต่ไม่บังคับ
 
-## Disclaimer
+## ⚖️ Disclaimer
 
-This is engineering reference code. **You are responsible for compliance**:
+Code นี้เป็น **engineering reference** — **คุณรับผิดชอบเรื่อง compliance เอง**:
 
-- Shopee Affiliate Program **Terms of Service**
-- Meta Platform **Terms** (Facebook + Instagram posting policies)
-- TikTok **Community Guidelines** + Content Posting API ToS
-- Thai consumer protection law (อย. + สคบ.) — the Quality Gate's forbidden-words list is a starting point, not a legal guarantee
-- Personal data: this system hashes IP + User-Agent before storing clicks, but check your local law (PDPA / GDPR / equivalent)
+- **Shopee Affiliate Program Terms of Service**
+- **Meta Platform Terms** (Facebook + Instagram posting policies)
+- **TikTok Community Guidelines** + Content Posting API ToS
+- **กฎหมายไทย** (อย. + สคบ.) — Quality Gate's forbidden-words list เป็นจุดเริ่มต้น ไม่ใช่ legal guarantee
+- **Personal data**: ระบบ hash IP + User-Agent ก่อนเก็บ click แต่ check กฎหมายท้องถิ่นเอง (PDPA / GDPR / equivalent)
 
-The maintainers ship code, not legal advice.
+Maintainer ส่งมอบ code ไม่ใช่ legal advice
